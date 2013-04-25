@@ -79,7 +79,8 @@ at that speed, and the remaining mutators also participate in the
 animation queue.  Note that when using predicates such as
 touches(), queuing will mess up the logic because the predicate
 will not queue.  When making a game with hit testing,
-$.fx.speed.turtle should be set to 0.
+$.fx.speed.turtle should be set to 0 so that movement is
+synchronous and instantaneous.
 
 Turtle Teaching Environment
 ---------------------------
