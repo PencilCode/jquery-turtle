@@ -262,7 +262,7 @@ function decomposeSVD(m) {
 function getElementTranslation(elem) {
   var ts = readTurtleTransform(elem, false);
   if (ts) { return [ts.tx, ts.ty]; }
-  var m = readTransformationMatrix(elem);
+  var m = readTransformMatrix(elem);
   if (m) { return [m[4], m[5]]; }
   return [0, 0];
 }
@@ -276,7 +276,7 @@ function readTransformMatrix(elem) {
     return null;
   }
   // Quick exit on the explicit matrix() case:
-  var e =/^matrix\(([\-+.\d]+),\s*([\-+.\d]+),\s*([\-+.\d]+),\s*([\-+.\d]+),\s*([\-+.\d]+)(?:px)?,\s*([\-+.\d]+)(?:px)?\)$/.exec(ts);
+  var e =/^matrix\(([\-+.\de]+),\s*([\-+.\de]+),\s*([\-+.\de]+),\s*([\-+.\de]+),\s*([\-+.\de]+)(?:px)?,\s*([\-+.\de]+)(?:px)?\)$/.exec(ts);
   if (e) {
     return [parseFloat(e[1]), parseFloat(e[2]), parseFloat(e[3]),
             parseFloat(e[4]), parseFloat(e[5]), parseFloat(e[6])];
@@ -289,11 +289,10 @@ function readTransformMatrix(elem) {
 function readTransformOrigin(elem, wh) {
   var origin = (window.getComputedStyle ?
       window.getComputedStyle(elem)[transformOrigin] :
-      $.css(elem, 'transformOrigin')),
-      computed = origin || [wh[0] / 2, wh[1] / 2];
-  if (origin) {
-    return $.map(origin.split(' '), parseFloat);
-  }
+      $.css(elem, 'transformOrigin'));
+  return origin && origin.indexOf('%') < 0 ?
+      $.map(origin.split(' '), parseFloat) :
+      [wh[0] / 2, wh[1] / 2];
 }
 
 // Composes all the 2x2 transforms up to the top.
@@ -314,13 +313,13 @@ function transformStyleAsMatrix(transformStyle) {
   // Deal with arbitrary transforms:
   var result = [1, 0, 0, 1], ops = [], args = [],
       pat = /(?:^\s*|)(\w*)\s*\(([^)]*)\)\s*/g,
-      unknown = transforStyle.replace(pat, function(m) {
+      unknown = transformStyle.replace(pat, function(m) {
         ops.push(m[1].toLowerCase());
         args.push($.map(m[2].split(','), function(s) {
           var v = s.trim().toLowerCase();
           return {
             num: parseFloat(v),
-            unit: v.replace(/^[+-.\d]*/, '')
+            unit: v.replace(/^[+-.\de]*/, '')
           };
         }));
         return '';
@@ -429,6 +428,35 @@ function getStraightRectLTWH(x0, y0, w, h) {
   ];
 }
 
+function cleanedStyle(trans) {
+  // Work around FF bug: the browser generates CSS transforms with nums
+  // with exponents like 1e-6px that are not allowed by the CSS spec.
+  // And yet it doesn't accept them when set back into the style object.
+  // So $.swap doesn't work in these cases.  Therefore, we have a cleanedSwap
+  // that cleans these numbers before setting them back.
+  if (!/e[\-+]/.exec(trans)) {
+    return trans;
+  }
+  var result = trans.replace(/(?:\d+(?:\.\d*)?|\.\d+)e[\-+]\d+/g, function(e) {
+    return cssNum(parseFloat(e)); });
+  return result;
+}
+
+function cleanSwap(elem, options, callback, args) {
+  var ret, name, old = {};
+	// Remember the old values, and insert the new ones
+	for (name in options) {
+    old[name] = elem.style[name];
+		elem.style[name] = options[name];
+	}
+  ret = callback.apply(elem, args || []);
+  // Revert the old values
+	for (name in options) {
+		elem.style[name] = cleanedStyle(old[name]);
+	}
+  return ret;
+}
+
 // Temporarily eliminate transform (but reverse parent distortions)
 // to get origin position; then calculate displacement needed to move
 // turtle to target coordinates (again reversing parent distortions
@@ -483,15 +511,17 @@ function getCenterInPageCoordinates(elem) {
       hidden = ($.css(elem, 'display') === 'none'),
       swapout = hidden ?
         { position: "absolute", visibility: "hidden", display: "block" } : {},
-      substTransform = swapout[transform] = (inverseParent ? 'matrix(' +
+      st = swapout[transform] = (inverseParent ? 'matrix(' +
           $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
-      origin_gbcr = $.swap(elem, swapout, function() {
+      substTransform = (st == 'matrix(1, 0, 0, 1, 0, 0)') ? 'none' : st;
+      saved = elem.style[transform],
+      gbcr = cleanSwap(elem, swapout, function() {
         return elem.getBoundingClientRect();
       }),
-      middle = readTransformOrigin(elem,
-          [origin_gbcr.width, origin_gbcr.height]),
-      origin = addVector([origin_gbcr.left, origin_gbcr.top], middle),
+      middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
+      origin = addVector([gbcr.left, gbcr.top], middle),
       pos = addVector(matrixVectorProduct(totalParentTransform, tr), origin);
+  console.log(totalParentTransform, tr, gbcr, origin);
   return {
     pageX: pos[0],
     pageY: pos[1]
@@ -782,7 +812,9 @@ function parseTurtleTransform(transform) {
   if (transform === 'none') {
     return {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0};
   }
-  var e = /^(?:translate\(([\-+.\d]+)(?:px)?,\s*([\-+.\d]+)(?:px)?\)\s*)?(?:rotate\(([\-+.\d]+)(?:deg)?\)\s*)?(?:scale\(([\-+.\d]+)(?:,\s*([\-+.\d]+))?\)\s*)?(?:rotate\(([\-+.\d]+)(?:deg)?\)\s*)?$/.exec(transform);
+  // Note that although the CSS spec doesn't allow 'e' in numbers, IE10
+  // and FF put them in there; so allow them.
+  var e = /^(?:translate\(([\-+.\de]+)(?:px)?,\s*([\-+.\de]+)(?:px)?\)\s*)?(?:rotate\(([\-+.\de]+)(?:deg)?\)\s*)?(?:scale\(([\-+.\de]+)(?:,\s*([\-+.\de]+))?\)\s*)?(?:rotate\(([\-+.\de]+)(?:deg)?\)\s*)?$/.exec(transform);
   if (!e) { return null; }
   var tx = e[1] ? parseFloat(e[1]) : 0,
       ty = e[2] ? parseFloat(e[2]) : 0,
@@ -1007,6 +1039,11 @@ function flushPenState(elem) {
     return;
   }
   var center = getCenterInPageCoordinates(elem);
+  if (elem.tagName == 'IMG' && !elem.complete) {
+    // Once the pen is down, the origin needs to be stable when the image
+    // loads.
+    watchImageToFixOriginOnLoad(elem);
+  }
   if (!state.path.length ||
       !isPointNearby(center, state.path[state.path.length - 1])) {
     state.path.push(center);
@@ -1364,9 +1401,6 @@ var turtlefn = {
           return;
         }
         setCenterInPageCoordinates(elem, pos, limit);
-        if (elem.tagName == 'IMG' && !elem.complete) {
-          watchImageToFixOriginOnLoad(elem);
-        }
         flushPenState(elem);
         if (inqueue) { $.dequeue(elem); }
       }
