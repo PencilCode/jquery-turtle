@@ -92,7 +92,7 @@ After $.turtle():
   * An &lt;img id="turtle"&gt; is created if #turtle doesn't already exist.
   * An eval debugging panel (see.js) is shown at the bottom of the screen.
   * Turtle methods on the default turtle are packaged as globals, e.g., fd(10).
-  * Every #id element is turned into a global variable, window.id = $('#id').
+  * Every #id element is turned into a global variable: window.id = $('#id').
   * Globals are set up to save events: "lastclick", "lastmousemove", etc.
   * speed(movespersec) adjusts $.fx.speeds.turtle in a way suitable for kids.
   * tick([repspersec], fn) is an easier-to-call setInterval.
@@ -101,5 +101,6 @@ After $.turtle():
   * see(a, b, c) logs data into the debugging panel.
 
 The turtle teaching environment is designed to work well with either
-Javascript or CoffeeScript.
+Javascript or CoffeeScript.  In CoffeeScript it can almost be mistaken
+for a modernized version of LOGO.
 
