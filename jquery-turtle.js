@@ -4,7 +4,7 @@
 jQuery-turtle
 =============
 
-version 2.0
+version 2.0.0
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
