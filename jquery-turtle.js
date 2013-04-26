@@ -1725,12 +1725,11 @@ $.turtle = function turtle(id, options) {
   // Set up global speed function and set a default speed.
   if (!options.hasOwnProperty('tick') || options.tick) {
     window.speed = speed;
-    speed(10);
+    speed(1);
   }
   // Set up global hatch function.
   if (!options.hasOwnProperty('hatch') || options.hatch) {
     window.hatch = hatch;
-    speed(10);
   }
   // Find or create a turtle if one does not exist.
   var selector = null;
