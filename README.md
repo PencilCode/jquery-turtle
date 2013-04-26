@@ -10,7 +10,7 @@ moved using LOGO-inspired turtle methods like fd, bk, rt, and lt.
 <pre>
   $('#myelt').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
 </pre>
-The plugin also provides functions to help for in a rotated,
+The plugin also provides functions to help in a rotated,
 scaled, and transformed world where nested elements may be
 transformed: hit testing and collision testing, absolute
 positioning and absolute direction reading and setting.
@@ -47,7 +47,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).bg('pink')   // Shorthand for css("background", "pink")
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
-  $(x).scale(1.5)   // Scales the element up to 150% size..
+  $(x).scale(1.5)   // Scales the element up to 150% size.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its direction axis.
   $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
