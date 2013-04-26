@@ -1,0 +1,32 @@
+{
+    "name": "turtle",
+    "title": "jQuery Turtle",
+    "description": "jQuery plugin turtle graphics support.  Every element can be used as a turtle.",
+    "keywords": [
+        "turtle",
+        "education",
+        "transform",
+        "canvas",
+        "animation",
+        "rotate",
+        "game",
+        "collision"
+    ],
+    "version": "2.0.0",
+    "author": {
+        "name": "David Bau",
+        "url": "http://davidbau.com/"
+    },
+    "licenses": [
+        {
+            "type": "MIT",
+            "url": "https://github.com/davidbau/jquery-turtle/blob/master/LICENSE.txt"
+        }
+    ],
+    "bugs": "https://github.com/davidbau/jquery-turtle/issues",
+    "homepage": "https://github.com/davidbau/jquery-turtle",
+    "docs": "https://github.com/davidbau/jquery-turtle",
+    "dependencies": {
+        "jquery": ">=1.5"
+    }
+}

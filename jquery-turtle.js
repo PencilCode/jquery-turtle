@@ -10,28 +10,24 @@ jQuery-turtle is a jQuery plugin for turtle graphics.
 
 With jQuery-turtle, every DOM element is a turtle that can be
 moved using LOGO-inspired turtle methods like fd, bk, rt, and lt.
-
-The main feature is a set of turtle movement methods that let
-you write code like this:
 <pre>
   $('#myelt').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
 </pre>
-The functions also include help for managing rotated and scaled
-geometry with absolute coordinates: hit testing and collision
-testing, absolute positioning and absolute direction reading
-and setting.
+The plugin also provides functions to help for in a rotated,
+scaled, and transformed world where nested elements may be
+transformed: hit testing and collision testing, absolute
+positioning and absolute direction reading and setting.
 
-The plugin also provides low-level CSS hook for synthetic CSS
+The plugin sets up low-level CSS hooks for synthetic CSS
 properties that can be animated or used to directly manipulate
 turtle geometry at a basic mathematical level.  Under the covers,
 CSS3 2D transforms and jQuery animations are used to execute
-turtle movement and decompose arbitrary 2d transform.  That is
-why jQuery-turtle interacts well with other jQuery animations
-or programs that may manipulate 2D CSS3 transforms directly.
+and store turtle movement.  So jQuery-turtle interacts well with
+other jQuery animations or direct uses of 2D CSS3 transforms.
 
-The highest level of functionality is enabled by $.turtle(),
-which creates a set of functions and global objects designed
-as a teaching environment for beginners.  These include a default
+A high-level educational environment is enabled by $.turtle().
+That call creates a set of global objects and functions designed
+as a teaching tool for beginners.  These include a default
 turtle and global functions to control it; an onpage debugger
 panel; jQuery instances for every object with an #id; simplified
 globals to access recent mouse and keyboard events, and simplified
