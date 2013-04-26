@@ -1,45 +1,55 @@
 (function($) {
 /* jQuery-turtle version 2.0.
 
+jQuery-turtle
+=============
+
+version 2.0
+
 jQuery-turtle is a jQuery plugin that provides turtle graphics.
-It is designed to provide easy access to advanced geometry for
-students who are learning: it handles the math of 2d transforms,
-usage of canvas, and accurate hit-testing.
+It provides easy access to advanced geometry, animation, css 3,
+and HTML 5 features for students who are learning: it handles
+the math of 2d transforms, simplifies usage of modern web features,
+and encapsulates computational geometry where needed.
 
-The plugin provides three levels of functionality.  The first two
-levels are cleanly encapsulated and useful for general programming.
-The third level pollutes the global namespace with a few dozen
-functions and other global objects to make concepts easier to learn.
-These global functions are enabled only when you call the function
-$.turtle().
+With jQuery-turtle, every DOM element is a turtle that can be
+moved using fd, bk, rt, and lt.  Under the covers, CSS3 2d
+transforms are used to do the movement, and jQuery-turtle
+interacts well with programs that may manipulate 2d CSS3
+transforms directly.
 
-First:
-Turtle-oriented 2d transform cssHooks, with animation support on all motion:
-  $(x).css('turtlePosition', '30 40');   // position in local coordinates.
-  $(x).css('turtlePositionX', '30');     // x component.
-  $(x).css('turtlePositionY', '40');     // y component.
-  $(x).css('turtleRotation', '90');      // rotation in degrees.
-  $(x).css('turtleScale', '2');          // double the size of any element.
-  $(x).css('turtleScaleX', '2');         // x stretch before rotate after twist.
-  $(x).css('turtleScaleX', '2');         // y stretch before rotate after twist.
-  $(x).css('turtleTwist', '45');         // turn before stretching.
-  $(x).css('turtleDisplacement', '50');  // position in direction of rotation.
-  $(x).css('turtlePen', 'red');          // or 'red lineWidth 2px' etc.
-  $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for hit-testing.
-Arbitrary 2d transforms are supported, including transforms of elements
-nested within other elements that have css transforms. Transforms are
-automatically decomposed to turtle components when necessary.
+The plugin provides three levels of functionality.  The main
+feature is a set of turtle movement methods including fd(pix),
+bk(pixx), rt(deg), lt(deg), pen(clr) that are added to jQuery objects,
+allowing all DOM elements including nested element to be moved
+with turtle geometry while still maintaining a simple relationship
+to global page coordinates for drawing and hit-testing.
 
-Second:
+The lowest level of functionality is a set of CSS hooks that define
+synthetic CSS properties that can be animated or used to directly
+manipulate turtle geometry at a basic mathematical level.
+
+The highest level of functionality is enabled by $.turtle(),
+which creates a set of functions expressly designed for learning
+beginners.  Calling $.turtle() populates the global namespace with a
+handful of functions and other global objects (such as a simplified
+timer, a simplified function to create a new turtle, etc).  These
+are designed to make programming concepts easier to learn.
+
+JQuery Methods for Turtle Movement
+----------------------------------
+
 Turtle-oriented methods taking advantage of the css support:
-  $(x).fd(100)  // Forward relative motion in local coordinates.
-  $(x).bk(50)   // Back.
-  $(x).rt(90)   // Right turn.
-  $(x).lt(45)   // Left turn.
+<pre>
+  $(x).fd(100)      // Forward relative motion in local coordinates.
+  $(x).bk(50)       // Back.
+  $(x).rt(90)       // Right turn.
+  $(x).lt(45)       // Left turn.
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
   $(x).center()     // Page coordinate position of transform-origin.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
   $(x).direction()  // Absolute heading taking into account nested transforms.
+  $(x).scale(1.5)   // Scales the element up by 50%.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its direction axis.
   $(x).shown()      // Shorthand for is(":visible")
@@ -50,20 +60,88 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).erase()      // Erases under the turtle.
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
+</pre>
+When $.fx.speeds.turtle is nonzero (the default is zero unless
+$.turtle() is called), the first four movement functions animate
+at that speed, and the remaining mutators also participate in the
+animation queue.  Note that when using predicates such as
+touches(), queuing will mess up the logic because the predicate
+will not queue, so when making a game with hit testing,
+$.fx.speed.turtle should be set to 0 so that movement is
+synchronous and instantaneous.
 
-Third:
-An optional teaching environment setup invoked by $.turtle() that provides
-easy packaging for the above functionality.  After $.turtle():
-  * an <img id="turtle"> is created if #turtle doesn't already ist.
-  * an eval debugging panel (see.js) is shown at the bottom of the screen.
-  * turtle methods on the default turtle are packaged as globals, e.g., fd(10).
-  * every #id element is turned into a global variable, window.id = $('#id').
-  * globals are set up to save events: "lastclick", "lastmousemove", etc.
-  * speed(movespersec) adjusts $.fx.speeds.turtle in a way suitable for kids.
-  * tick([repspersec], fn) is an easier-to-call setInterval.
-  * random(lessthanthisinteger || array) is an easy alternative to Math.random.
-  * hatch(turtlename) creates another new turtle with another name.
-  * see(a, b, c) logs data into the debugging panel.
+JQuery CSS Hooks for Turtle Geometry
+------------------------------------
+
+Low-level Turtle-oriented 2d transform cssHooks, with animation
+support on all motion:
+<pre>
+  $(x).css('turtlePosition', '30 40');   // position in local coordinates.
+  $(x).css('turtlePositionX', '30');     // x component.
+  $(x).css('turtlePositionY', '40');     // y component.
+  $(x).css('turtleRotation', '90');      // rotation in degrees.
+  $(x).css('turtleScale', '2');          // double the size of any element.
+  $(x).css('turtleScaleX', '2');         // x stretch before rotate after twist.
+  $(x).css('turtleScaleX', '2');         // y stretch before rotate after twist.
+  $(x).css('turtleTwist', '45');         // turn before stretching.
+  $(x).css('turtleDisplacement', '50');  // position in direction of rotation.
+  $(x).css('turtlePen', 'red');          // or 'red lineWidth 2px' etc.
+  $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
+</pre>
+
+Arbitrary 2d transforms are supported, including transforms of elements
+nested within other elements that have css transforms. Transforms are
+automatically decomposed to turtle components when necessary.
+A canvas is supported for drawing, but only created when the pen is
+used; pen styles include canvas style properties such as lineWidth
+and lineCap.  A convex hull polygon can be set to be used by the collision
+detection and hit-testing functions below.
+
+Turtle Teaching Environment
+---------------------------
+
+An optional teaching environment setup is created by $.turtle().
+It provides easy packaging for the above functionality.
+
+After $.turtle():
+  * An &lt;img id="turtle"&gt; is created if #turtle doesn't already exist.
+  * An eval debugging panel (see.js) is shown at the bottom of the screen.
+  * Turtle methods on the default turtle are packaged as globals, e.g., fd(10).
+  * Every #id element is turned into a global variable: window.id = $('#id').
+  * Globals are set up to save events: "lastclick", "lastmousemove", etc.
+  * speed(movesPerSec) adjusts $.fx.speeds.turtle in a way suitable for kids.
+  * Default turtle animation is set to 10 moves per sec so steps can be seen.
+  * tick([ticksPerSec,] fn) is an easier-to-call setInterval.
+  * random(lessThanThisInteger || array) is an easy alternative to Math.random.
+  * hatch() creates and returns a new turtle.
+  * see(a, b, c) logs tree-expandable data into the debugging panel.
+
+The turtle teaching environment is designed to work well with either
+Javascript or CoffeeScript.  The turtle library is especially compelling
+as a teaching tool when used with CoffeeScript.
+
+License (MIT)
+-------------
+
+Copyright (c) 2013 David Bau
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 */
 
@@ -444,23 +522,23 @@ function cleanedStyle(trans) {
 
 function cleanSwap(elem, options, callback, args) {
   var ret, name, old = {};
-	// Remember the old values, and insert the new ones
-	for (name in options) {
+  // Remember the old values, and insert the new ones
+  for (name in options) {
     old[name] = elem.style[name];
-		elem.style[name] = options[name];
-	}
+    elem.style[name] = options[name];
+  }
   ret = callback.apply(elem, args || []);
   // Revert the old values
-	for (name in options) {
-		elem.style[name] = cleanedStyle(old[name]);
-	}
+  for (name in options) {
+    elem.style[name] = cleanedStyle(old[name]);
+  }
   return ret;
 }
 
 // Temporarily eliminate transform (but reverse parent distortions)
 // to get origin position; then calculate displacement needed to move
 // turtle to target coordinates (again reversing parent distortions
-// if possible). 
+// if possible).
 function setCenterInPageCoordinates(elem, target, limit) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
@@ -521,7 +599,6 @@ function getCenterInPageCoordinates(elem) {
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
       origin = addVector([gbcr.left, gbcr.top], middle),
       pos = addVector(matrixVectorProduct(totalParentTransform, tr), origin);
-  console.log(totalParentTransform, tr, gbcr, origin);
   return {
     pageX: pos[0],
     pageY: pos[1]
@@ -564,7 +641,7 @@ function getCornersInPageCoordinates(elem, untransformed) {
       }),
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
       origin = addVector([gbcr.left, gbcr.top], middle),
-      hull = polyToVectorsOffset(readTurtleHull(elem), origin) || [
+      hull = polyToVectorsOffset(getTurtleData(elem).hull, origin) || [
         [gbcr.left, gbcr.top],
         [gbcr.left, gbcr.bottom],
         [gbcr.right, gbcr.bottom],
@@ -773,26 +850,29 @@ function parseTurtleHull(text) {
 }
 
 function readTurtleHull(elem) {
-  return parseTurtleHull(elem.style.turtleHull);
+  return getTurtleData(elem).hull;
 }
 
 function writeTurtleHull(hull) {
   for (var j = 0, result = []; j < hull.length; ++j) {
     result.push(hull[j].pageX, hull[j].pageY);
   }
-  return $.map(result, cssNum).join(' ');
+  return result.length ? $.map(result, cssNum).join(' ') : 'none';
 }
 
 function makeHullHook() {
   return {
     get: function(elem, computed, extra) {
-      return elem.style.turtleHull ||
-          writeTurtleHull(getCornersInPageCoordinates(elem, true));
+      var hull = getTurtleData(elem).hull;
+      return writeTurtleHull(hull ||
+          getCornersInPageCoordinates(elem, true));
     },
     set: function(elem, value) {
-      var parsed = parseTurtleHull(value),
-          hull = convexHull(parsed);
-      elem.style.turtleHull = writeTurtleHull(hull);
+      var hull =
+        !value || value == 'auto' ? null :
+        value == 'none' ? [] :
+        convexHull(parseTurtleHull(value));
+      getTurtleData(elem).hull = hull;
     }
   };
 }
@@ -941,6 +1021,7 @@ function pollbodysize(callback) {
 }
 
 function resizecanvas() {
+  if (!drawing.canvas) return;
   var b = $('body'),
       wh = Math.max(b.height(), window.innerHeight || $(window).height()),
       bw = Math.max(1500, Math.ceil(b.width() / 100) * 100),
@@ -948,7 +1029,7 @@ function resizecanvas() {
       cw = drawing.canvas.width,
       ch = drawing.canvas.height,
       tc;
-  $('#_turtlesurface').css({width: b.width() + 'px', height: wh + 'px'});
+  $('#_turtlesurface').css({ width: b.width() + 'px', height: wh + 'px'});
   if (cw != bw || ch != bh) {
     // Transfer canvas out to tc and back again after resize.
     tc = document.createElement('canvas');
@@ -991,10 +1072,20 @@ function parsePenStyle(text, defaultProp) {
   return result;
 }
 
-function getPenState(elem) {
-  var state = $.data(elem, 'turtlePenData');
+function writePenStyle(style) {
+  if (!style) { return 'none'; }
+  var result = [];
+  $.each(style, function(k, v) {
+    result.push(k);
+    result.push(v);
+  });
+  return result.join(' ');
+}
+
+function getTurtleData(elem) {
+  var state = $.data(elem, 'turtleData');
   if (!state) {
-    state = $.data(elem, 'turtlePenData', { style: null, path: [] });
+    state = $.data(elem, 'turtleData', { style: null, path: [] });
   }
   return state;
 }
@@ -1002,12 +1093,12 @@ function getPenState(elem) {
 function makePenHook() {
   return {
     get: function(elem, computed, extra) {
-      return elem.style.turtlePen;
+      return writePenStyle(getTurtleData(elem).style);
     },
     set: function(elem, value) {
-      elem.style.turtlePen = value;
       var style = parsePenStyle(value, 'strokeStyle');
-      getPenState(elem).style = style;
+      getTurtleData(elem).style = style;
+      elem.style.turtlePen = writePenStyle(style);
       if (style) {
         flushPenState(elem);
       }
@@ -1033,17 +1124,15 @@ function applyPenStyle(ctx, ps) {
 }
 
 function flushPenState(elem) {
-  var state = getPenState(elem);
+  var state = getTurtleData(elem);
   if (!state.style) {
     if (state.path.length) { state.path.length = 0; }
     return;
   }
   var center = getCenterInPageCoordinates(elem);
-  if (elem.tagName == 'IMG' && !elem.complete) {
-    // Once the pen is down, the origin needs to be stable when the image
-    // loads.
-    watchImageToFixOriginOnLoad(elem);
-  }
+  // Once the pen is down, the origin needs to be stable when the image
+  // loads.
+  watchImageToFixOriginOnLoad(elem);
   if (!state.path.length ||
       !isPointNearby(center, state.path[state.path.length - 1])) {
     state.path.push(center);
@@ -1165,6 +1254,7 @@ function makeTurtleHook(prop, normalize, displace) {
     }
   };
 }
+
 function makeRotationStep(prop) {
   return function(fx) {
     if (!fx.delta) {
@@ -1232,7 +1322,8 @@ function makeTurtleXYHook(publicname, propx, propy, displace) {
 }
 
 function watchImageToFixOriginOnLoad(elem) {
-  if ($.data(elem, 'turtleFixingOrigin')) {
+  if (!elem || elem.tagName !== 'IMG' && elem.complete ||
+      $.data(elem, 'turtleFixingOrigin')) {
     return;
   }
   $.data(elem, 'turtleFixingOrigin', true);
@@ -1343,6 +1434,8 @@ var turtlefn = {
       function dodraw() {
         var c = $(elem).center();
         fillDot(c, diameter, ps);
+        // Once drawing begins, origin must be stable.
+        watchImageToFixOriginOnLoad(elem);
         if (inqueue) { $.dequeue(elem); }
       }
       if (inqueue) { q.push(dodraw); } else { dodraw(); }
@@ -1355,6 +1448,8 @@ var turtlefn = {
       var q = $.queue(elem), inqueue = (q && q.length > 0);
       function dodraw() {
         eraseBox(elem, ps);
+        // Once drawing begins, origin must be stable.
+        watchImageToFixOriginOnLoad(elem);
         if (inqueue) { $.dequeue(elem); }
       }
       if (inqueue) { q.push(dodraw); } else { dodraw(); }
@@ -1401,6 +1496,8 @@ var turtlefn = {
           return;
         }
         setCenterInPageCoordinates(elem, pos, limit);
+        // moveto implies a request for a stable origin.
+        watchImageToFixOriginOnLoad(elem);
         flushPenState(elem);
         if (inqueue) { $.dequeue(elem); }
       }
@@ -1461,6 +1558,22 @@ var turtlefn = {
       var q = $.queue(elem), inqueue = (q && q.length > 0);
       function domove() {
         $.style(elem, 'turtleTwist', val);
+        if (inqueue) { $.dequeue(elem); }
+      }
+      if (inqueue) { q.push(domove); } else { domove(); }
+    });
+  },
+  scale: function(valx, valy) {
+    if (typeof valx === 'undefined' && typeof valy === 'undefined') {
+      return parseFloat(this.css('turtleTwist'));
+    }
+    var val = '' + cssNum(valx) +
+        (typeof valy === 'undefined' ? '' : ' ' + cssNum(valy));
+    return this.each(function(j, elem) {
+      if ($.isWindow(elem) || elem.nodeType === 9) return;
+      var q = $.queue(elem), inqueue = (q && q.length > 0);
+      function domove() {
+        $.style(elem, 'turtleScale', val);
         if (inqueue) { $.dequeue(elem); }
       }
       if (inqueue) { q.push(domove); } else { domove(); }
@@ -1582,7 +1695,7 @@ $.turtle = function turtle(id, options) {
   }
   // Set up test console.
   if (!options.hasOwnProperty('panel') || options.panel) {
-    see.init();
+    see.init({title: 'Turtle test panel'});
   }
   // Set up an easy integer random function.
   if (!options.hasOwnProperty('random') || options.random) {
@@ -1595,6 +1708,11 @@ $.turtle = function turtle(id, options) {
   // Set up global speed function and set a default speed.
   if (!options.hasOwnProperty('tick') || options.tick) {
     window.speed = speed;
+    speed(10);
+  }
+  // Set up global hatch function.
+  if (!options.hasOwnProperty('hatch') || options.hatch) {
+    window.hatch = hatch;
     speed(10);
   }
   // Find or create a turtle if one does not exist.
@@ -1639,24 +1757,20 @@ $.turtle = function turtle(id, options) {
 
 // Turtle creation function.
 function hatch(name) {
-  if (typeof(name) == 'undefined') {
-    // Choose a unique name
-    name = 'turtle';
-    while ($('#' + name).length || window.hasOwnProperty(name)) {
-      name = (name == turtle) ? 'a' :
-             (name[0] == 'z') ? 'a' + (parseInt(name.substring(1), 10) + 1) :
-             String.fromCharCode(name.charCodeAt(0) + 1) + name.substring(1);
-    }
-  }
   // Don't create the same named turtle twice.
-  if ($('#' + name).length) { return; }
+  if (name && $('#' + name).length) { return; }
   // Create an image element with the requested name.
-  $('body').append('<img id="' + name + '" style="position:absolute;' +
-      'top:0;left:0;width:40px;height:47px;opacity:0.5;" src="' +
-      turtleGIFUrl + '">');
+  var result = $('<img ' +
+      (name ? 'id="' + name + '" ' : '') +
+      'style="position:absolute;top:0;left:0;' +
+      'width:40px;height:47px;opacity:0.5;" ' +
+      'src="' + turtleGIFUrl + '">').appendTo('body').moveto(document).
+      css('turtleHull', '-16 -6 -16 14 0 -23 16 14 16 -6 0 21');
+  if (name) {
+    window[name] = result;
+  }
   // Move it to the center of the document and export the name as a global.
-  window[name] = $('#' + name).moveto(document).
-      css('turtleHull', '-18 -12 -18 16 0 -23 18 16 18 -12 0 23');
+  return result;
 }
 
 // Simplify Math.floor(Math.random() * N) and also random choice.
