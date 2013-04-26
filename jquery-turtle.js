@@ -373,9 +373,8 @@ function readTransformMatrix(elem) {
 
 // Reads out the css transformOrigin property, if present.
 function readTransformOrigin(elem, wh) {
-  var origin = (window.getComputedStyle ?
-      window.getComputedStyle(elem)[transformOrigin] :
-      $.css(elem, 'transformOrigin'));
+  var gcs = (window.getComputedStyle ?  window.getComputedStyle(elem) : null),
+      origin = (gcs ? gcs[transformOrigin] : $.css(elem, 'transformOrigin'));
   return origin && origin.indexOf('%') < 0 ?
       $.map(origin.split(' '), parseFloat) :
       [wh[0] / 2, wh[1] / 2];
@@ -555,12 +554,11 @@ function setCenterInPageCoordinates(elem, target, limit) {
         { position: "absolute", visibility: "hidden", display: "block" } : {},
       substTransform = swapout[transform] = (inverseParent ? 'matrix(' +
           $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
-      origin_gbcr = $.swap(elem, swapout, function() {
+      gbcr = $.swap(elem, swapout, function() {
         return elem.getBoundingClientRect();
       }),
-      middle = readTransformOrigin(elem,
-          [origin_gbcr.width, origin_gbcr.height]),
-      origin = addVector([origin_gbcr.left, origin_gbcr.top], middle),
+      middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
+      origin = addVector([gbcr.left, gbcr.top], middle),
       pos, current, translation;
   if (!inverseParent) { return; }
   if ($.isNumeric(limit)) {
@@ -1783,10 +1781,17 @@ function hatch(name) {
   // Create an image element with the requested name.
   var result = $('<img ' +
       (name ? 'id="' + name + '" ' : '') +
-      'style="position:absolute;top:0;left:0;' +
-      'width:40px;height:47px;opacity:0.5;" ' +
-      'src="' + turtleGIFUrl + '">').appendTo('body').moveto(document).
-      css('turtleHull', '-16 -6 -16 14 0 -23 16 14 16 -6 0 21');
+      'src="' + turtleGIFUrl + '">').
+      css({
+        'position': 'absolute',
+        'top': 0,
+        'left': 0,
+        'width': '40px',
+        'height': '47px',
+        'opacity': 0.5,
+        'transformOrigin': '20px 26px',
+        'turtleHull': '-16 -9 -16 11 0 -26 16 11 16 -9 0 18'
+      }).appendTo('body').moveto(document);
   if (name) {
     window[name] = result;
   }
