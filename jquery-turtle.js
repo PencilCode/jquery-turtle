@@ -1723,7 +1723,7 @@ $.turtle = function turtle(id, options) {
     window.tick = tick;
   }
   // Set up global speed function and set a default speed.
-  if (!options.hasOwnProperty('tick') || options.tick) {
+  if (!options.hasOwnProperty('speed') || options.speed) {
     window.speed = speed;
     speed(1);
   }
