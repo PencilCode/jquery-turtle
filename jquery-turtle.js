@@ -4,7 +4,7 @@
 jQuery-turtle
 =============
 
-version 2.0.0
+version 2.0.1
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -62,16 +62,23 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
 </pre>
+
 When $.fx.speeds.turtle is nonzero (the default is zero unless
 $.turtle() is called), the first four movement functions animate
 at that speed, and the remaining mutators also participate in the
-animation queue.  Note that when using predicates such as
-touches(), queuing will mess up the logic because the predicate
-will not queue, so when making a game with hit testing,
-$.fx.speed.turtle should be set to 0 so that movement is
-synchronous and instantaneous.  The absolute motion methods
-moveto and turnto accept any argument with pageX and pageY,
-including, usefully, mouse events.
+animation queue.  Note that property-reading functions such as
+touches() are synchronous and will not queue, and setting
+$.fx.speed.turtle to 0 will make movement functions synchronous.
+
+The absolute motion methods moveto and turnto accept any argument
+with pageX and pageY, including, usefully, mouse events.  They
+operate in absolute page coordinates even when the turtle is nested
+within further transformed elements.
+
+The hit-testing functions touches() and encloses() will test using
+the convex hull for the two objects in question. This defaults to
+the bounding box of the elements (as transformed) but can be overridden
+by the turtleHull CSS property, if present.
 
 JQuery CSS Hooks for Turtle Geometry
 ------------------------------------
@@ -124,9 +131,28 @@ After $.turtle():
   * hatch() creates and returns a new turtle.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
 
+For example, after $.turtle(), the following is a valid program in CoffeeScript
+syntax:
+
+<pre>
+speed 100
+pen 'red'
+chaser = hatch()
+chaser.moveto 0,0
+chaser.bg 'red'
+tick 10, ->
+  turnto lastmousemove
+  fd 5
+  chaser.turnto turtle
+  chaser.rt (random 60) - 30
+  chaser.fd 5
+  if chaser.touches turtle
+    see "tag! you're it!"
+    tick ->
+</pre>
+
 The turtle teaching environment is designed to work well with either
-Javascript or CoffeeScript.  The turtle library is especially compelling
-as a teaching tool when used with CoffeeScript.
+Javascript or CoffeeScript.
 
 License (MIT)
 -------------
@@ -1901,6 +1927,7 @@ if (window.see && window.see.js && window.see.js == seejs &&
   return;
 }
 
+var pulljQuery = function(callback) { callback(); }
 
 function init(options) {
   if (arguments.length === 0) {
@@ -1930,7 +1957,7 @@ function init(options) {
     // panel overrides element and autoscroll.
     logelement = '#_testlog';
     autoscroll = '#_testscroll';
-    loadjQueryIfNotPresent(tryinitpanel);
+    pulljQuery(tryinitpanel);
   }
   return scope();
 }
@@ -2018,38 +2045,6 @@ function noconflict(newname) {
   return see;
 }
 
-function loadjQueryIfNotPresent(callback) {
-  if ($ && $.fn && $.fn.jquery) {
-    callback();
-    return;
-  }
-  function loadscript(src, callback) {
-    function setonload(script, fn) {
-      script.onload = script.onreadystatechange = fn;
-    }
-    var script = document.createElement("script"),
-       head = document.getElementsByTagName("head")[0],
-       pending = 1;
-    setonload(script, function() {
-      if (pending && (!script.readyState ||
-          {loaded:1,complete:1}[script.readyState])) {
-        pending = 0;
-        callback();
-        setonload(script, null);
-        head.removeChild(script);
-      }
-    });
-    script.src = src;
-    head.appendChild(script);
-  }
-  loadscript(
-      '//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js',
-      function() {
-    $ = jQuery.noConflict(true);
-    callback();
-  });
-}
-
 // ---------------------------------------------------------------------
 // LOG FUNCTION SUPPORT
 // ---------------------------------------------------------------------
@@ -2088,7 +2083,6 @@ function loghtml(html) {
   flushqueue();
 }
 
-
 function vtype(obj) {
   var bracketed = Object.prototype.toString.call(obj);
   var vt = bracketed.substring(8, bracketed.length - 1);
@@ -2099,6 +2093,7 @@ function vtype(obj) {
   }
   return vt;
 }
+
 function isprimitive(vt) {
   switch (vt) {
     case 'String':
@@ -2112,18 +2107,20 @@ function isprimitive(vt) {
   }
   return false;
 }
+
 function isdom(obj) {
   return (obj.nodeType && obj.nodeName && typeof(obj.cloneNode) == 'function');
 }
+
 function midtruncate(s, maxlen) {
-  if (maxlen && s.length > maxlen) {
-    return s.substring(0, Math.floor(maxlen / 2)) + '...' +
-        s.substring(s.length - Math.floor(maxlen / 2));
+  if (maxlen && maxlen > 3 && s.length > maxlen) {
+    return s.substring(0, Math.floor(maxlen / 2) - 1) + '...' +
+        s.substring(s.length - Math.ceil(maxlen / 2) - 2);
   }
   return s;
 }
+
 function cstring(s, maxlen) {
-  s = midtruncate(s, maxlen);
   function cescape(c) {
     if (cescapes.hasOwnProperty(c)) {
       return cescapes[c];
@@ -2132,9 +2129,11 @@ function cstring(s, maxlen) {
     return '\\x' + temp.substring(temp.length - 2);
   }
   if (s.indexOf('"') == -1 || s.indexOf('\'') != -1) {
-    return '"' + htmlescape(s.replace(/[\0-\x1f\x7f-\x9f"\\]/g, cescape)) + '"';
+    return midtruncate('"' +
+        htmlescape(s.replace(/[\0-\x1f\x7f-\x9f"\\]/g, cescape)) + '"', maxlen);
   } else {
-    return "'" + htmlescape(s.replace(/[\0-\x1f\x7f-\x9f'\\]/g, cescape)) + "'";
+    return midtruncate("'" +
+        htmlescape(s.replace(/[\0-\x1f\x7f-\x9f'\\]/g, cescape)) + "'", maxlen);
   }
 }
 function tiny(obj, maxlen) {
@@ -2507,21 +2506,77 @@ function getSelectedText(){
     else if(document.selection) {
         return document.selection.createRange().text; }
 }
+function formattitle(title) {
+  return '<div class="_log" id="_testpaneltitle" style="font-weight:bold;">' +
+      title + '</div>';
+}
+function readlocalstorage() {
+  if (!uselocalstorage) {
+    return;
+  }
+  var state = { height: panelheight, history: [] };
+  try {
+    var result = window.JSON.parse(window.localStorage[uselocalstorage]);
+    if (result && result.slice && result.length) {
+      // if result is an array, then it's just the history.
+      state.history = result;
+      return state;
+    }
+    $.extend(state, result);
+  } catch(e) {
+  }
+  return state;
+}
+function updatelocalstorage(state) {
+  if (!uselocalstorage) {
+    return;
+  }
+  var stored = readlocalstorage(), changed = false;
+  if ('history' in state &&
+      state.history.length &&
+      (!stored.history.length ||
+      stored.history[stored.history.length - 1] !==
+      state.history[state.history.length - 1])) {
+    stored.history.push(state.history[state.history.length - 1]);
+    changed = true;
+  }
+  if ('height' in state && state.height !== stored.height) {
+    stored.height = state.height;
+    changed = true;
+  }
+  if (changed) {
+    window.localStorage[uselocalstorage] = window.JSON.stringify(stored);
+  }
+}
+function wheight() {
+  return window.innerHeight || $(window).height();
+}
 function tryinitpanel() {
-  if (!addedpanel) {
+  if (addedpanel) {
+    if (paneltitle) {
+      if ($('#_testpaneltitle').length) {
+        $('#_testpaneltitle').html(paneltitle);
+      } else {
+        $('#_testlog').prepend(formattitle(paneltitle));
+      }
+    }
+  } else {
     if (!window.document.getElementById('_testlog') && window.document.body) {
       initlogcss();
-      var titlehtml = (paneltitle ?
-        '<div class="_log" style="color:gray;">' + paneltitle + '</div>' : '');
+      var state = readlocalstorage();
+      var titlehtml = (paneltitle ? formattitle(paneltitle) : '');
+      if (state.height > wheight() - 50) {
+        state.height = Math.min(wheight(), Math.max(10, wheight() - 50));
+      }
       $('body').prepend(
         '<div id="_testpanel" style="overflow:hidden;' +
-            'position:fixed;bottom:0;left:0;width:100%;height:' + panelheight +
+            'position:fixed;bottom:0;left:0;width:100%;height:' + state.height +
             'px;background:whitesmoke;font:10pt monospace;">' +
           '<div id="_testdrag" style="' +
               'cursor:row-resize;height:6px;width:100%;' +
               'background:lightgray"></div>' +
           '<div id="_testscroll" style="overflow-y:scroll;overflow-x:hidden;' +
-              'width:100%;height:' + (panelheight - 6) + 'px;">' +
+              'width:100%;height:' + (state.height - 6) + 'px;">' +
             '<div id="_testlog">' + titlehtml + '</div>' +
             '<div style="position:relative;">' +
             promptcaret('blue') +
@@ -2530,12 +2585,6 @@ function tryinitpanel() {
            '</div>' +
         '</div>');
       addedpanel = true;
-      var history = [];
-      if (uselocalstorage) {
-        try {
-          history = window.JSON.parse(window.localStorage[uselocalstorage]);
-        } catch (e) { }
-      }
       flushqueue();
       var historyindex = 0;
       var historyedited = {};
@@ -2546,14 +2595,10 @@ function tryinitpanel() {
           $(this).val('');
           // Save (nonempty, nonrepeated) commands to history and localStorage.
           if (text.trim().length &&
-              (history.length === 0 || history[history.length - 1] != text)) {
-            history.push(text);
-            if (uselocalstorage) {
-              try {
-                window.localStorage[uselocalstorage] =
-                    window.JSON.stringify(history);
-              } catch (e) { }
-            }
+              (!state.history.length ||
+               state.history[state.history.length - 1] !== text)) {
+            state.history.push(text);
+            updatelocalstorage({ history: [text] });
           }
           // Reset up/down history browse state.
           historyedited = {};
@@ -2593,7 +2638,7 @@ function tryinitpanel() {
           historyindex = Math.max(0, Math.min(history.length, historyindex));
           // Show the remembered command at that slot.
           var newval = historyedited[historyindex] ||
-              history[history.length - historyindex];
+              state.history[state.history.length - historyindex];
           if (typeof newval == 'undefined') { newval = ''; }
           $(this).val(newval);
           this.selectionStart = this.selectionEnd = newval.length;
@@ -2609,7 +2654,7 @@ function tryinitpanel() {
         if (drag.setCapture) { drag.setCapture(true); }
         dragfunc = function dragresize(e) {
           if (e.type != 'blur' && e.which == dragwhich) {
-            var winheight = window.innerHeight || $(window).height();
+            var winheight = wheight();
             var newheight = Math.max(barheight, Math.min(winheight,
                 dragsum - e.pageY));
             var complete = stickscroll();
@@ -2621,6 +2666,10 @@ function tryinitpanel() {
               e.type == 'mousemove' && e.which != dragwhich) {
             $(window).off('mousemove mouseup blur', dragfunc);
             if (document.releaseCapture) { document.releaseCapture(); }
+            if ($('#_testpanel').height() != state.height) {
+              state.height = $('#_testpanel').height();
+              updatelocalstorage({ height: state.height });
+            }
           }
         };
         $(window).on('mousemove mouseup blur', dragfunc);

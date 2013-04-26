@@ -1,7 +1,7 @@
 jQuery-turtle
 =============
 
-version 2.0.0
+version 2.0.1
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -59,16 +59,23 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
 </pre>
+
 When $.fx.speeds.turtle is nonzero (the default is zero unless
 $.turtle() is called), the first four movement functions animate
 at that speed, and the remaining mutators also participate in the
-animation queue.  Note that when using predicates such as
-touches(), queuing will mess up the logic because the predicate
-will not queue, so when making a game with hit testing,
-$.fx.speed.turtle should be set to 0 so that movement is
-synchronous and instantaneous.  The absolute motion methods
-moveto and turnto accept any argument with pageX and pageY,
-including, usefully, mouse events.
+animation queue.  Note that property-reading functions such as
+touches() are synchronous and will not queue, and setting
+$.fx.speed.turtle to 0 will make movement functions synchronous.
+
+The absolute motion methods moveto and turnto accept any argument
+with pageX and pageY, including, usefully, mouse events.  They
+operate in absolute page coordinates even when the turtle is nested
+within further transformed elements.
+
+The hit-testing functions touches() and encloses() will test using
+the convex hull for the two objects in question. This defaults to
+the bounding box of the elements (as transformed) but can be overridden
+by the turtleHull CSS property, if present.
 
 JQuery CSS Hooks for Turtle Geometry
 ------------------------------------
@@ -121,9 +128,28 @@ After $.turtle():
   * hatch() creates and returns a new turtle.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
 
+For example, after $.turtle(), the following is a valid program in CoffeeScript
+syntax:
+
+<pre>
+speed 100
+pen 'red'
+chaser = hatch()
+chaser.moveto 0,0
+chaser.bg 'red'
+tick 10, ->
+  turnto lastmousemove
+  fd 5
+  chaser.turnto turtle
+  chaser.rt (random 60) - 30
+  chaser.fd 5
+  if chaser.touches turtle
+    see "tag! you're it!"
+    tick ->
+</pre>
+
 The turtle teaching environment is designed to work well with either
-Javascript or CoffeeScript.  The turtle library is especially compelling
-as a teaching tool when used with CoffeeScript.
+Javascript or CoffeeScript.
 
 License (MIT)
 -------------
