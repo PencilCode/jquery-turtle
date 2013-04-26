@@ -3,35 +3,38 @@ jQuery-turtle
 
 version 2.0
 
-jQuery-turtle is a jQuery plugin that provides turtle graphics.
-It provides easy access to advanced geometry, animation, css 3,
-and HTML 5 features for students who are learning: it handles
-the math of 2d transforms, simplifies usage of modern web features,
-and encapsulates computational geometry where needed.
+jQuery-turtle is a jQuery plugin for turtle graphics.
 
 With jQuery-turtle, every DOM element is a turtle that can be
-moved using fd, bk, rt, and lt.  Under the covers, CSS3 2d
-transforms are used to do the movement, and jQuery-turtle
-interacts well with programs that may manipulate 2d CSS3
-transforms directly.
+moved using LOGO-inspired turtle methods like fd, bk, rt, and lt.
 
-The plugin provides three levels of functionality.  The main
-feature is a set of turtle movement methods including fd(pix),
-bk(pixx), rt(deg), lt(deg), pen(clr) that are added to jQuery objects,
-allowing all DOM elements including nested element to be moved
-with turtle geometry while still maintaining a simple relationship
-to global page coordinates for drawing and hit-testing.
+The main feature is a set of turtle movement methods that let
+you write code like this:
+<pre>
+  $('#myelt').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
+</pre>
+The functions also include help for managing rotated and scaled
+geometry with absolute coordinates: hit testing and collision
+testing, absolute positioning and absolute direction reading
+and setting.
 
-The lowest level of functionality is a set of CSS hooks that define
-synthetic CSS properties that can be animated or used to directly
-manipulate turtle geometry at a basic mathematical level.
+The plugin also provides low-level CSS hook for synthetic CSS
+properties that can be animated or used to directly manipulate
+turtle geometry at a basic mathematical level.  Under the covers,
+CSS3 2D transforms and jQuery animations are used to execute
+turtle movement and decompose arbitrary 2d transform.  That is
+why jQuery-turtle interacts well with other jQuery animations
+or programs that may manipulate 2D CSS3 transforms directly.
 
 The highest level of functionality is enabled by $.turtle(),
-which creates a set of functions expressly designed for learning
-beginners.  Calling $.turtle() populates the global namespace with a
-handful of functions and other global objects (such as a simplified
-timer, a simplified function to create a new turtle, etc).  These
-are designed to make programming concepts easier to learn.
+which creates a set of functions and global objects designed
+as a teaching environment for beginners.  These include a default
+turtle and global functions to control it; an onpage debugger
+panel; jQuery instances for every object with an #id; simplified
+globals to access recent mouse and keyboard events, and simplified
+functions for randomness, timers, animation control, and creation
+of new turtles.  The jQuery teaching environment has been developed
+to support a curriculum for young students.
 
 JQuery Methods for Turtle Movement
 ----------------------------------
@@ -42,20 +45,21 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).bk(50)       // Back.
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
+  $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
+  $(x).dot(12)      // Draws a dot of diameter 12.
+  $(x).erase()      // Erases under the turtles collision hull.
+  $(x).bg('pink')   // Shorthand for css("background", "pink")
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
-  $(x).center()     // Page coordinate position of transform-origin.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
-  $(x).direction()  // Absolute heading taking into account nested transforms.
-  $(x).scale(1.5)   // Scales the element up by 50%.
+  $(x).scale(1.5)   // Scales the element up to 150% size..
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its direction axis.
+  $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
+  // Methods below this line do not queue for animation.
+  $(x).center()     // Page coordinate position of transform-origin.
+  $(x).direction()  // Absolute heading taking into account nested transforms.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
-  $(x).bg('pink')   // Shorthand for css('background', 'pink')
-  $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
-  $(x).dot()        // Draws a dot.
-  $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
-  $(x).erase()      // Erases under the turtle.
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
 </pre>
@@ -66,7 +70,9 @@ animation queue.  Note that when using predicates such as
 touches(), queuing will mess up the logic because the predicate
 will not queue, so when making a game with hit testing,
 $.fx.speed.turtle should be set to 0 so that movement is
-synchronous and instantaneous.
+synchronous and instantaneous.  The absolute motion methods
+moveto and turnto accept any argument with pageX and pageY,
+including, usefully, mouse events.
 
 JQuery CSS Hooks for Turtle Geometry
 ------------------------------------
@@ -80,7 +86,7 @@ support on all motion:
   $(x).css('turtleRotation', '90');      // rotation in degrees.
   $(x).css('turtleScale', '2');          // double the size of any element.
   $(x).css('turtleScaleX', '2');         // x stretch before rotate after twist.
-  $(x).css('turtleScaleX', '2');         // y stretch before rotate after twist.
+  $(x).css('turtleScaleY', '2');         // y stretch before rotate after twist.
   $(x).css('turtleTwist', '45');         // turn before stretching.
   $(x).css('turtleDisplacement', '50');  // position in direction of rotation.
   $(x).css('turtlePen', 'red');          // or 'red lineWidth 2px' etc.
@@ -90,10 +96,15 @@ support on all motion:
 Arbitrary 2d transforms are supported, including transforms of elements
 nested within other elements that have css transforms. Transforms are
 automatically decomposed to turtle components when necessary.
+
 A canvas is supported for drawing, but only created when the pen is
 used; pen styles include canvas style properties such as lineWidth
-and lineCap.  A convex hull polygon can be set to be used by the collision
-detection and hit-testing functions below.
+and lineCap.
+
+A convex hull polygon can be set to be used by the collision detection
+and hit-testing functions (encloses, touches).  The turtleHull is a list
+of x-y coordinates relative to the object's transformOrigin.  If set to
+'auto' (the default) the hull is just the bounding box for the element.
 
 Turtle Teaching Environment
 ---------------------------
@@ -107,10 +118,10 @@ After $.turtle():
   * Turtle methods on the default turtle are packaged as globals, e.g., fd(10).
   * Every #id element is turned into a global variable: window.id = $('#id').
   * Globals are set up to save events: "lastclick", "lastmousemove", etc.
+  * speed(movesPerSec) adjusts $.fx.speeds.turtle in a way suitable for kids.
   * Default turtle animation is set to 10 moves per sec so steps can be seen.
+  * tick([ticksPerSec,] fn) is an easier-to-call setInterval.
   * random(lessThanThisInteger || array) is an easy alternative to Math.random.
-  * speed(movesPerSec) sets $.fx.speeds.turtle to 1000/movesPerSec.
-  * tick([ticksPerSec,] fn) is similarly an easier-to-call setInterval.
   * hatch() creates and returns a new turtle.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
 
@@ -140,3 +151,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
