@@ -15,8 +15,8 @@ moved using LOGO-inspired turtle methods like fd, bk, rt, and lt.
 </pre>
 The plugin also provides functions to help in a rotated,
 scaled, and transformed world where nested elements may be
-transformed: hit testing and collision testing, absolute
-positioning and absolute direction reading and setting.
+transformed.  There are functions for collision testing, absolute
+positioning, and absolute direction reading and setting.
 
 The plugin sets up low-level CSS hooks for synthetic CSS
 properties that can be animated or used to directly manipulate
