@@ -18,8 +18,8 @@ scaled, and transformed world where nested elements may be
 transformed.  There are functions for collision testing, absolute
 positioning, and absolute direction reading and setting.
 
-<a href="http://davidbau.github.io/jquery-turtle-demo.html"
->Try an interactive demo (CoffeeScript syntax) here.</a>
+[Try an interactive demo (CoffeeScript syntax) here.]:
+http://davidbau.github.io/jquery-turtle-demo.html
 
 The plugin sets up low-level CSS hooks for synthetic CSS
 properties that can be animated or used to directly manipulate
