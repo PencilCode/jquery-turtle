@@ -26,14 +26,14 @@ and store turtle movement.  So jQuery-turtle interacts well with
 other jQuery animations or direct uses of 2D CSS3 transforms.
 
 A high-level educational environment is enabled by $.turtle().
-That call creates a set of global objects and functions designed
-as a teaching tool for beginners.  These include a default
-turtle and global functions to control it; an onpage debugger
-panel; jQuery instances for every object with an #id; simplified
-globals to access recent mouse and keyboard events, and simplified
-functions for randomness, timers, animation control, and creation
-of new turtles.  The jQuery teaching environment has been developed
-to support a curriculum for young students.
+That call creates a set of global objects and functions
+catering to beginners.  These include a default turtle
+and global functions to control it; an onpage debugger panel;
+jQuery instances for every object with an #id; simplified
+globals to access recent mouse and keyboard events, and
+simplified functions for randomness, timers, animation control,
+and creation of new turtles.  The jQuery teaching environment
+has been developed to support a curriculum for young students.
 
 JQuery Methods for Turtle Movement
 ----------------------------------
@@ -124,15 +124,15 @@ After $.turtle():
   * Turtle methods on the default turtle are packaged as globals, e.g., fd(10).
   * Every #id element is turned into a global variable: window.id = $('#id').
   * Globals are set up to save events: "lastclick", "lastmousemove", etc.
-  * speed(movesPerSec) adjusts $.fx.speeds.turtle in a way suitable for kids.
-  * Default turtle animation is set to 10 moves per sec so steps can be seen.
-  * tick([ticksPerSec,] fn) is an easier-to-call setInterval.
+  * Default turtle animation is set to 1 move per sec so steps can be seen.
+  * speed(movesPerSec) adjusts $.fx.speeds.turtle to 1000 / movesPerSec.
+  * tick([ticksPerSec,] fn) is similarly an easier-to-call setInterval.
   * random(lessThanThisInteger || array) is an easy alternative to Math.random.
   * hatch() creates and returns a new turtle.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
 
-For example, after $.turtle(), the following is a valid program in CoffeeScript
-syntax:
+For example, after $.turtle(), the following is a valid program
+in CoffeeScript syntax:
 
 <pre>
 speed 100
@@ -140,13 +140,14 @@ pen 'red'
 chaser = hatch()
 chaser.moveto 0,0
 chaser.bg 'red'
+player = turtle
 tick 10, ->
-  turnto lastmousemove
-  fd 5
-  chaser.turnto turtle
+  player.turnto lastmousemove
+  player.fd 5
+  chaser.turnto player
   chaser.rt (random 60) - 30
   chaser.fd 5
-  if chaser.touches turtle
+  if chaser.touches player
     see "tag! you're it!"
     tick ->
 </pre>
