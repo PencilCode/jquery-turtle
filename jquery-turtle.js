@@ -2009,7 +2009,7 @@ function barecs(s) {
 
 function exportsee() {
   see.repr = repr;
-  see.loghtml = loghtml;
+  see.html = loghtml;
   see.noconflict = noconflict;
   see.init = init;
   see.scope = scope;
