@@ -1736,10 +1736,6 @@ $.turtle = function turtle(id, options) {
       window.onerror = see;
     }
   }
-  // Set up test console.
-  if (!options.hasOwnProperty('panel') || options.panel) {
-    see.init({title: 'Turtle test panel'});
-  }
   // Set up an easy integer random function.
   if (!options.hasOwnProperty('random') || options.random) {
     window.random = random;
@@ -1762,11 +1758,10 @@ $.turtle = function turtle(id, options) {
   if (id) {
     selector = $('#' + id);
     if (!selector.length) {
-      hatch(id);
-      selector = $('#' + id);
-      if (!selector.length) { selector = null; }
+      selector = hatch(id);
     }
   }
+  if (selector && !selector.length) { selector = null; }
   // Make the methods of the turtle global.
   if (selector) {
     var domfn = {append:1, prepend:1};
@@ -1785,7 +1780,7 @@ $.turtle = function turtle(id, options) {
           // Attach inner HTML manipulation to the document body.
           obj = $('body');
         } else {
-          obj = $(selector);
+          obj = selector;
         }
         window[jqfn] = (function() {
           var method = obj[jqfn];
@@ -1796,6 +1791,12 @@ $.turtle = function turtle(id, options) {
         turtle_globals.push(jqfn);
       }
     }
+  }
+  // Set up test console.
+  if (!options.hasOwnProperty('panel') || options.panel) {
+    var abbreviate = [{}.undefined];
+    if (selector) { abbreviate.push(selector); }
+    see.init({title: 'Turtle test panel', abbreviate: abbreviate});
   }
 };
 
@@ -1896,10 +1897,10 @@ function turtleevents(prefix) {
 // A copy of see.js here.
 //////////////////////////////////////////////////////////////////////////
 
-// see.js version 0.1
+// see.js version 0.2
 
 var seepkg = 'see'; // Defines the global package name used.
-var version = '0.1';
+var version = '0.2';
 var oldvalue = noteoldvalue(seepkg);
 // Option defaults
 var linestyle = 'position:relative;font-family:monospace;' +
@@ -1927,7 +1928,7 @@ if (window.see && window.see.js && window.see.js == seejs &&
   return;
 }
 
-var pulljQuery = function(callback) { callback(); }
+var pulljQuery = null;
 
 function init(options) {
   if (arguments.length === 0) {
@@ -1952,12 +1953,13 @@ function init(options) {
   if (options.hasOwnProperty('console')) { logconsole = options.console; }
   if (options.hasOwnProperty('history')) { uselocalstorage = options.history; }
   if (options.hasOwnProperty('coffee')) { coffeescript = options.coffee; }
+  if (options.hasOwnProperty('abbreviate')) { abbreviate = options.abbreviate; }
   if (options.hasOwnProperty('noconflict')) { noconflict(options.noconflict); }
   if (panel) {
     // panel overrides element and autoscroll.
     logelement = '#_testlog';
     autoscroll = '#_testscroll';
-    pulljQuery(tryinitpanel);
+    pulljQuery ? pulljQuery(tryinitpanel) : tryinitpanel();
   }
   return scope();
 }
@@ -2090,6 +2092,9 @@ function vtype(obj) {
     if ('length' in obj && 'slice' in obj && 'number' == typeof obj.length) {
       return 'Array';
     }
+    if ('originalEvent' in obj && 'target' in obj && 'type' in obj) {
+      return vtype(obj.originalEvent);
+    }
   }
   return vt;
 }
@@ -2115,7 +2120,7 @@ function isdom(obj) {
 function midtruncate(s, maxlen) {
   if (maxlen && maxlen > 3 && s.length > maxlen) {
     return s.substring(0, Math.floor(maxlen / 2) - 1) + '...' +
-        s.substring(s.length - Math.ceil(maxlen / 2) - 2);
+        s.substring(s.length - (Math.ceil(maxlen / 2) - 2));
   }
   return s;
 }
@@ -2488,6 +2493,7 @@ function flushqueue() {
 // ---------------------------------------------------------------------
 var addedpanel = false;
 var inittesttimer = null;
+var abbreviate = [{}.undefined];
 
 function show(flag) {
   if (arguments.length === 0 || flag) {
@@ -2623,7 +2629,10 @@ function tryinitpanel() {
           // Actually execute the command and log the results (or error).
           try {
             var result = seeeval(currentscope, text);
-            if ((typeof result) != 'undefined') {
+            for (var j = abbreviate.length - 1; j >= 0; --j) {
+              if (result === abbreviate[j]) break;
+            }
+            if (j < 0) {
               loghtml(repr(result));
             }
           } catch (e) {

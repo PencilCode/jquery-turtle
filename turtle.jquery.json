@@ -1,7 +1,7 @@
 {
     "name": "turtle",
     "title": "jQuery Turtle",
-    "description": "jQuery plugin turtle graphics support.  Every element can be used as a turtle.",
+    "description": "jQuery plugin for turtle graphics support.  Every element can be used as a turtle.",
     "keywords": [
         "turtle",
         "education",
