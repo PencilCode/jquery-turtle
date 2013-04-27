@@ -1,0 +1,30 @@
+<html>
+<head>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="//raw.github.com/davidbau/jquery-turtle/master/jquery-turtle.js"></script>
+<script src="//raw.github.com/jashkenas/coffee-script/master/extras/coffee-script.js"></script>
+</head>
+<body>
+<script>
+$.turtle();
+</script>
+<script data-editable="turtle script" type="text/coffeescript" data-editsize="1">#<![CDATA[
+# Show a debug panel that inspects local vars in this block.
+see.init({title:'Hello!  In this panel you can ' +
+    'do math with variables like this: ' +
+    'x = 10; y = random 100; y + x * x / 2; ' +
+    'or run functions like this: ' +
+    'fd 50; ' +
+    'rt 90; ' +
+    'bk x; ' +
+    'lt random 180; ' +
+    'pen "blue"; ' +
+    'speed 1000; ' +
+    'tick -> fd 10',
+    eval:eval(see.cs),height:200})
+# -edit-below-
+pen 'red'
+
+#]]></script>
+</body>
+</html>
