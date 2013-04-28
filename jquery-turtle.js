@@ -1044,14 +1044,13 @@ function getTurtleClipSurface() {
     'z-index': -1,
     overflow: 'hidden'
   });
-  attachClipSurface();
   drawing.surface = surface;
+  attachClipSurface();
   return surface;
 }
 
 function attachClipSurface() {
   if (document.body) {
-    console.log('attaching', drawing.surface);
     $(drawing.surface).prependTo('body');
   } else {
     console.log('deferring');
