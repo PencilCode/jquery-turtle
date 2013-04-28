@@ -572,6 +572,18 @@ function cleanSwap(elem, options, callback, args) {
   return ret;
 }
 
+function readPageGbcr() {
+  var raw = this.getBoundingClientRect();
+  return {
+    top: raw.top + window.pageYOffset,
+    bottom: raw.bottom + window.pageYOffset,
+    left: raw.left + window.pageXOffset,
+    right: raw.right + window.pageXOffset,
+    width: raw.width,
+    height: raw.height
+  };
+}
+
 // Temporarily eliminate transform (but reverse parent distortions)
 // to get origin position; then calculate displacement needed to move
 // turtle to target coordinates (again reversing parent distortions
@@ -584,9 +596,7 @@ function setCenterInPageCoordinates(elem, target, limit) {
         { position: "absolute", visibility: "hidden", display: "block" } : {},
       substTransform = swapout[transform] = (inverseParent ? 'matrix(' +
           $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
-      gbcr = $.swap(elem, swapout, function() {
-        return elem.getBoundingClientRect();
-      }),
+      gbcr = cleanSwap(elem, swapout, readPageGbcr),
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
       origin = addVector([gbcr.left, gbcr.top], middle),
       pos, current, translation;
@@ -629,9 +639,7 @@ function getCenterInPageCoordinates(elem) {
           $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
       substTransform = (st == 'matrix(1, 0, 0, 1, 0, 0)') ? 'none' : st;
       saved = elem.style[transform],
-      gbcr = cleanSwap(elem, swapout, function() {
-        return elem.getBoundingClientRect();
-      }),
+      gbcr = cleanSwap(elem, swapout, readPageGbcr),
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
       origin = addVector([gbcr.left, gbcr.top], middle),
       pos = addVector(matrixVectorProduct(totalParentTransform, tr), origin);
@@ -672,9 +680,7 @@ function getCornersInPageCoordinates(elem, untransformed) {
         { position: "absolute", visibility: "hidden", display: "block" } : {},
       substTransform = swapout[transform] = (inverseParent ? 'matrix(' +
           $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
-      gbcr = $.swap(elem, swapout, function() {
-        return elem.getBoundingClientRect();
-      }),
+      gbcr = cleanSwap(elem, swapout, readPageGbcr),
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
       origin = addVector([gbcr.left, gbcr.top], middle),
       hull = polyToVectorsOffset(getTurtleData(elem).hull, origin) || [
@@ -1018,20 +1024,34 @@ function normalizeRotation(x) {
 
 // drawing state.
 var drawing = {
+  surface: null,
   ctx: null,
   canvas: null,
   timer: null
 };
 
+function getTurtleClipSurface() {
+  if (drawing.surface) {
+    return drawing.surface;
+  }
+  var surface = document.createElement('div');
+  $(surface).css({
+    position: 'absolute',
+    top: 0, left: 0, width: '100%', height: '100%',
+    'z-index': -1,
+    overflow: 'hidden'
+  }).prependTo('body');
+  drawing.surface = surface;
+  return surface;
+}
+
 function getTurtleDrawingCtx() {
   if (drawing.ctx) {
     return drawing.ctx;
   }
-  var div = document.createElement('div');
-  $('body').prepend('<div id="_turtlesurface" ' +
-    'style="position:absolute;top:0;left:0;zIndex:-1;width:100%;' +
-    'height:100%;overflow:hidden;"><canvas></div>');
-  drawing.canvas = $('#_turtlesurface canvas')[0];
+  var surface = getTurtleClipSurface();
+  drawing.canvas = document.createElement('canvas');
+  surface.appendChild(drawing.canvas);
   drawing.ctx = drawing.canvas.getContext('2d');
   resizecanvas();
   pollbodysize(resizecanvas);
@@ -1065,7 +1085,7 @@ function resizecanvas() {
       cw = drawing.canvas.width,
       ch = drawing.canvas.height,
       tc;
-  $('#_turtlesurface').css({ width: b.width() + 'px', height: wh + 'px'});
+  $(drawing.surface).css({ width: b.width() + 'px', height: wh + 'px'});
   if (cw != bw || ch != bh) {
     // Transfer canvas out to tc and back again after resize.
     tc = document.createElement('canvas');
@@ -1804,25 +1824,78 @@ $.turtle = function turtle(id, options) {
   }
 };
 
+function isCSSColor(color) {
+  if (!/^[a-z]+$/i.exec(color)) { return false; }
+  var d = document.createElement('div'), unset = d.style.color;
+  d.style.color = color;
+  return (unset != d.style.color);
+}
+
+function createPointerOfColor(color) {
+  var c = document.createElement('canvas');
+  c.width = 40;
+  c.height = 47;
+  var ctx = c.getContext('2d');
+  ctx.beginPath();
+  ctx.moveTo(0,47);
+  ctx.lineTo(20,0);
+  ctx.lineTo(40,47);
+  ctx.lineTo(20,37);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  return c.toDataURL();
+}
+
+var entityMap = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': '&quot;',
+};
+
+function escapeHtml(string) {
+  return String(string).replace(/[&<>"]/g, function(s) {return entityMap[s];});
+}
+
 // Turtle creation function.
 function hatch(name) {
-  // Don't create the same named turtle twice.
-  if (name && $('#' + name).length) { return; }
+  var isID = name && /^\w[0-9\w]*$/.exec(name),
+      isColor = name && isCSSColor(name),
+      isTurtle = !isColor && (!name || isID),
+      isTag = name && /^<.*>$/.exec(name),
+      imgUrl = isColor ? createPointerOfColor(name) :
+          isTurtle ? turtleGIFUrl : null,
+      imgHull = isColor ? "-20 21 0 -26 20 21" :
+          isTurtle ? "-16 -9 -16 11 0 -26 16 11 16 -9 0 18" : 'auto';
+      
+  // Don't overwrite previously existing id.
+  if (isID && $('#' + name).length) { isID = false; }
+  
   // Create an image element with the requested name.
-  var result = $('<img ' +
-      (name ? 'id="' + name + '" ' : '') +
-      'src="' + turtleGIFUrl + '">').
-      css({
-        'position': 'absolute',
-        'top': 0,
-        'left': 0,
-        'width': '40px',
-        'height': '47px',
-        'opacity': 0.5,
-        'transformOrigin': '20px 26px',
-        'turtleHull': '-16 -9 -16 11 0 -26 16 11 16 -9 0 18'
-      }).appendTo('body').moveto(document);
-  if (name) {
+  var result;
+  if (imgUrl) {
+    result = $('<img src="' + imgUrl + '">').css({
+      'width': '40px',
+      'height': '47px',
+      'opacity': 0.5,
+      'transformOrigin': '20px 26px',
+      'turtleHull': imgHull
+    });
+  } else if (isTag) {
+    result = $(name);
+  } else {
+    result = $('<span>' + escapeHtml(name) + '</span>');
+  }
+  result.css({
+    'position': 'absolute',
+    'display': 'inline-block',
+    'top': 0,
+    'left': 0
+  }).appendTo(getTurtleClipSurface()).moveto(document);
+  
+  // Update global variable unless there is a conflict.
+  if (isID && !window.hasOwnProperty(name)) {
     window[name] = result;
   }
   // Move it to the center of the document and export the name as a global.
@@ -2581,7 +2654,7 @@ function tryinitpanel() {
       $('body').prepend(
         '<div id="_testpanel" style="overflow:hidden;' +
             'position:fixed;bottom:0;left:0;width:100%;height:' + state.height +
-            'px;background:whitesmoke;font:10pt monospace;">' +
+            'px;background:rgba(235,235,235,0.5);font:10pt monospace;">' +
           '<div id="_testdrag" style="' +
               'cursor:row-resize;height:6px;width:100%;' +
               'background:lightgray"></div>' +
