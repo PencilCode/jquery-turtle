@@ -627,7 +627,9 @@ function getCenterInPageCoordinates(elem) {
       (window.innerHeight || $(window).height())
     );
   } else if (elem.nodeType === 9) {
-    return getCenterLTWH(0, 0, $(elem).width(), $(elem).height());
+    return getCenterLTWH(0, 0,
+        elem.body ? $(elem).width() : elem.width,
+        elem.body ? $(elem).height() : elem.height);
   }
   var tr = getElementTranslation(elem),
       totalParentTransform = totalTransform2x2(elem.parentElement),
@@ -1024,6 +1026,7 @@ function normalizeRotation(x) {
 
 // drawing state.
 var drawing = {
+  attached: false,
   surface: null,
   ctx: null,
   canvas: null,
@@ -1040,9 +1043,20 @@ function getTurtleClipSurface() {
     top: 0, left: 0, width: '100%', height: '100%',
     'z-index': -1,
     overflow: 'hidden'
-  }).prependTo('body');
+  });
+  attachClipSurface();
   drawing.surface = surface;
   return surface;
+}
+
+function attachClipSurface() {
+  if (document.body) {
+    console.log('attaching', drawing.surface);
+    $(drawing.surface).prependTo('body');
+  } else {
+    console.log('deferring');
+    $(document).ready(attachClipSurface);
+  }
 }
 
 function getTurtleDrawingCtx() {
@@ -1879,6 +1893,7 @@ function hatch(name) {
     result = $('<img src="' + imgUrl + '">').css({
       'width': '40px',
       'height': '47px',
+      'margin': '-26px -20px -21px -20px',
       'opacity': 0.5,
       'transformOrigin': '20px 26px',
       'turtleHull': imgHull
@@ -1976,6 +1991,7 @@ function turtleevents(prefix) {
 //////////////////////////////////////////////////////////////////////////
 
 // see.js version 0.2
+
 var pulljQueryVersion = null;
 
 var seepkg = 'see'; // Defines the global package name used.
@@ -2090,6 +2106,7 @@ function exportsee() {
   see.eval = seeeval;
   see.barecs = barecs;
   see.here = 'eval(' + seepkg + '.init())';
+  see.clear = clear;
   see.js = seejs;
   see.cs = '(function(){return eval(' + seepkg + '.barecs(arguments[0]));})';
   see.version = version;
@@ -2607,11 +2624,16 @@ var inittesttimer = null;
 var abbreviate = [{}.undefined];
 
 function show(flag) {
+  if (!addedpanel) { return; }
   if (arguments.length === 0 || flag) {
     $('#_testpanel').show();
   } else {
     $('#_testpanel').hide();
   }
+}
+function clear() {
+  if (!addedpanel) { return; }
+  $('#_testlog').find('._log').not('#_testpaneltitle').remove();
 }
 function promptcaret(color) {
   return '<div style="position:absolute;left:0;font-size:120%;color:' + color +
