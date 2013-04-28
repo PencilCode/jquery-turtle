@@ -1051,6 +1051,7 @@ function getTurtleDrawingCtx() {
   }
   var surface = getTurtleClipSurface();
   drawing.canvas = document.createElement('canvas');
+  $(drawing.canvas).css({'z-index': -1});
   surface.appendChild(drawing.canvas);
   drawing.ctx = drawing.canvas.getContext('2d');
   resizecanvas();
@@ -1975,6 +1976,7 @@ function turtleevents(prefix) {
 //////////////////////////////////////////////////////////////////////////
 
 // see.js version 0.2
+var pulljQueryVersion = null;
 
 var seepkg = 'see'; // Defines the global package name used.
 var version = '0.2';
@@ -2005,7 +2007,6 @@ if (window.see && window.see.js && window.see.js == seejs &&
   return;
 }
 
-var pulljQuery = null;
 
 function init(options) {
   if (arguments.length === 0) {
@@ -2036,7 +2037,7 @@ function init(options) {
     // panel overrides element and autoscroll.
     logelement = '#_testlog';
     autoscroll = '#_testscroll';
-    pulljQuery ? pulljQuery(tryinitpanel) : tryinitpanel();
+    pulljQuery(tryinitpanel);
   }
   return scope();
 }
@@ -2122,6 +2123,39 @@ function noconflict(newname) {
   oldvalue = noteoldvalue(newname);
   exportsee();
   return see;
+}
+
+function pulljQuery(callback) {
+  if (!pulljQueryVersion || ($ && $.fn && $.fn.jquery)) {
+    callback();
+    return;
+  }
+  function loadscript(src, callback) {
+    function setonload(script, fn) {
+      script.onload = script.onreadystatechange = fn;
+    }
+    var script = document.createElement("script"),
+       head = document.getElementsByTagName("head")[0],
+       pending = 1;
+    setonload(script, function() {
+      if (pending && (!script.readyState ||
+          {loaded:1,complete:1}[script.readyState])) {
+        pending = 0;
+        callback();
+        setonload(script, null);
+        head.removeChild(script);
+      }
+    });
+    script.src = src;
+    head.appendChild(script);
+  }
+  loadscript(
+      '//ajax.googleapis.com/ajax/libs/jquery/' +
+      pulljQueryVersion + '/jquery.min.js',
+      function() {
+    $ = jQuery.noConflict(true);
+    callback();
+  });
 }
 
 // ---------------------------------------------------------------------
@@ -2654,7 +2688,11 @@ function tryinitpanel() {
       $('body').prepend(
         '<div id="_testpanel" style="overflow:hidden;' +
             'position:fixed;bottom:0;left:0;width:100%;height:' + state.height +
-            'px;background:rgba(235,235,235,0.5);font:10pt monospace;">' +
+            'px;background:rgba(240,240,240,0.8);' +
+            'font:10pt monospace;' +
+            // This last bit works around this position:fixed bug in webkit:
+            // https://code.google.com/p/chromium/issues/detail?id=128375
+            '-webkit-transform:translateZ(0);">' +
           '<div id="_testdrag" style="' +
               'cursor:row-resize;height:6px;width:100%;' +
               'background:lightgray"></div>' +
@@ -2664,7 +2702,8 @@ function tryinitpanel() {
             '<div style="position:relative;">' +
             promptcaret('blue') +
             '<input id="_testinput" class="_log" style="width:100%;' +
-                'padding-left:1em;margin:0;border:0;font:inherit;">' +
+                'padding-left:1em;margin:0;border:0;font:inherit;' +
+                'background:rgba(255,255,255,0.8);">' +
            '</div>' +
         '</div>');
       addedpanel = true;
