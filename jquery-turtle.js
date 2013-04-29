@@ -334,7 +334,7 @@ function decomposeSVD(m) {
       m1m3 = m[1] * m[3],
       // Copmute M*M.
       mtm0 = m0_2 + m1_2,
-      mtm12 = m0m2 + m1m3, 
+      mtm12 = m0m2 + m1m3,
       mtm3 = m2_2 + m3_2,
       // Compute sv1, sv2: larger and smaller singular values.
       susum = mtm0 + mtm3,
@@ -404,7 +404,7 @@ function readTransformMatrix(elem) {
 // Reads out the css transformOrigin property, if present.
 function readTransformOrigin(elem, wh) {
   var gcs = (window.getComputedStyle ?  window.getComputedStyle(elem) : null),
-      origin = (gcs ? gcs[transformOrigin] : $.css(elem, 'transformOrigin'));
+      origin = (gcs && gcs[transformOrigin] || $.css(elem, 'transformOrigin'));
   return origin && origin.indexOf('%') < 0 ?
       $.map(origin.split(' '), parseFloat) :
       [wh[0] / 2, wh[1] / 2];
@@ -572,8 +572,29 @@ function cleanSwap(elem, options, callback, args) {
   return ret;
 }
 
+function unattached(elt) {
+  // Unattached if not part of a document.
+  while (elt) {
+    if (elt.nodeType === 9) return false;
+    elt = elt.parentNode;
+  }
+  return true;
+}
+
 function readPageGbcr() {
   var raw = this.getBoundingClientRect();
+  if (raw.width === 0 && raw.height === 0 &&
+     raw.top === 0 && raw.left === 0 && unattached(this)) {
+    // Prentend unattached images have a size.
+    return {
+      top: 0,
+      bottom: this.height || 0,
+      left: 0,
+      right: this.width || 0,
+      width: this.width || 0,
+      height: this.height || 0,
+    }
+  }
   return {
     top: raw.top + window.pageYOffset,
     bottom: raw.bottom + window.pageYOffset,
@@ -1053,7 +1074,6 @@ function attachClipSurface() {
   if (document.body) {
     $(drawing.surface).prependTo('body');
   } else {
-    console.log('deferring');
     $(document).ready(attachClipSurface);
   }
 }
@@ -1882,17 +1902,17 @@ function hatch(name) {
           isTurtle ? turtleGIFUrl : null,
       imgHull = isColor ? "-20 21 0 -26 20 21" :
           isTurtle ? "-16 -9 -16 11 0 -26 16 11 16 -9 0 18" : 'auto';
-      
+
   // Don't overwrite previously existing id.
   if (isID && $('#' + name).length) { isID = false; }
-  
+
   // Create an image element with the requested name.
   var result;
   if (imgUrl) {
     result = $('<img src="' + imgUrl + '">').css({
       'width': '40px',
       'height': '47px',
-      'margin': '-26px -20px -21px -20px',
+      // 'margin': '-26px -20px -21px -20px',
       'opacity': 0.5,
       'transformOrigin': '20px 26px',
       'turtleHull': imgHull
@@ -1908,7 +1928,7 @@ function hatch(name) {
     'top': 0,
     'left': 0
   }).appendTo(getTurtleClipSurface()).moveto(document);
-  
+
   // Update global variable unless there is a conflict.
   if (isID && !window.hasOwnProperty(name)) {
     window[name] = result;
@@ -2781,7 +2801,8 @@ function tryinitpanel() {
           historyedited[historyindex] = $(this).val();
           // Advance the history index up or down, pegged at the boundaries.
           historyindex += (e.which == 38 ? 1 : -1);
-          historyindex = Math.max(0, Math.min(history.length, historyindex));
+          historyindex = Math.max(0, Math.min(state.history.length,
+              historyindex));
           // Show the remembered command at that slot.
           var newval = historyedited[historyindex] ||
               state.history[state.history.length - historyindex];
