@@ -61,6 +61,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
+  $(x).apart(fn)    // Like each, but this is set to $(elt) instead of elt.
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
@@ -128,7 +129,7 @@ After $.turtle():
   * speed(movesPerSec) adjusts $.fx.speeds.turtle to 1000 / movesPerSec.
   * tick([ticksPerSec,] fn) is similarly an easier-to-call setInterval.
   * random(lessThanThisInteger || array) is an easy alternative to Math.random.
-  * hatch() creates and returns a new turtle.
+  * hatch([n,] [spec]) creates and returns any number of new turtles.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
 
 For example, after $.turtle(), the following is a valid program

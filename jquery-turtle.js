@@ -64,6 +64,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
+  $(x).apart(fn)    // Like each, but this is set to $(elt) instead of elt.
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
@@ -131,7 +132,7 @@ After $.turtle():
   * speed(movesPerSec) adjusts $.fx.speeds.turtle to 1000 / movesPerSec.
   * tick([ticksPerSec,] fn) is similarly an easier-to-call setInterval.
   * random(lessThanThisInteger || array) is an easy alternative to Math.random.
-  * hatch() creates and returns a new turtle.
+  * hatch([n,] [spec]) creates and returns any number of new turtles.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
 
 For example, after $.turtle(), the following is a valid program
@@ -1729,6 +1730,23 @@ var turtlefn = {
       }
     }
     return !!anyok;
+  },
+  apart: function(callback, args) {
+    var j = 0, length = this.length, value, sel;
+    if (args) {
+      for (; j < length; ++j) {
+        sel = $(this[j]);
+        value = callback.apply(sel, args);
+        if (value === false) break;
+      }
+    } else {
+      for (; j < length; ++j) {
+        sel = $(this[j]);
+        value = callback.call(sel, j, sel);
+        if (value === false) break;
+      }
+    }
+    return this;
   }
 };
 
@@ -1893,7 +1911,24 @@ function escapeHtml(string) {
 }
 
 // Turtle creation function.
-function hatch(name) {
+function hatch(count, spec) {
+  if (typeof spec === 'undefined' && !$.isNumeric(count)) {
+    spec = count;
+    count = 1;
+  }
+  if (count === 1) {
+    // Pass through identical jquery instance in the 1 case.
+    return hatchone(typeof spec === 'function' ? spec(0) : spec);
+  } else {
+    var j = 0, result = [];
+    for (; j < count; ++j) {
+      result.push(hatchone(typeof spec === 'function' ? spec(j) : spec)[0]);
+    }
+    return $(result);
+  }
+}
+
+function hatchone(name) {
   var isID = name && /^\w[0-9\w]*$/.exec(name),
       isColor = name && isCSSColor(name),
       isTurtle = !isColor && (!name || isID),
