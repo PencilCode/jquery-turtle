@@ -66,6 +66,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).encloses(y)  // Containment collision test.
   $(x).apart(fn)    // Like each, but this is set to $(elt) instead of elt.
   $(x).within(d, t) // Filters to items with centers within d of t.center().
+  $(x).notwithin()  // The negation of within.
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
@@ -1436,6 +1437,32 @@ function watchImageToFixOriginOnLoad(elem) {
   jQuery.event.add(elem, 'load', fixOrigin);
 }
 
+function withinOrNot(obj, within, distance, x, y) {
+  var sel;
+  if (x === undefined && y === undefined) {
+    sel = $(distance);
+    return obj.filter(function() {
+      return within === sel.encloses(this);
+    });
+  }
+  if (distance === 'touch') {
+    sel = $(x);
+    return obj.filter(function() {
+      return within === sel.touches(this);
+    });
+  }
+  var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
+    isPageCoordinate(x) ? x :
+    $(x).center(),
+    d2 = distance * distance;
+  return obj.filter(function() {
+    var thisctr = getCenterInPageCoordinates(this),
+        dx = ctr.pageX - thisctr.pageX,
+        dy = ctr.pageY - thisctr.pageY;
+    return within === (dx * dx + dy * dy <= d2);
+  });
+}
+
 //////////////////////////////////////////////////////////////////////////
 // JQUERY REGISTRATION
 // Register all our hooks.
@@ -1736,29 +1763,10 @@ var turtlefn = {
     return !!anyok;
   },
   within: function(distance, x, y) {
-    var sel;
-    if (x === undefined && y === undefined) {
-      sel = $(distance);
-      return this.filter(function() {
-        return sel.encloses(this);
-      });
-    }
-    if (distance === 'touch') {
-      sel = $(x);
-      return this.filter(function() {
-        return sel.touches(this);
-      });
-    }
-    var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
-      isPageCoordinate(x) ? x :
-      $(x).center(),
-      d2 = distance * distance;
-    return this.filter(function() {
-      var thisctr = getCenterInPageCoordinates(this),
-          dx = ctr.pageX - thisctr.pageX,
-          dy = ctr.pageY - thisctr.pageY;
-      return dx * dx + dy * dy <= d2;
-    });
+    return withinOrNot(this, true, distance, x, y);
+  },
+  notwithin: function(distance, x, y) {
+    return withinOrNot(this, false, distance, x, y);
   },
   apart: function(callback, args) {
     var j = 0, length = this.length, value, sel;
