@@ -1958,10 +1958,10 @@ function hatch(count, spec) {
 }
 
 function hatchone(name) {
-  var isID = name && /^\w[0-9\w]*$/.exec(name),
-      isColor = name && isCSSColor(name),
-      isTurtle = !isColor && (!name || isID),
-      isTag = name && /^<.*>$/.exec(name),
+  var isID = name && /^[a-zA-Z]\w*$/.exec(name),
+      isColor = isID && isCSSColor(name),
+      isTurtle = (!name && name !== 0 && name !== false) || (isID && !isColor),
+      isTag = !isTurtle && /^<.*>$/.exec(name),
       imgUrl = isColor ? createPointerOfColor(name) :
           isTurtle ? turtleGIFUrl : null,
       imgHull = isColor ? "-20 21 0 -26 20 21" :
@@ -1976,7 +1976,6 @@ function hatchone(name) {
     result = $('<img src="' + imgUrl + '">').css({
       'width': '40px',
       'height': '47px',
-      // 'margin': '-26px -20px -21px -20px',
       'opacity': 0.5,
       'transformOrigin': '20px 26px',
       'turtleHull': imgHull
@@ -1984,7 +1983,7 @@ function hatchone(name) {
   } else if (isTag) {
     result = $(name);
   } else {
-    result = $('<span>' + escapeHtml(name) + '</span>');
+    result = $('<div>' + escapeHtml(name) + '</div>');
   }
   result.css({
     'position': 'absolute',
@@ -1993,9 +1992,16 @@ function hatchone(name) {
     'left': 0
   }).appendTo(getTurtleClipSurface()).moveto(document);
 
-  // Update global variable unless there is a conflict.
-  if (isID && !window.hasOwnProperty(name)) {
-    window[name] = result;
+  // Every hatched turtle has class="turtle".
+  result.addClass('turtle');
+
+  // Set the id.
+  if (isID) {
+    result.attr('id', name);
+    // Update global variable unless there is a conflict.
+    if (!window.hasOwnProperty(name)) {
+      window[name] = result;
+    }
   }
   // Move it to the center of the document and export the name as a global.
   return result;
