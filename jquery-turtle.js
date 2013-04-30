@@ -65,6 +65,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
   $(x).apart(fn)    // Like each, but this is set to $(elt) instead of elt.
+  $(x).within(d, t) // Filters to items with centers within d of t.center().
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
@@ -188,6 +189,8 @@ THE SOFTWARE.
 // PREREQUISTIES
 // Establish support for transforms in this browser.
 //////////////////////////////////////////////////////////////////////////
+
+var undefined = {}.undefined;
 
 if (!$.cssHooks) {
   throw("jQuery 1.4.3+ is needed for jQuery-turtle to work");
@@ -327,43 +330,33 @@ function translatedMVP(m, v, origin) {
 //  * rotation is between +- pi/2
 //  * scalex + scaley >= 0.
 function decomposeSVD(m) {
-  var m0_2 = m[0] * m[0],
-      m1_2 = m[1] * m[1],
-      m2_2 = m[2] * m[2],
-      m3_2 = m[3] * m[3],
-      m0m2 = m[0] * m[2],
-      m1m3 = m[1] * m[3],
-      // Copmute M*M.
-      mtm0 = m0_2 + m1_2,
-      mtm12 = m0m2 + m1m3,
-      mtm3 = m2_2 + m3_2,
-      // Compute sv1, sv2: larger and smaller singular values.
-      susum = mtm0 + mtm3,
-      susub = mtm0 - mtm3,
-      sudif = Math.sqrt(susub * susub + 4 * mtm12 * mtm12),
-      sv1 = Math.sqrt((susum + sudif) / 2),
-      sv2 = Math.sqrt((susum - sudif) / 2),  // Note: poor precision here.
+  var // Compute M*M
+      mtm0 = m[0] * m[0] + m[1] * m[1],
+      mtm12 = m[0] * m[2] + m[1] * m[3],
+      mtm3 = m[2] * m[2] + m[3] * m[3],
       // Compute right-side rotation.
-      phi = -0.5 * Math.atan2(mtm12 + mtm12, mtm0 - mtm3),
-      // Compute left-side rotation.
+      phi = -0.5 * Math.atan2(mtm12 * 2, mtm0 - mtm3),
       v0 = Math.cos(phi),
-      v1 = Math.sin(phi),
+      v1 = Math.sin(phi),  // [v0 v1 -v1 v0]
+      // Compute left-side rotation.
       mvt0 = (m[0] * v0 - m[2] * v1),
       mvt1 = (m[1] * v0 - m[3] * v1),
       theta = Math.atan2(mvt1, mvt0),
-      // Now recompute the smaller singular value.  This does two things:
-      // it pushes flips (negative sign) into the small singular value,
-      // and it also doubles precision.
       u0 = Math.cos(theta),
-      u1 = Math.sin(theta),
-      sv2c = (m[1] * v1 + m[3] * v0) * u0 - (m[0] * v1 + m[2] * v0) * u1;
+      u1 = Math.sin(theta),  // [u0 u1 -u1 u0]
+      // Compute the singular values.  Notice by computing in this way,
+      // the sign is pushed into the smaller singular value.
+      sv2c = (m[1] * v1 + m[3] * v0) * u0 - (m[0] * v1 + m[2] * v0) * u1,
+      sv1c = (m[0] * v0 - m[2] * v1) * u0 + (m[1] * v0 - m[3] * v1) * u1,
+      sv1, sv2;
   // Put phi between -pi/4 and pi/4.
   if (phi < -Math.PI / 4) {
     phi += Math.PI / 2;
-    sv2 = sv1;
+    sv2 = sv1c;
     sv1 = sv2c;
     theta -= Math.PI / 2;
   } else {
+    sv1 = sv1c;
     sv2 = sv2c;
   }
   // Put theta between -pi and pi.
@@ -582,6 +575,24 @@ function unattached(elt) {
   return true;
 }
 
+function wh() {
+  return window.innerHeight || $(window).height();
+}
+
+function ww() {
+  return window.innerWidth || $(window).width();
+}
+
+function getPageGbcr(elem) {
+  if ($.isWindow(elem)) {
+    return getStraightRectLTWH(
+        $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
+  } else if (elem.nodeType === 9) {
+    return getStraightRectLTWH(0, 0, $(elem).width(), $(elem).height());
+  }
+  return readPageGbcr.call(elem);
+}
+
 function readPageGbcr() {
   var raw = this.getBoundingClientRect();
   if (raw.width === 0 && raw.height === 0 &&
@@ -643,11 +654,7 @@ function setCenterInPageCoordinates(elem, target, limit) {
 function getCenterInPageCoordinates(elem) {
   if ($.isWindow(elem)) {
     return getCenterLTWH(
-      $(window).scrollLeft(),
-      $(window).scrollTop(),
-      (window.innerWidth || $(window).width()),
-      (window.innerHeight || $(window).height())
-    );
+        $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
     return getCenterLTWH(0, 0,
         elem.body ? $(elem).width() : elem.width,
@@ -687,11 +694,7 @@ function polyToVectorsOffset(poly, offset) {
 function getCornersInPageCoordinates(elem, untransformed) {
   if ($.isWindow(elem)) {
     return getStraightRectLTWH(
-      $(window).scrollLeft(),
-      $(window).scrollTop(),
-      (window.innerWidth || $(window).width()),
-      (window.innerHeight || $(window).height())
-    );
+        $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
     return getStraightRectLTWH(0, 0, $(elem).width(), $(elem).height());
   }
@@ -880,7 +883,7 @@ function doesConvexPolygonContain(polyOuter, polyInner) {
 // Google search for [Graham Scan Tom Switzer].
 function convexHull(points) {
   function keepLeft(hull, r) {
-    if (!r || !$.isNumeric(r.pageX) || !$.isNumeric(r.pageY)) { return hull; }
+    if (!r || !isPageCoordinate(r)) { return hull; }
     while (hull.length > 1 && sign(signedTriangleArea(hull[hull.length - 2],
         hull[hull.length - 1], r)) != 1) { hull.pop(); }
     if (!hull.length || !equalPoint(hull[hull.length - 1], r)) { hull.push(r); }
@@ -1513,11 +1516,11 @@ var turtlefn = {
     });
   },
   dot: function(style, diameter) {
-    if ($.isNumeric(style) && typeof(diameter) == 'undefined') {
+    if ($.isNumeric(style) && diameter === undefined) {
       diameter = style;
       style = null;
     }
-    if (typeof(diameter) == 'undefined') { diameter = 8.8; }
+    if (diameter === undefined) { diameter = 8.8; }
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
     return this.each(function(j, elem) {
@@ -1617,21 +1620,22 @@ var turtlefn = {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       var q = $.queue(elem), inqueue = (q && q.length > 0);
       function domove() {
+        var dir = direction;
         if (!$.isNumeric(direction)) {
           var pos = direction, cur = $(elem).center();
           if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
           if (!pos || !isPageCoordinate(pos)) return;
-          direction = radiansToDegrees(
+          dir = radiansToDegrees(
               Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
         }
-        setDirectionOnPage(elem, direction, limit);
+        setDirectionOnPage(elem, dir, limit);
         if (inqueue) { $.dequeue(elem); }
       }
       if (inqueue) { q.push(domove); } else { domove(); }
     });
   },
   mirror: function(val) {
-    if (typeof val === 'undefined') {
+    if (val === undefined) {
       var c = $.map(this.css('turtleScale').split(' '), parseFloat),
           p = c[0] * (c.length > 1 ? c[1] : 1);
       return (p < 0);
@@ -1652,7 +1656,7 @@ var turtlefn = {
     });
   },
   twist: function(val) {
-    if (typeof val === 'undefined') {
+    if (val === undefined) {
       return parseFloat(this.css('turtleTwist'));
     }
     return this.each(function(j, elem) {
@@ -1666,11 +1670,11 @@ var turtlefn = {
     });
   },
   scale: function(valx, valy) {
-    if (typeof valx === 'undefined' && typeof valy === 'undefined') {
+    if (valx === undefined && valy === undefined) {
       return parseFloat(this.css('turtleTwist'));
     }
     var val = '' + cssNum(valx) +
-        (typeof valy === 'undefined' ? '' : ' ' + cssNum(valy));
+        (valy === undefined ? '' : ' ' + cssNum(valy));
     return this.each(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       var q = $.queue(elem), inqueue = (q && q.length > 0);
@@ -1730,6 +1734,31 @@ var turtlefn = {
       }
     }
     return !!anyok;
+  },
+  within: function(distance, x, y) {
+    var sel;
+    if (x === undefined && y === undefined) {
+      sel = $(distance);
+      return this.filter(function() {
+        return sel.encloses(this);
+      });
+    }
+    if (distance === 'touch') {
+      sel = $(x);
+      return this.filter(function() {
+        return sel.touches(this);
+      });
+    }
+    var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
+      isPageCoordinate(x) ? x :
+      $(x).center(),
+      d2 = distance * distance;
+    return this.filter(function() {
+      var thisctr = getCenterInPageCoordinates(this),
+          dx = ctr.pageX - thisctr.pageX,
+          dy = ctr.pageY - thisctr.pageY;
+      return dx * dx + dy * dy <= d2;
+    });
   },
   apart: function(callback, args) {
     var j = 0, length = this.length, value, sel;
@@ -1870,7 +1899,7 @@ $.turtle = function turtle(id, options) {
   }
   // Set up test console.
   if (!options.hasOwnProperty('panel') || options.panel) {
-    var abbreviate = [{}.undefined];
+    var abbreviate = [undefined];
     if (selector) { abbreviate.push(selector); }
     see.init({title: 'Turtle test panel', abbreviate: abbreviate});
   }
@@ -1912,7 +1941,7 @@ function escapeHtml(string) {
 
 // Turtle creation function.
 function hatch(count, spec) {
-  if (typeof spec === 'undefined' && !$.isNumeric(count)) {
+  if (spec === undefined && !$.isNumeric(count)) {
     spec = count;
     count = 1;
   }
@@ -1997,7 +2026,7 @@ function tick(rps, fn) {
 
 // Allow speed to be set in moves per second.
 function speed(mps) {
-  if (typeof mps == 'undefined') {
+  if (mps === undefined) {
     return 1000 / $.fx.speeds.turtle;
   } else {
     $.fx.speeds.turtle = mps > 0 ? 1000 / mps : 0;
@@ -2006,7 +2035,7 @@ function speed(mps) {
 
 // Simplify $('#x').move() to just x.move()
 function turtleids(prefix) {
-  if (typeof prefix == 'undefined') {
+  if (prefix === undefined) {
     prefix = '';
   }
   $('[id]').each(function(j, item) {
@@ -2018,7 +2047,7 @@ function turtleids(prefix) {
 // x.moveto(lastclick).
 var eventsaver = null;
 function turtleevents(prefix) {
-  if (typeof prefix == 'undefined') {
+  if (prefix === undefined) {
     prefix = 'last';
   }
   if (eventsaver) {

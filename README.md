@@ -62,6 +62,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
   $(x).apart(fn)    // Like each, but this is set to $(elt) instead of elt.
+  $(x).within(d, t) // Filters to items with centers within d of t.center().
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
