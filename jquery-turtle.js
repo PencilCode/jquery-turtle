@@ -584,14 +584,41 @@ function ww() {
   return window.innerWidth || $(window).width();
 }
 
+function makeGbcrLTWH(left, top, width, height) {
+  return {
+    left: left, top: top, right: left + width, bottom: top + height,
+    width: width, height: height
+  };
+}
+
 function getPageGbcr(elem) {
-  if ($.isWindow(elem)) {
-    return getStraightRectLTWH(
+  if (isPageCoordinate(elem)) {
+    return makeGbcrLTWH(elem.pageX, elem.pageY, 0, 0);
+  } else if ($.isWindow(elem)) {
+    return makeGbcrLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return getStraightRectLTWH(0, 0, $(elem).width(), $(elem).height());
+    return makeGbcrLTWH(0, 0, $(elem).width(), $(elem).height());
   }
-  return readPageGbcr.call(elem);
+  return readPageGbcr.apply(elem);
+}
+
+function isDisjointGbcr(gbcr0, gbcr1) {
+  return (gbcr1.right < gbcr0.left || gbcr0.right < gbcr1.left ||
+          gbcr1.bottom < gbcr0.top || gbcr0.bottom < gbcr1.top);
+}
+
+function gbcrEncloses(gbcr0, gbcr1) {
+  return (gbcr1.top >= gbcr0.top && gbcr1.bottom <= gbcr0.bottom &&
+          gbcr1.left >= gbcr0.left && gbcr1.right <= gbcr0.right);
+}
+
+function polyMatchesGbcr(poly, gbcr) {
+  return (poly.length === 4 &&
+      poly[0].pageX === gbcr.left && poly[0].pageY === gbcr.top &&
+      poly[1].pageX === gbcr.left && poly[1].pageY === gbcr.bottom &&
+      poly[2].pageX === gbcr.right && poly[2].pageY === gbcr.bottom &&
+      poly[3].pageX === gbcr.right && poly[3].pageY === gbcr.top);
 }
 
 function readPageGbcr() {
@@ -1438,18 +1465,37 @@ function watchImageToFixOriginOnLoad(elem) {
 }
 
 function withinOrNot(obj, within, distance, x, y) {
-  var sel;
+  var sel, gbcr;
   if (x === undefined && y === undefined) {
     sel = $(distance);
-    return obj.filter(function() {
-      return within === sel.encloses(this);
-    });
+    gbcr = getPageGbcr(sel[0]);
+    if (polyMatchesGbcr(getCornersInPageCoordinates(sel[0]), gbcr)) {
+      return obj.filter(function() {
+        var thisgbcr = getPageGbcr(this);
+        return within === (gbcrEncloses(gbcr, thisgbcr) ||
+            (!isDisjointGbcr(gbcr, thisgbcr) && sel.encloses(this)));
+      });
+    } else {
+      return obj.filter(function() {
+        return within === sel.encloses(this);
+      });
+    }
   }
   if (distance === 'touch') {
     sel = $(x);
-    return obj.filter(function() {
-      return within === sel.touches(this);
-    });
+    gbcr = getPageGbcr(sel[0]);
+    if (polyMatchesGbcr(getCornersInPageCoordinates(sel[0]), gbcr)) {
+      return obj.filter(function() {
+        var thisgbcr = getPageGbcr(this);
+        // !isDisjoint test assumes gbcr is tight.
+        return within === (!isDisjointGbcr(gbcr, thisgbcr) &&
+          (gbcrEncloses(gbcr, thisgbcr) || sel.touches(this)));
+      });
+    } else {
+      return obj.filter(function() {
+        return within === sel.touches(this);
+      });
+    }
   }
   var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
     isPageCoordinate(x) ? x :
@@ -1727,21 +1773,34 @@ var turtlefn = {
     if (typeof arg === 'string') { arg = $(arg); }
     if (!arg.jquery && !$.isArray(arg)) { arg = [arg]; }
     var elem = this[0],
-        encloser = getCornersInPageCoordinates(elem),
+        gbcr0 = getPageGbcr(elem),
+        encloser = null, rectenc = false,
         allok = true, j = 0, k, obj;
     for (; allok && j < arg.length; ++j) {
       obj = arg[j];
+      // Optimize the outside-bounding-box case.
+      if (isDisjointGbcr(gbcr0, getPageGbcr(obj))) {
+        return false;
+      }
+      if (!encloser) {
+        encloser = getCornersInPageCoordinates(elem);
+        rectenc = polyMatchesGbcr(encloser, gbcr0);
+      }
+      // Optimize the rectilinear-encloser case.
+      if (rectenc && gbcrEncloses(gbcr0, getPageGbcr(obj))) {
+        continue;
+      }
       if (isPageCoordinate(obj)) {
         allok &= pointInConvexPolygon(obj, encloser);
       } else {
         allok &= doesConvexPolygonContain(
-          polyOuter, getCornersInPageCoordinates(obj));
+          encloser, getCornersInPageCoordinates(obj));
       }
     }
     return !!allok;
   },
   touches: function(arg, y) {
-    if (this.hidden()) { return false; }
+    if (this.hidden() || !this.length) { return false; }
     if ($.isNumeric(arg) && $.isNumeric(y)) {
       arg = [{ pageX: arg, pageY: y }];
     }
@@ -1749,10 +1808,18 @@ var turtlefn = {
     if (typeof arg === 'string') { arg = $(arg); }
     if (!arg.jquery && !$.isArray(arg)) { arg = [arg]; }
     var elem = this[0],
-        toucher = getCornersInPageCoordinates(elem),
+        gbcr0 = getPageGbcr(elem),
+        toucher = null,
         anyok = false, j = 0, k, obj;
     for (;!anyok && j < arg.length; ++j) {
       obj = arg[j];
+      // Optimize the outside-bounding-box case.
+      if (isDisjointGbcr(gbcr0, getPageGbcr(obj))) {
+        continue;
+      }
+      if (!toucher) {
+        toucher = getCornersInPageCoordinates(elem);
+      }
       if (isPageCoordinate(obj)) {
         anyok |= pointInConvexPolygon(obj, toucher);
       } else {
