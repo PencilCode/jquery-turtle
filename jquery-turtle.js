@@ -1897,6 +1897,7 @@ var global_turtle = null;
 var global_turtle_methods = [];
 
 $.turtle = function turtle(id, options) {
+  var exportedsee = false;
   if (!arguments.length) {
     id = 'turtle';
   }
@@ -1930,6 +1931,7 @@ $.turtle = function turtle(id, options) {
   // Set up global log function.
   if (!options.hasOwnProperty('see') || options.see) {
     exportsee();
+    exportedsee = true;
     if (window.addEventListener) {
       window.addEventListener('error', see);
     } else {
@@ -1980,9 +1982,24 @@ $.turtle = function turtle(id, options) {
   }
   // Set up test console.
   if (!options.hasOwnProperty('panel') || options.panel) {
-    var abbreviate = [undefined];
-    if (selector) { abbreviate.push(selector); }
+    var retval = null,
+        seeopt = {
+      title: 'turtle test panel',
+      abbreviate: [undefined]
+    };
+    if (selector) { seeopt.abbreviate.push(selector); }
+    if (options.title) {
+      seeopt.title = options.title;
+    }
     see.init({title: 'turtle test panel', abbreviate: abbreviate});
+    // Return an eval loop hook string if 'see' is exported.
+    if (exportedsee) {
+      if (window.CoffeeScript) {
+        return "see.init(eval(see.cs))";
+      } else {
+        return see.here;
+      }
+    }
   }
 };
 
