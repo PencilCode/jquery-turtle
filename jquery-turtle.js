@@ -134,6 +134,7 @@ After $.turtle():
   * speed(movesPerSec) adjusts $.fx.speeds.turtle to 1000 / movesPerSec.
   * tick([ticksPerSec,] fn) is similarly an easier-to-call setInterval.
   * random(lessThanThisInteger || array) is an easy alternative to Math.random.
+  * remove() will remove the global turtle and global turtle methods.
   * hatch([n,] [spec]) creates and returns any number of new turtles.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
 
@@ -1892,7 +1893,8 @@ var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAvAPIHAAFsOACSRQ2ZRQySQzCuSB
 var eventfn = { click:1, mouseup:1, mousedown:1, mousemove:1,
     keydown:1, keypress:1, keyup:1 };
 
-var turtle_globals = [];
+var global_turtle = null;
+var global_turtle_methods = [];
 
 $.turtle = function turtle(id, options) {
   if (!arguments.length) {
@@ -1905,10 +1907,7 @@ $.turtle = function turtle(id, options) {
   }
   options = options || {};
   // Clear any previous turtle methods.
-  for (var j = 0; j < turtle_globals.length; ++j) {
-    delete window[turtle_globals[j]];
-  }
-  turtle_globals = [];
+  clearGlobalTurtle();
   // Expand any <script type="text/html"> unless htmlscript is false.
   if (!options.hasOwnProperty('htmlscript') || options.htmlscript) {
     $('script[type="text/html"]').each(function() {
@@ -1919,6 +1918,10 @@ $.turtle = function turtle(id, options) {
   // Set up global events.
   if (!options.hasOwnProperty('events') || options.events) {
     turtleevents(options.eventprefix);
+  }
+  // Set up window-scoped event handler methods too.
+  if (!options.hasOwnProperty('handlers') || options.handlers) {
+    globalizeMethods($(window), eventfn);
   }
   // Set up global objects by id.
   if (!options.hasOwnProperty('ids') || options.ids) {
@@ -1932,6 +1935,10 @@ $.turtle = function turtle(id, options) {
     } else {
       window.onerror = see;
     }
+  }
+  // Set up global erase function.
+  if (!options.hasOwnProperty('erase') || options.erase) {
+    window.erase = function() { $(document).erase() };
   }
   // Set up an easy integer random function.
   if (!options.hasOwnProperty('random') || options.random) {
@@ -1959,43 +1966,59 @@ $.turtle = function turtle(id, options) {
     }
   }
   if (selector && !selector.length) { selector = null; }
-  // Make the methods of the turtle global.
-  if (selector) {
-    var domfn = {append:1, prepend:1};
+  // Globalize selected jQuery methods of a singleton turtle.
+  if (selector && selector.length === 1 &&
+      (!options.hasOwnProperty('hatch') || options.hatch)) {
     var extraturtlefn = {
       show:1, hide:1, css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
-      animate:1, delay:1, stop:1, finish:1, toggle:1 };
-    var globalfn = $.extend({}, turtlefn, extraturtlefn, eventfn, domfn);
-    for (var jqfn in globalfn) {
-      if ($.fn.hasOwnProperty(jqfn) && !(jqfn in window)) {
-        var obj;
-        if ((!options.hasOwnProperty('handlers') || options.handlers) &&
-            (eventfn.hasOwnProperty(jqfn) || jqfn == 'erase')) {
-          // Attach main event handlers to the window, not the turtle.
-          obj = $(window);
-        } else if (domfn[jqfn]) {
-          // Attach inner HTML manipulation to the document body.
-          obj = $('body');
-        } else {
-          obj = selector;
-        }
-        window[jqfn] = (function() {
-          var method = obj[jqfn];
-          var target = obj;
-          return (function() {
-            return method.apply(target, arguments); });
-        })();
-        turtle_globals.push(jqfn);
-      }
-    }
+      animate:1, delay:1, stop:1, finish:1, toggle:1, remove:1 };
+    var globalfn = $.extend({}, turtlefn, extraturtlefn);
+    global_turtle_methods.push.apply(global_turtle_methods,
+       globalizeMethods(selector, globalfn));
+    global_turtle = selector[0];
+    $(document).on('DOMNodeRemoved.turtle', onDOMNodeRemoved);
   }
   // Set up test console.
   if (!options.hasOwnProperty('panel') || options.panel) {
     var abbreviate = [undefined];
     if (selector) { abbreviate.push(selector); }
-    see.init({title: 'Turtle test panel', abbreviate: abbreviate});
+    see.init({title: 'turtle test panel', abbreviate: abbreviate});
   }
 };
+
+function globalizeMethods(thisobj, fnames) {
+  var replaced = [];
+  for (var fname in fnames) {
+    if (fnames.hasOwnProperty(fname) && !(fname in window)) {
+      replaced.push(fname);
+      window[fname] = (function() {
+        var method = thisobj[fname], target = thisobj;
+        return (function() { return method.apply(target, arguments); });
+      })();
+    }
+  }
+  return replaced;
+}
+
+function clearGlobalTurtle() {
+  global_turtle = null;
+  for (var j = 0; j < global_turtle_methods.length; ++j) {
+    delete window[global_turtle_methods[j]];
+  }
+  global_turtle_methods.length = 0;
+}
+
+function onDOMNodeRemoved(e) {
+  // Undefine global variable.
+  if (e.target.id && window[e.target.id] && window[e.target.id].jquery &&
+      window[e.target.id].length === 1 && window[e.target.id][0] === e.target) {
+    delete window[e.target.id];
+  }
+  // Clear global turtle.
+  if (e.target === global_turtle) {
+    clearGlobalTurtle();
+  }
+}
 
 function isCSSColor(color) {
   if (!/^[a-z]+$/i.exec(color)) { return false; }
