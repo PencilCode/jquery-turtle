@@ -603,6 +603,20 @@ function getPageGbcr(elem) {
   return readPageGbcr.apply(elem);
 }
 
+function isGbcrOutside(center, distance, d2, gbcr) {
+  var dy = Math.max(0,
+           Math.max(gbcr.top - center.pageY, center.pageY - gbcr.bottom)),
+      dx = Math.max(0,
+           Math.max(gbcr.left - center.pageX, center.pageX - gbcr.right));
+  return dx * dx + dy * dy > d2;
+}
+
+function isGbcrInside(center, d2, gbcr) {
+  var dy = Math.max(gbcr.bottom - center.pageY, center.pageY - gbcr.top),
+      dx = Math.max(gbcr.right - center.pageX, center.pageX - gbcr.left);
+  return dx * dx + dy * dy < d2;
+}
+
 function isDisjointGbcr(gbcr0, gbcr1) {
   return (gbcr1.right < gbcr0.left || gbcr0.right < gbcr1.left ||
           gbcr1.bottom < gbcr0.top || gbcr0.bottom < gbcr1.top);
@@ -1502,6 +1516,9 @@ function withinOrNot(obj, within, distance, x, y) {
     $(x).center(),
     d2 = distance * distance;
   return obj.filter(function() {
+    var gbcr = getPageGbcr(this);
+    if (isGbcrOutside(ctr, distance, d2, gbcr)) { return !within; }
+    if (isGbcrInside(ctr, d2, gbcr)) { return within; }
     var thisctr = getCenterInPageCoordinates(this),
         dx = ctr.pageX - thisctr.pageX,
         dy = ctr.pageY - thisctr.pageY;
