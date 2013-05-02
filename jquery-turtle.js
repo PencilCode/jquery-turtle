@@ -1970,7 +1970,7 @@ $.turtle = function turtle(id, options) {
   if (selector && !selector.length) { selector = null; }
   // Globalize selected jQuery methods of a singleton turtle.
   if (selector && selector.length === 1 &&
-      (!options.hasOwnProperty('hatch') || options.hatch)) {
+      (!options.hasOwnProperty('global') || options.global)) {
     var extraturtlefn = {
       show:1, hide:1, css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
       animate:1, delay:1, stop:1, finish:1, toggle:1, remove:1 };
@@ -1991,7 +1991,10 @@ $.turtle = function turtle(id, options) {
     if (options.title) {
       seeopt.title = options.title;
     }
-    see.init({title: 'turtle test panel', abbreviate: abbreviate});
+    if (options.panelheight) {
+      seeopt.height = options.panelheight;
+    }
+    see.init(seeopt);
     // Return an eval loop hook string if 'see' is exported.
     if (exportedsee) {
       if (window.CoffeeScript) {
