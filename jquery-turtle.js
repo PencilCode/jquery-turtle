@@ -1895,6 +1895,7 @@ var eventfn = { click:1, mouseup:1, mousedown:1, mousemove:1,
 
 var global_turtle = null;
 var global_turtle_methods = [];
+var attaching_ids = false;
 
 $.turtle = function turtle(id, options) {
   var exportedsee = false;
@@ -1910,6 +1911,7 @@ $.turtle = function turtle(id, options) {
   // Clear any previous turtle methods.
   clearGlobalTurtle();
   // Expand any <script type="text/html"> unless htmlscript is false.
+  // This is to simplify literal HTML editing within templated editors.
   if (!options.hasOwnProperty('htmlscript') || options.htmlscript) {
     $('script[type="text/html"]').each(function() {
         $(this).replaceWith(
@@ -1939,26 +1941,17 @@ $.turtle = function turtle(id, options) {
     }
   }
   // Set up global erase function.
-  if (!options.hasOwnProperty('erase') || options.erase) {
+  if (!options.hasOwnProperty('functions') || options.functions) {
     window.erase = function() { $(document).erase() };
-  }
-  // Set up an easy integer random function.
-  if (!options.hasOwnProperty('random') || options.random) {
     window.random = random;
-  }
-  // Set up global tick function.
-  if (!options.hasOwnProperty('tick') || options.tick) {
     window.tick = tick;
-  }
-  // Set up global speed function and set a default speed.
-  if (!options.hasOwnProperty('speed') || options.speed) {
     window.speed = speed;
-    speed(1);
-  }
-  // Set up global hatch function.
-  if (!options.hasOwnProperty('hatch') || options.hatch) {
     window.hatch = hatch;
+    window.input = input;
+    window.output = output;
   }
+  // Set turtle speed
+  speed(options.hasOwnProperty('speed') ? options.speed : 1);
   // Find or create a turtle if one does not exist.
   var selector = null;
   if (id) {
@@ -2134,7 +2127,7 @@ function hatchone(name) {
   if (isID) {
     result.attr('id', name);
     // Update global variable unless there is a conflict.
-    if (!window.hasOwnProperty(name)) {
+    if (attaching_ids && !window.hasOwnProperty(name)) {
       window[name] = result;
     }
   }
@@ -2182,6 +2175,7 @@ function turtleids(prefix) {
   $('[id]').each(function(j, item) {
     window[prefix + item.id] = $('#' + item.id);
   });
+  attaching_ids = true;
 }
 
 // Simplify $(window).click(function(e) { x.moveto(e); } to just
@@ -2207,6 +2201,59 @@ function turtleevents(prefix) {
       }
     }
   }
+}
+
+// Simplify $('body').append(html).
+function output(html) {
+  html = $.isNumeric(html) || html ? html : 'output';
+  if (!html || html[0] != '<' || html[html.length - 1] != '>') {
+    html = '<div>' + escapeHtml(html) + '</div>';
+  }
+  return $(html).appendTo($('body'));
+}
+
+// Simplify $('body').append('<input>' + label) and onchange hookup.
+function input(name, callback) {
+  if ($.isFunction(name) && callback === undefined) {
+    callback = name;
+    name = null;
+  }
+  name = $.isNumeric(name) || name ? name : 'input';
+  var textbox = $('<input>'),
+      label = $(
+      '<label style="display:block">' +
+      '&nbsp;' + name +
+      '</label>').prepend(textbox),
+      thisval = $([textbox[0], label[0]]),
+      waiting = null,
+      lastseen = textbox.val();
+  function newval() {
+    if (waiting) { clearTimeout(waiting); }
+    var val = textbox.val();
+    lastseen = val;
+    if ($.isNumeric(val)) {
+      val = parseFloat(val);
+    }
+    if (callback) { callback.call(thisval, val); }
+  }
+  function typing() {
+    if (waiting) {
+      clearTimeout(waiting);
+      waiting = null;
+    }
+    if (lastseen !== textbox.val()) {
+      waiting = setTimeout(newval, 10000);
+    }
+  }
+  function changed() {
+    textbox.select();
+    newval();
+  }
+  textbox.on('keyup', typing);
+  textbox.on('change', changed);
+  $('body').append(label);
+  textbox.focus();
+  return thisval;
 }
 
 //////////////////////////////////////////////////////////////////////////
