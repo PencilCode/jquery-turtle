@@ -4,7 +4,7 @@
 jQuery-turtle
 =============
 
-version 2.0.1
+version 2.0.2
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -137,6 +137,8 @@ After $.turtle():
   * remove() will remove the global turtle and global turtle methods.
   * hatch([n,] [spec]) creates and returns any number of new turtles.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
+  * output(html) appends html to the document body.
+  * input(label, callback) appends a labelled input field to the document body.
 
 For example, after $.turtle(), the following is a valid program
 in CoffeeScript syntax:
@@ -1896,6 +1898,15 @@ var eventfn = { click:1, mouseup:1, mousedown:1, mousemove:1,
 var global_turtle = null;
 var global_turtle_methods = [];
 var attaching_ids = false;
+var dollar_turtle_methods = {
+  erase: function() { $(document).erase() },
+  random: random,
+  tick: tick,
+  speed: speed,
+  hatch: hatch,
+  input: input,
+  output: output
+};
 
 $.turtle = function turtle(id, options) {
   var exportedsee = false;
@@ -1940,15 +1951,9 @@ $.turtle = function turtle(id, options) {
       window.onerror = see;
     }
   }
-  // Set up global erase function.
+  // Copy $.turtle.* functions into global namespace.
   if (!options.hasOwnProperty('functions') || options.functions) {
-    window.erase = function() { $(document).erase() };
-    window.random = random;
-    window.tick = tick;
-    window.speed = speed;
-    window.hatch = hatch;
-    window.input = input;
-    window.output = output;
+    $.extend(window, dollar_turtle_methods);
   }
   // Set turtle speed
   speed(options.hasOwnProperty('speed') ? options.speed : 1);
@@ -1998,6 +2003,8 @@ $.turtle = function turtle(id, options) {
     }
   }
 };
+
+$.extend($.turtle, dollar_turtle_methods);
 
 function globalizeMethods(thisobj, fnames) {
   var replaced = [];

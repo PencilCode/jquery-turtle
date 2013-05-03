@@ -1,7 +1,7 @@
 jQuery-turtle
 =============
 
-version 2.0.1
+version 2.0.2
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -134,6 +134,8 @@ After $.turtle():
   * remove() will remove the global turtle and global turtle methods.
   * hatch([n,] [spec]) creates and returns any number of new turtles.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
+  * output(html) appends html to the document body.
+  * input(label, callback) appends a labelled input field to the document body.
 
 For example, after $.turtle(), the following is a valid program
 in CoffeeScript syntax:
