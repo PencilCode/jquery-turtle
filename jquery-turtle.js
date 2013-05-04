@@ -2212,7 +2212,7 @@ function turtleevents(prefix) {
 
 // Simplify $('body').append(html).
 function output(html) {
-  html = $.isNumeric(html) || html ? html : 'output';
+  html = $.isNumeric(html) || html == '' || html ? html : 'output';
   if (!html || html[0] != '<' || html[html.length - 1] != '>') {
     html = '<div>' + escapeHtml(html) + '</div>';
   }
@@ -2232,32 +2232,30 @@ function input(name, callback) {
       '&nbsp;' + name +
       '</label>').prepend(textbox),
       thisval = $([textbox[0], label[0]]),
-      waiting = null,
+      debounce = null,
       lastseen = textbox.val();
+  function dodebounce() {
+    if (!debounce) {
+      debounce = setTimeout(function() { debounce = null; }, 1000);
+    }
+  }
   function newval() {
-    if (waiting) { clearTimeout(waiting); }
     var val = textbox.val();
+    if (debounce && lastseen == val) { return; }
+    dodebounce();
     lastseen = val;
     if ($.isNumeric(val)) {
       val = parseFloat(val);
     }
+    textbox.select();
     if (callback) { callback.call(thisval, val); }
   }
-  function typing() {
-    if (waiting) {
-      clearTimeout(waiting);
-      waiting = null;
-    }
-    if (lastseen !== textbox.val()) {
-      waiting = setTimeout(newval, 10000);
-    }
+  function key(e) {
+    if (e.which == 13) { newval(); }
   }
-  function changed() {
-    textbox.select();
-    newval();
-  }
-  textbox.on('keyup', typing);
-  textbox.on('change', changed);
+  dodebounce();
+  textbox.on('keydown', key);
+  textbox.on('change', newval);
   $('body').append(label);
   textbox.focus();
   return thisval;
