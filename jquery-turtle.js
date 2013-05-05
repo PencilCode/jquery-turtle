@@ -125,10 +125,10 @@ element.
 Turtle Teaching Environment
 ---------------------------
 
-An optional teaching environment setup is created by $.turtle().
+An optional teaching environment setup is created by eval($.turtle()).
 It provides easy packaging for the above functionality.
 
-After $.turtle():
+After eval($.turtle()):
   * An &lt;img id="turtle"&gt; is created if #turtle doesn't already exist.
   * An eval debugging panel (see.js) is shown at the bottom of the screen.
   * Turtle methods on the default turtle are packaged as globals, e.g., fd(10).
@@ -141,10 +141,10 @@ After $.turtle():
   * remove() will remove the global turtle and global turtle methods.
   * hatch([n,] [spec]) creates and returns any number of new turtles.
   * see(a, b, c) logs tree-expandable data into the debugging panel.
-  * output(html) appends html to the document body.
+  * output(html or text) appends html to the document body.
   * input(label, callback) appends a labelled input field to the document body.
 
-For example, after $.turtle(), the following is a valid program
+For example, after eval($.turtle()), the following is a valid program
 in CoffeeScript syntax:
 
 <pre>
