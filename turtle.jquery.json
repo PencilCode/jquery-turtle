@@ -12,7 +12,7 @@
         "game",
         "collision"
     ],
-    "version": "2.0.1",
+    "version": "2.0.2",
     "author": {
         "name": "David Bau",
         "url": "http://davidbau.com/"
@@ -25,9 +25,9 @@
     ],
     "bugs": "https://github.com/davidbau/jquery-turtle/issues",
     "homepage": "https://github.com/davidbau/jquery-turtle",
-    "demo": "http://davidbau.github.io/jquery-turtle-demo.html",
+    "demo": "http://davidbau.github.io/jqt/jquery-turtle-demo.html",
     "docs": "http://davidbau.github.io/jquery-turtle/",
     "dependencies": {
-        "jquery": ">=1.5"
+        "jquery": ">=1.7"
     }
 }

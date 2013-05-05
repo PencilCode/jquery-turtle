@@ -8,7 +8,7 @@ jQuery-turtle is a jQuery plugin for turtle graphics.
 With jQuery-turtle, every DOM element is a turtle that can be
 moved using LOGO-inspired turtle methods like fd, bk, rt, and lt.
 <pre>
-  $('#myelt').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
+  $('#turtle').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
 </pre>
 The plugin also provides functions to help in a rotated,
 scaled, and transformed world where nested elements may be
@@ -16,7 +16,7 @@ transformed.  There are functions for collision testing, absolute
 positioning, and absolute direction reading and setting.
 
 [Try an interactive demo (CoffeeScript syntax) here.](
-http://davidbau.github.io/jquery-turtle-demo.html)
+http://davidbau.github.io/jqt/jquery-turtle-demo.html)
 
 The plugin sets up low-level CSS hooks for synthetic CSS
 properties that can be animated or used to directly manipulate
