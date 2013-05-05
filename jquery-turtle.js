@@ -21,12 +21,14 @@ positioning, and absolute direction reading and setting.
 [Try an interactive demo (CoffeeScript syntax) here.](
 http://davidbau.github.io/jqt/jquery-turtle-demo.html)
 
-The plugin sets up low-level CSS hooks for synthetic CSS
-properties that can be animated or used to directly manipulate
-turtle geometry at a basic mathematical level.  Under the covers,
-CSS3 2D transforms and jQuery animations are used to execute
-and store turtle movement.  So jQuery-turtle interacts well with
-other jQuery animations or direct uses of 2D CSS3 transforms.
+
+Under the covers, CSS3 2D transforms and jQuery animations are
+used to execute and store turtle movement, so jQuery-turtle
+interacts well with other jQuery animations or direct uses of
+2D CSS3 transforms.  The plugin sets up jQuery CSS hooks for
+synthetic CSS properties such as turtleDisplacement that can be
+animated or used to directly manipulate turtle geometry at a basic
+mathematical level.
 
 A high-level educational environment is enabled by $.turtle().
 That call creates a set of global objects and functions
@@ -89,8 +91,9 @@ by the turtleHull CSS property, if present.
 JQuery CSS Hooks for Turtle Geometry
 ------------------------------------
 
-Low-level Turtle-oriented 2d transform cssHooks, with animation
-support on all motion:
+Turtle-oriented 2d transform cssHooks, with animation support on all
+motion:
+
 <pre>
   $(x).css('turtlePosition', '30 40');   // position in local coordinates.
   $(x).css('turtlePositionX', '30');     // x component.
@@ -115,8 +118,9 @@ and lineCap.
 
 A convex hull polygon can be set to be used by the collision detection
 and hit-testing functions (encloses, touches).  The turtleHull is a list
-of x-y coordinates relative to the object's transformOrigin.  If set to
-'auto' (the default) the hull is just the bounding box for the element.
+of (unrotated) x-y coordinates relative to the object's transformOrigin.
+If set to 'auto' (the default) the hull is just the bounding box for the
+element.
 
 Turtle Teaching Environment
 ---------------------------
@@ -157,7 +161,7 @@ tick 10, ->
   chaser.rt (random 60) - 30
   chaser.fd 5
   if chaser.touches player
-    see "tag! you're it!"
+    output "tag! you're it!"
     tick ->
 </pre>
 
