@@ -32,7 +32,7 @@
       <section>
         <h1>jQuery-turtle</h1>
 
-<p>version 2.0.1</p>
+<p>version 2.0.2</p>
 
 <p>jQuery-turtle is a jQuery plugin for turtle graphics.</p>
 
@@ -40,7 +40,7 @@
 moved using LOGO-inspired turtle methods like fd, bk, rt, and lt.</p>
 
 <pre>
-  $('#myelt').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
+  $('#turtle').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
 </pre>
 
 <p>The plugin also provides functions to help in a rotated,
@@ -48,10 +48,11 @@ scaled, and transformed world where nested elements may be
 transformed.  There are functions for collision testing, absolute
 positioning, and absolute direction reading and setting.</p>
 
-<p><a href="http://davidbau.github.io/jquery-turtle-demo.html">Try an interactive demo (CoffeeScript syntax) here.</a></p>
-<iframe src="http://davidbau.github.io/jquery-turtle-demo.html" height="560" width="640" style="background:lightblue">
-(interactive demo)
-</iframe>
+<p><a href="http://davidbau.github.io/jqt/jquery-turtle-demo.html">Try an interactive demo (CoffeeScript syntax) here.</a></p>
+
+
+interactive demo
+
 
 <p>The plugin sets up low-level CSS hooks for synthetic CSS
 properties that can be animated or used to directly manipulate
@@ -170,6 +171,8 @@ It provides easy packaging for the above functionality.</p>
 <li>remove() will remove the global turtle and global turtle methods.</li>
 <li>hatch([n,] [spec]) creates and returns any number of new turtles.</li>
 <li>see(a, b, c) logs tree-expandable data into the debugging panel.</li>
+<li>output(html) appends html to the document body.</li>
+<li>input(label, callback) appends a labelled input field to the document body.</li>
 </ul><p>For example, after $.turtle(), the following is a valid program
 in CoffeeScript syntax:</p>
 
