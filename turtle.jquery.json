@@ -1,7 +1,7 @@
 {
     "name": "turtle",
     "title": "jQuery Turtle",
-    "description": "jQuery plugin for turtle graphics support.  Every element can be used as a turtle.",
+    "description": "jQuery plugin for turtle graphics.  Every element is a turtle that can rotate, move, animate, draw, and test for collisions.",
     "keywords": [
         "turtle",
         "education",
