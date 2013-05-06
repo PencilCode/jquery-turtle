@@ -670,7 +670,7 @@ function readPageGbcr() {
 // to get origin position; then calculate displacement needed to move
 // turtle to target coordinates (again reversing parent distortions
 // if possible).
-function setCenterInPageCoordinates(elem, target, limit) {
+function setCenterInPageCoordinates(elem, target, limit, localx, localy) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
       hidden = ($.css(elem, 'display') === 'none'),
@@ -681,7 +681,7 @@ function setCenterInPageCoordinates(elem, target, limit) {
       gbcr = cleanSwap(elem, swapout, readPageGbcr),
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
       origin = addVector([gbcr.left, gbcr.top], middle),
-      pos, current, translation;
+      pos, current, translation, localTarget;
   if (!inverseParent) { return; }
   if ($.isNumeric(limit)) {
     pos = addVector(matrixVectorProduct(totalParentTransform, tr), origin);
@@ -691,8 +691,15 @@ function setCenterInPageCoordinates(elem, target, limit) {
     };
     target = limitMovement(current, target, limit);
   }
-  $.style(elem, 'turtlePosition', matrixVectorProduct(inverseParent,
-      subtractVector([target.pageX, target.pageY], origin)).join(' '));
+  localTarget = matrixVectorProduct(inverseParent,
+      subtractVector([target.pageX, target.pageY], origin));
+  if (localx || localy) {
+    var ts = readTurtleTransform(elem, true),
+        r = (ts || 0) && convertToRadians(ts.rot);
+    localTarget[0] += Math.cos(r) * localx + Math.sin(r) * localy;
+    localTarget[1] += Math.sin(r) * localx - Math.cos(r) * localy;
+  }
+  $.style(elem, 'turtlePosition', localTarget.join(' '));
 }
 
 // Uses getBoundingClientRect to figure out current position in page
@@ -1599,7 +1606,12 @@ var turtlefn = {
   lt: function(amount) {
     return this.animate({'turtleRotation': '-=' + amount}, 'turtle');
   },
-  fd: function(amount, sideways) {
+  fd: function(amount, y) {
+    var sideways = 0;
+    if (y !== undefined) {
+      sideways = amount;
+      amount = y;
+    }
     // Fast path: do the move directly when there is no animation.
     if (!$.fx.speeds.turtle) {
       return this.each(function(j, elem) {
@@ -1620,7 +1632,7 @@ var turtlefn = {
       });
     }
   },
-  bk: function(amount, y) {
+  bk: function(amount) {
     return this.fd(-amount);
   },
   pen: function(penstyle) {
@@ -1701,9 +1713,15 @@ var turtlefn = {
     if (!this.length) return;
     return getCenterInPageCoordinates(this[0]);
   },
-  moveto: function(position, limit) {
+  moveto: function(position, limit, y) {
     if ($.isNumeric(position) && $.isNumeric(limit)) {
       position = { pageX: parseFloat(position), pageY: parseFloat(limit) };
+      limit = null;
+    }
+    var localx = 0, localy = 0;
+    if ($.isNumeric(y) && $.isNumeric(limit)) {
+      localx = limit;
+      localy = y;
       limit = null;
     }
     return this.each(function(j, elem) {
@@ -1718,7 +1736,7 @@ var turtlefn = {
         } else if (elem.nodeType === 9) {
           return;
         }
-        setCenterInPageCoordinates(elem, pos, limit);
+        setCenterInPageCoordinates(elem, pos, limit, localx, localy);
         // moveto implies a request for a stable origin.
         watchImageToFixOriginOnLoad(elem);
         flushPenState(elem);
