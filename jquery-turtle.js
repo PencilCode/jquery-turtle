@@ -26,7 +26,7 @@ Under the covers, CSS3 2D transforms and jQuery animations are
 used to execute and store turtle movement, so jQuery-turtle
 interacts well with other jQuery animations or direct uses of
 2D CSS3 transforms.  The plugin sets up jQuery CSS hooks for
-synthetic CSS properties such as turtleDisplacement that can be
+synthetic CSS properties such as turtleForward that can be
 animated or used to directly manipulate turtle geometry at a basic
 mathematical level.
 
@@ -103,7 +103,7 @@ motion:
   $(x).css('turtleScaleX', '2');         // x stretch before rotate after twist.
   $(x).css('turtleScaleY', '2');         // y stretch before rotate after twist.
   $(x).css('turtleTwist', '45');         // turn before stretching.
-  $(x).css('turtleDisplacement', '50');  // position in direction of rotation.
+  $(x).css('turtleForward', '50');       // position in direction of rotation.
   $(x).css('turtlePen', 'red');          // or 'red lineWidth 2px' etc.
   $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>
@@ -1336,23 +1336,40 @@ function eraseBox(elem, style) {
 // Functions in direct support of exported methods.
 //////////////////////////////////////////////////////////////////////////
 
-function doQuickMove(elem, distance) {
+function doQuickMove(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
       r = (ts || 0) && convertToRadians(ts.rot),
       dy = -Math.cos(r) * distance,
       dx = Math.sin(r) * distance;
   if (!ts) { return; }
+  if (sideways) {
+    dy += Math.sin(r) * sideways;
+    dx += Math.cos(r) * sideways;
+  }
   ts.tx += dx;
   ts.ty += dy;
   elem.style[transform] = writeTurtleTransform(ts);
   flushPenState(elem);
 }
 
+function displacedPosition(elem, distance, sideways) {
+  var ts = readTurtleTransform(elem, true),
+      r = (ts || 0) && convertToRadians(ts.rot),
+      dy = -Math.cos(r) * distance,
+      dx = Math.sin(r) * distance;
+  if (!ts) { return; }
+  if (sideways) {
+    dy += Math.sin(r) * sideways;
+    dx += Math.cos(r) * sideways;
+  }
+  return cssNum(ts.tx + dx) + ' ' + cssNum(ts.ty + dy);
+}
+
 function isPageCoordinate(obj) {
   return $.isNumeric(obj.pageX) && $.isNumeric(obj.pageY);
 }
 
-function makeTurtleDisplacementHook() {
+function makeTurtleForwardHook() {
   return {
     get: function(elem, computed, extra) {
       var ts = readTurtleTransform(elem, computed);
@@ -1541,7 +1558,7 @@ function withinOrNot(obj, within, distance, x, y) {
 $.extend(true, $, {
   cssHooks: {
     turtlePen: makePenHook(),
-    turtleDisplacement: makeTurtleDisplacementHook(),
+    turtleForward: makeTurtleForwardHook(),
     turtlePosition: makeTurtleXYHook('turtlePosition', 'tx', 'ty', true),
     turtlePositionX: makeTurtleHook('tx', identity, true),
     turtlePositionY: makeTurtleHook('ty', identity, true),
@@ -1576,31 +1593,35 @@ $.extend(true, $.fx, {
 });
 
 var turtlefn = {
-  rt: function(amount, seconds) {
-    return this.animate({'turtleRotation': '+=' + amount},
-          $.isNumeric(seconds) ? 1000 * seconds : 'turtle');
+  rt: function(amount) {
+    return this.animate({'turtleRotation': '+=' + amount}, 'turtle');
   },
-  lt: function(amount, seconds) {
-    return this.animate({'turtleRotation': '-=' + amount},
-          $.isNumeric(seconds) ? 1000 * seconds : 'turtle');
+  lt: function(amount) {
+    return this.animate({'turtleRotation': '-=' + amount}, 'turtle');
   },
-  fd: function(amount, seconds) {
+  fd: function(amount, sideways) {
     // Fast path: do the move directly when there is no animation.
-    if ($.isNumeric(seconds) ? !seconds : !$.fx.speeds.turtle) {
+    if (!$.fx.speeds.turtle) {
       return this.each(function(j, elem) {
         var q = $.queue(elem), doqueue = (q && q.length > 0);
         function domove() {
-          doQuickMove(elem, amount);
+          doQuickMove(elem, amount, sideways);
           if (doqueue) { $.dequeue(elem); }
         }
         if (doqueue) { q.push(domove); } else { domove(); }
       });
     }
-    return this.animate({'turtleDisplacement': '+=' + amount},
-          $.isNumeric(seconds) ? 1000 * seconds : 'turtle');
+    if (!sideways) {
+      return this.animate({'turtleForward': '+=' + amount}, 'turtle');
+    } else {
+      return this.each(function(j, elem) {
+        $(elem).animate({'turtlePosition':
+            displacedPosition(elem, amount, sideways)}, 'turtle');
+      });
+    }
   },
-  bk: function(amount, seconds) {
-    return this.fd(-amount, seconds);
+  bk: function(amount, y) {
+    return this.fd(-amount);
   },
   pen: function(penstyle) {
     return this.each(function(j, elem) {
@@ -2216,7 +2237,7 @@ function turtleevents(prefix) {
 
 // Simplify $('body').append(html).
 function output(html) {
-  html = $.isNumeric(html) || html == '' || html ? html : 'output';
+  html = $.isNumeric(html) || html == '' || html ? html : '<div>&hellip;</div>';
   if (!html || html[0] != '<' || html[html.length - 1] != '>') {
     html = '<div>' + escapeHtml(html) + '</div>';
   }
@@ -2229,12 +2250,12 @@ function input(name, callback) {
     callback = name;
     name = null;
   }
-  name = $.isNumeric(name) || name ? name : 'input';
+  name = $.isNumeric(name) || name ? name : '&rArr;';
   var textbox = $('<input>'),
       label = $(
       '<label style="display:block">' +
-      '&nbsp;' + name +
-      '</label>').prepend(textbox),
+      name + '&nbsp;' +
+      '</label>').append(textbox),
       thisval = $([textbox[0], label[0]]),
       debounce = null,
       lastseen = textbox.val();
@@ -2248,10 +2269,11 @@ function input(name, callback) {
     if (debounce && lastseen == val) { return; }
     dodebounce();
     lastseen = val;
+    textbox.remove();
+    label.append(val);
     if ($.isNumeric(val)) {
       val = parseFloat(val);
     }
-    textbox.select();
     if (callback) { callback.call(thisval, val); }
   }
   function key(e) {
