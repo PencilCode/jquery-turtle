@@ -1111,7 +1111,8 @@ var drawing = {
   surface: null,
   ctx: null,
   canvas: null,
-  timer: null
+  timer: null,
+  subpixel: 1
 };
 
 function getTurtleClipSurface() {
@@ -1150,6 +1151,7 @@ function getTurtleDrawingCtx() {
   resizecanvas();
   pollbodysize(resizecanvas);
   $(window).resize(resizecanvas);
+  drawing.ctx.scale(drawing.subpixel, drawing.subpixel);
   return drawing.ctx;
 }
 
@@ -1173,22 +1175,25 @@ function pollbodysize(callback) {
 function resizecanvas() {
   if (!drawing.canvas) return;
   var b = $('body'),
-      wh = Math.max(b.height(), window.innerHeight || $(window).height()),
-      bw = Math.max(1500, Math.ceil(b.width() / 100) * 100),
-      bh = Math.max(1500, Math.ceil(wh / 100) * 100),
+      wh = Math.max(b.outerHeight(true),
+          window.innerHeight || $(window).height()),
+      bw = Math.max(200, Math.ceil(b.outerWidth(true) / 100) * 100),
+      bh = Math.max(200, Math.ceil(wh / 100) * 100),
       cw = drawing.canvas.width,
       ch = drawing.canvas.height,
       tc;
-  $(drawing.surface).css({ width: b.width() + 'px', height: wh + 'px'});
-  if (cw != bw || ch != bh) {
+  $(drawing.surface).css({ width: b.outerWidth(true) + 'px',
+      height: wh + 'px'});
+  if (cw != bw * drawing.subpixel || ch != bh * drawing.subpixel) {
     // Transfer canvas out to tc and back again after resize.
     tc = document.createElement('canvas');
-    tc.width = Math.min(cw, bw);
-    tc.height = Math.min(ch, bh);
+    tc.width = Math.min(cw, bw * drawing.subpixel);
+    tc.height = Math.min(ch, bh * drawing.subpixel);
     tc.getContext('2d').drawImage(drawing.canvas, 0, 0);
-    drawing.canvas.width = bw;
-    drawing.canvas.height = bh;
+    drawing.canvas.width = bw * drawing.subpixel;
+    drawing.canvas.height = bh * drawing.subpixel;
     drawing.canvas.getContext('2d').drawImage(tc, 0, 0);
+    $(drawing.canvas).css({ width: bw, height: bh });
   }
 }
 
@@ -1971,6 +1976,9 @@ $.turtle = function turtle(id, options) {
         $(this).replaceWith(
             $(this).html().replace(/^\x3c!\[CDATA\[\n?|\]\]\x3e$/g, ''));
     });
+  }
+  if (!drawing.ctx && options.hasOwnProperty('subpixel')) {
+    drawing.subpixel = parseInt(options.subpixel);
   }
   // Set up global events.
   if (!options.hasOwnProperty('events') || options.events) {
