@@ -2101,13 +2101,13 @@ function isCSSColor(color) {
 function createPointerOfColor(color) {
   var c = document.createElement('canvas');
   c.width = 40;
-  c.height = 47;
+  c.height = 48;
   var ctx = c.getContext('2d');
   ctx.beginPath();
-  ctx.moveTo(0,47);
+  ctx.moveTo(0,49);
   ctx.lineTo(20,0);
-  ctx.lineTo(40,47);
-  ctx.lineTo(20,37);
+  ctx.lineTo(40,48);
+  ctx.lineTo(20,42);
   ctx.closePath();
   ctx.fillStyle = color;
   ctx.fill();
@@ -2150,8 +2150,8 @@ function hatchone(name) {
       isTag = !isTurtle && /^<.*>$/.exec(name),
       imgUrl = isColor ? createPointerOfColor(name) :
           isTurtle ? turtleGIFUrl : null,
-      imgHull = isColor ? "-20 21 0 -26 20 21" :
-          isTurtle ? "-16 -9 -16 11 0 -26 16 11 16 -9 0 18" : 'auto';
+      imgHull = isColor ? "-10 11 0 -13 10 11" :
+          isTurtle ? "-8 -5 -8 6 0 -13 8 6 8 -5 0 9" : 'auto';
 
   // Don't overwrite previously existing id.
   if (isID && $('#' + name).length) { isID = false; }
@@ -2160,10 +2160,10 @@ function hatchone(name) {
   var result;
   if (imgUrl) {
     result = $('<img src="' + imgUrl + '">').css({
-      'width': '40px',
-      'height': '47px',
+      'width': '20px',
+      'height': '24px',
       'opacity': 0.5,
-      'transformOrigin': '20px 26px',
+      'transformOrigin': '10px 13px',
       'turtleHull': imgHull
     });
   } else if (isTag) {
@@ -2263,8 +2263,10 @@ function turtleevents(prefix) {
 
 // Simplify $('body').append(html).
 function output(html) {
-  html = $.isNumeric(html) || html == '' || html ? html : '<div>&hellip;</div>';
-  if (!html || html[0] != '<' || html[html.length - 1] != '>') {
+  if (html === undefined || html === null) {
+    html = '<div>&hellip;</div>';
+  }
+  if (!html || html[0] != '<' || html.indexOf('>') == -1) {
     html = '<div>' + escapeHtml(html) + '</div>';
   }
   return $(html).appendTo($('body'));
