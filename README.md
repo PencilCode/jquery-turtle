@@ -23,7 +23,7 @@ Under the covers, CSS3 2D transforms and jQuery animations are
 used to execute and store turtle movement, so jQuery-turtle
 interacts well with other jQuery animations or direct uses of
 2D CSS3 transforms.  The plugin sets up jQuery CSS hooks for
-synthetic CSS properties such as turtleDisplacement that can be
+synthetic CSS properties such as turtleForward that can be
 animated or used to directly manipulate turtle geometry at a basic
 mathematical level.
 
@@ -49,7 +49,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a dot of diameter 12.
   $(x).erase()      // Erases under the turtles collision hull.
-  $(x).bg('pink')   // Shorthand for css("background", "pink")
+  $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
   $(x).scale(1.5)   // Scales the element up to 150% size.
@@ -100,7 +100,7 @@ motion:
   $(x).css('turtleScaleX', '2');         // x stretch before rotate after twist.
   $(x).css('turtleScaleY', '2');         // y stretch before rotate after twist.
   $(x).css('turtleTwist', '45');         // turn before stretching.
-  $(x).css('turtleDisplacement', '50');  // position in direction of rotation.
+  $(x).css('turtleForward', '50');       // position in direction of rotation.
   $(x).css('turtlePen', 'red');          // or 'red lineWidth 2px' etc.
   $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>

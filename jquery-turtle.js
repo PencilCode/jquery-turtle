@@ -52,7 +52,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a dot of diameter 12.
   $(x).erase()      // Erases under the turtles collision hull.
-  $(x).bg('pink')   // Shorthand for css("background", "pink")
+  $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
   $(x).scale(1.5)   // Scales the element up to 150% size.
@@ -1119,9 +1119,10 @@ function getTurtleClipSurface() {
   if (drawing.surface) {
     return drawing.surface;
   }
-  var surface = document.createElement('div');
+  var surface = document.createElement('samp');
   $(surface).css({
     position: 'absolute',
+    display: 'inline-block',
     top: 0, left: 0, width: '100%', height: '100%',
     'z-index': -1,
     overflow: 'hidden'
@@ -1347,6 +1348,20 @@ function eraseBox(elem, style) {
 // JQUERY METHOD SUPPORT
 // Functions in direct support of exported methods.
 //////////////////////////////////////////////////////////////////////////
+
+function applyImg(elem, img) {
+  if (elem.tagName == 'IMG') {
+    elem.src = img.url;
+    $(elem).css(img.css);
+  } else {
+    $(elem).css({
+      backgroundImage: 'url(' + img.url + ')',
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'center',
+      backgroundSize: img.css.width + 'px ' + img.css.height + 'px'
+    });
+  }
+}
 
 function doQuickMove(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
@@ -1684,15 +1699,11 @@ var turtlefn = {
       if (inqueue) { q.push(dodraw); } else { dodraw(); }
     });
   },
-  bg: function(style) {
-    if (!style) { return this.css('background'); }
+  img: function (name) {
+    var img = nameToImg(name);
+    if (!img) return this;
     return this.each(function(j, elem) {
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function dodraw() {
-        $.style(elem, 'background', style);
-        if (inqueue) { $.dequeue(elem); }
-      }
-      if (inqueue) { q.push(dodraw); } else { dodraw(); }
+      applyImg(elem, img);
     });
   },
   reload: function() {
@@ -2143,29 +2154,86 @@ function hatch(count, spec) {
   }
 }
 
+function nameToImg(name) {
+  if (name == 'turtle') return {
+    url: turtleGIFUrl,
+    css: {
+      width: 20,
+      height: 24,
+      turtleHull: "-8 -5 -8 6 0 -13 8 6 8 -5 0 9",
+      transformOrigin: '10px 13px',
+      opacity: 0.5
+    }
+  };
+  if (isCSSColor(name)) return {
+    url: createPointerOfColor(name),
+    css: {
+      width: 20,
+      height: 24,
+      turtleHull: "-10 11 0 -13 10 11",
+      transformOrigin: '10px 13px',
+      opacity: 0.8
+    }
+  };
+  var openicon =
+    /^openicon:\/?\/?([^@\/][^@]*)(?:@(?:(\d+):)?(\d+))?$/.exec(name);
+  if (openicon) {
+    var openiconName = openicon[1],
+        sourceSize = parseInt(openicon[3]),
+        targetSize = parseInt(openicon[2]),
+        dotloc = openiconName.lastIndexOf('.'),
+        openiconType = 'png';
+    if (openiconName.indexOf('/') == -1) {
+      openiconName = 'others/' + openiconName;
+    }
+    if (dotloc > 0 && dotloc <= openiconName.length - 4 &&
+        dotloc >= openiconName.length - 5) {
+      openiconType = openiconName.substring(dotloc + 1);
+      openiconName = openiconName.substring(0, dotloc);
+    }
+    if (!targetSize) {
+      targetSize = sourceSize || 24;
+    }
+    if (!sourceSize) {
+      sourceSize = 48;
+    }
+    return {
+      url: 'http://openiconlibrary.sourceforge.net/gallery2/' +
+        'open_icon_library-full/icons/' + openiconType + '/' +
+        sourceSize + 'x' + sourceSize + '/' +
+        openiconName + '.' + openiconType,
+      css: {
+        width: targetSize,
+        height: targetSize,
+        opacity: 1
+      }
+    }
+  }
+  if (/^https?:\/\//i.exec(name)) {
+    return {
+      url: name,
+      css: {
+        opacity: 1
+      }
+    }
+  }
+  return null;
+}
+
 function hatchone(name) {
   var isID = name && /^[a-zA-Z]\w*$/.exec(name),
-      isColor = isID && isCSSColor(name),
-      isTurtle = (!name && name !== 0 && name !== false) || (isID && !isColor),
-      isTag = !isTurtle && /^<.*>$/.exec(name),
-      imgUrl = isColor ? createPointerOfColor(name) :
-          isTurtle ? turtleGIFUrl : null,
-      imgHull = isColor ? "-10 11 0 -13 10 11" :
-          isTurtle ? "-8 -5 -8 6 0 -13 8 6 8 -5 0 9" : 'auto';
+      isTag = name && /^<.*>$/.exec(name),
+      img = nameToImg(name) ||
+        (isID || name === undefined) && nameToImg('turtle');
 
   // Don't overwrite previously existing id.
   if (isID && $('#' + name).length) { isID = false; }
 
   // Create an image element with the requested name.
   var result;
-  if (imgUrl) {
-    result = $('<img src="' + imgUrl + '">').css({
-      'width': '20px',
-      'height': '24px',
-      'opacity': 0.5,
-      'transformOrigin': '10px 13px',
-      'turtleHull': imgHull
-    });
+  if (img) {
+    result = $('<img>');
+    applyImg(result[0], img);
   } else if (isTag) {
     result = $(name);
   } else {
@@ -2264,12 +2332,12 @@ function turtleevents(prefix) {
 // Simplify $('body').append(html).
 function output(html) {
   if (html === undefined || html === null) {
-    html = '<div>&hellip;</div>';
+    return $('<img>').img('turtle').appendTo('body');
   }
   if (!html || html[0] != '<' || html.indexOf('>') == -1) {
     html = '<div>' + escapeHtml(html) + '</div>';
   }
-  return $(html).appendTo($('body'));
+  return $(html).appendTo('body');
 }
 
 // Simplify $('body').append('<input>' + label) and onchange hookup.
