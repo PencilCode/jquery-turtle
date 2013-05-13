@@ -1050,7 +1050,7 @@ function readTurtleTransform(elem, computed) {
 function cssNum(n) {
   var r = n.toString();
   if (r.indexOf('e') >= 0) {
-    r = n.toFixed(17);
+    r = Number(n).toFixed(17);
   }
   return r;
 }
@@ -1915,21 +1915,38 @@ var turtlefn = {
     return withinOrNot(this, false, distance, x, y);
   },
   apart: function(callback, args) {
-    var j = 0, length = this.length, value, sel;
-    if (args) {
-      for (; j < length; ++j) {
-        sel = $(this[j]);
-        value = callback.apply(sel, args);
-        if (value === false) break;
-      }
-    } else {
-      for (; j < length; ++j) {
-        sel = $(this[j]);
-        value = callback.call(sel, j, sel);
-        if (value === false) break;
+    function enqueue(elem) {
+      var queue = $.queue(elem, 'fx', function() {
+        var saved = $.queue(this, 'fx'),
+            subst = [],
+            sel = $(this);
+        if (saved[0] === 'inprogress') {
+          subst.unshift(saved.shift());
+        }
+        $.queue(this, 'fx', subst);
+        if (args) {
+          callback.apply(sel, args);
+        } else {
+          callback.call(sel, j, sel);
+        }
+        $.merge($.queue(this, 'fx'), saved);
+        $.dequeue(this, 'fx');
+      });
+      $._queueHooks(elem, 'fx');
+      if (queue[0] !== 'inprogress') {
+        $.dequeue(elem, 'fx');
       }
     }
-    return this;
+    var elem, sel, length = this.length, j = 0;
+    for (; j < length; ++j) {
+      elem = this[j];
+      if ($.queue(elem, 'fx').length) { enqueue(elem); }
+      else {
+        sel = $(elem);
+        if (!args) { callback.call(sel, j, sel); }
+        else { callback.apply(sel, args); }
+      }
+    }
   }
 };
 
@@ -2414,12 +2431,6 @@ var scopes = {
 };
 var coffeescript = window.CoffeeScript;
 var seejs = '(function(){return eval(arguments[0]);})';
-
-// If see has already been loaded, then return without doing anything.
-if (window.see && window.see.js && window.see.js == seejs &&
-    window.see.version == version) {
-  return;
-}
 
 
 function init(options) {
