@@ -63,7 +63,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).apart(fn)    // Like each, but this is set to $(elt) instead of elt.
+  $(x).order(fn)    // Like each, but this is set to $(elt) instead of elt.
   $(x).within(d, t) // Filters to items with centers within d of t.center().
   $(x).notwithin()  // The negation of within.
 </pre>

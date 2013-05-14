@@ -66,7 +66,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).apart(fn)    // Like each, but this is set to $(elt) instead of elt.
+  $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt.
   $(x).within(d, t) // Filters to items with centers within d of t.center().
   $(x).notwithin()  // The negation of within.
 </pre>
@@ -1914,37 +1914,49 @@ var turtlefn = {
   notwithin: function(distance, x, y) {
     return withinOrNot(this, false, distance, x, y);
   },
-  apart: function(callback, args) {
+  order: function(callback, args, qname) {
+    if (qname === undefined) {
+      if (typeof(args) == 'string') {
+        qname = args;
+        args = null;
+      } else {
+        qname = 'fx';
+      }
+    }
+    // If animation is active, then direct will queue the callback.
+    // It will also arrange things so that if the callback enqueues
+    // further animations, they are inserted at the same location,
+    // so that the callback can expand into several animations,
+    // just as an ordinary function call expands into its subcalls.
     function enqueue(elem) {
-      var queue = $.queue(elem, 'fx', function() {
-        var saved = $.queue(this, 'fx'),
+      var queue = $.queue(elem, qname, function() {
+        var saved = $.queue(this, qname),
             subst = [],
             sel = $(this);
         if (saved[0] === 'inprogress') {
           subst.unshift(saved.shift());
         }
-        $.queue(this, 'fx', subst);
+        $.queue(this, qname, subst);
         if (args) {
           callback.apply(sel, args);
         } else {
           callback.call(sel, j, sel);
         }
-        $.merge($.queue(this, 'fx'), saved);
-        $.dequeue(this, 'fx');
+        $.merge($.queue(this, qname), saved);
+        $.dequeue(this, qname);
       });
-      $._queueHooks(elem, 'fx');
-      if (queue[0] !== 'inprogress') {
-        $.dequeue(elem, 'fx');
-      }
     }
     var elem, sel, length = this.length, j = 0;
     for (; j < length; ++j) {
       elem = this[j];
-      if ($.queue(elem, 'fx').length) { enqueue(elem); }
+      if ($.queue(elem, qname).length) { enqueue(elem); }
       else {
         sel = $(elem);
-        if (!args) { callback.call(sel, j, sel); }
-        else { callback.apply(sel, args); }
+        if (args) {
+          callback.apply(sel, args);
+        } else {
+          callback.call(sel, j, sel);
+        }
       }
     }
   }
