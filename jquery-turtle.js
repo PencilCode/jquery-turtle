@@ -2292,11 +2292,23 @@ function hatchone(name) {
 
 // Simplify Math.floor(Math.random() * N) and also random choice.
 function random(arg) {
-  if (!arguments.length) { return Math.random(); }
   if (typeof(arg) == 'number') { return Math.floor(Math.random() * arg); }
   if (typeof(arg) == 'object' && arg.length && arg.slice) {
     return arg[Math.floor(Math.random() * arg.length)];
   }
+  if (arg == 'normal') {
+    // Ratio of uniforms gaussian, from tinyurl.com/9oh2nqg
+    var u, v, x, y, q;
+    do {
+      u = Math.random();
+      v = 1.7156 * (Math.random() - 0.5);
+      x = u - 0.449871;
+      y = Math.abs(v) + 0.386595;
+      q = x * x + y * (0.19600 * y - 0.25472 * x);
+    } while (q > 0.27597 && (q > 0.27846 || v * v > -4 * Math.log(u) * u * u));
+    return v / u;
+  }
+  return Math.random();
 }
 
 // Simplify setInterval(fn, 1000) to just tick(fn).
