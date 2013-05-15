@@ -25,7 +25,7 @@
     ],
     "bugs": "https://github.com/davidbau/jquery-turtle/issues",
     "homepage": "http://davidbau.github.io/jquery-turtle/",
-    "demo": "http://davidbau.github.io/jqt/jquery-turtle-demo.html",
+    "demo": "http://davidbau.github.io/jquery-turtle/demo.html",
     "docs": "http://davidbau.github.io/jquery-turtle/",
     "dependencies": {
         "jquery": ">=1.7"

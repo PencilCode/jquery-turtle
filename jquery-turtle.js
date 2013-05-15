@@ -19,8 +19,7 @@ transformed.  There are functions for collision testing, absolute
 positioning, and absolute direction reading and setting.
 
 [Try an interactive demo (CoffeeScript syntax) here.](
-http://davidbau.github.io/jqt/jquery-turtle-demo.html)
-
+http://davidbau.github.io/jquery-turtle/demo.html)
 
 Under the covers, CSS3 2D transforms and jQuery animations are
 used to execute and store turtle movement, so jQuery-turtle
