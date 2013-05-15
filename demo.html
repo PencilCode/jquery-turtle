@@ -1,0 +1,30 @@
+<html>
+<head>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="http://davidbau.github.io/jquery-turtle/jquery-turtle.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/coffee-script/1.6.2/coffee-script.min.js"></script>
+</head>
+<body>
+<script data-editable="turtle script"
+    type="text/coffeescript" data-editsize="1">#<![CDATA[
+# Show a debug panel that inspects local vars in this block.
+eval($.turtle({title:'Welcome!  Try: ' +
+    '<mark>fd 50</mark>; ' +
+    '<mark>rt 90</mark>; ' +
+    '<mark>pen "blue"</mark>; ' +
+    '<mark>speed 1000</mark>; ' +
+    '<mark>bk random 500</mark>; ' +
+    '<br>or use coffeescript: ' +
+    '<mark>(lt 91; fd 200) for x in [1..91]</mark>; ' +
+    '<mark>tick -&gt; fd 10</mark>; ' +
+    '<br>or hatch new turtles: ' +
+    '<mark>z = hatch 100</mark>; ' +
+    '<mark>z.order (j) -&gt; @rt random 90; @fd 5 * j</mark>',
+    panelheight:200}));
+# -edit-below-
+pen 'red'
+(lt 90; fd 50) for x in [1..4]
+
+#]]></script>
+</body>
+</html>
