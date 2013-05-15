@@ -32,7 +32,7 @@
       <section>
         <h1>jQuery-turtle</h1>
 
-<p>version 2.0.2</p>
+<p>version 2.0.3</p>
 
 <p>jQuery-turtle is a jQuery plugin for turtle graphics.</p>
 
@@ -49,15 +49,12 @@ transformed.  There are functions for collision testing, absolute
 positioning, and absolute direction reading and setting.</p>
 
 <p><a href="http://davidbau.github.io/jqt/jquery-turtle-demo.html">Try an interactive demo (CoffeeScript syntax) here.</a></p>
-<iframe src="http://davidbau.github.io/jqt/jquery-turtle-demo.html" height="540" width="640" style="background:lightblue">
-interactive demo
-</iframe>
 
 <p>Under the covers, CSS3 2D transforms and jQuery animations are
 used to execute and store turtle movement, so jQuery-turtle
 interacts well with other jQuery animations or direct uses of
 2D CSS3 transforms.  The plugin sets up jQuery CSS hooks for
-synthetic CSS properties such as turtleDisplacement that can be
+synthetic CSS properties such as turtleForward that can be
 animated or used to directly manipulate turtle geometry at a basic
 mathematical level.</p>
 
@@ -83,7 +80,7 @@ has been developed to support a curriculum for young students.</p>
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a dot of diameter 12.
   $(x).erase()      // Erases under the turtles collision hull.
-  $(x).bg('pink')   // Shorthand for css("background", "pink")
+  $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
   $(x).scale(1.5)   // Scales the element up to 150% size.
@@ -97,7 +94,7 @@ has been developed to support a curriculum for young students.</p>
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).apart(fn)    // Like each, but this is set to $(elt) instead of elt.
+  $(x).order(fn)    // Like each, but this is set to $(elt) instead of elt.
   $(x).within(d, t) // Filters to items with centers within d of t.center().
   $(x).notwithin()  // The negation of within.
 </pre>
@@ -133,7 +130,7 @@ motion:</p>
   $(x).css('turtleScaleX', '2');         // x stretch before rotate after twist.
   $(x).css('turtleScaleY', '2');         // y stretch before rotate after twist.
   $(x).css('turtleTwist', '45');         // turn before stretching.
-  $(x).css('turtleDisplacement', '50');  // position in direction of rotation.
+  $(x).css('turtleForward', '50');       // position in direction of rotation.
   $(x).css('turtlePen', 'red');          // or 'red lineWidth 2px' etc.
   $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>
