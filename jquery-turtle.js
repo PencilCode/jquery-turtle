@@ -58,14 +58,14 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its direction axis.
   $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
+  $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt.
   // Methods below this line do not queue for animation.
   $(x).center()     // Page coordinate position of transform-origin.
-  $(x).direction()  // Absolute heading taking into account nested transforms.
+  $(x).direction()  // Absolute bearing taking into account nested transforms.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt.
   $(x).within(d, t) // Filters to items with centers within d of t.center().
   $(x).notwithin()  // The negation of within.
 </pre>
@@ -1348,12 +1348,12 @@ function eraseBox(elem, style) {
 // Functions in direct support of exported methods.
 //////////////////////////////////////////////////////////////////////////
 
-function applyImg(elem, img) {
-  if (elem.tagName == 'IMG') {
-    elem.src = img.url;
-    $(elem).css(img.css);
+function applyImg(sel, img) {
+  if (sel[0].tagName == 'IMG') {
+    sel[0].src = img.url;
+    sel.css(img.css);
   } else {
-    $(elem).css({
+    sel.css({
       backgroundImage: 'url(' + img.url + ')',
       backgroundRepeat: 'no-repeat',
       backgroundPosition: 'center',
@@ -1639,7 +1639,12 @@ var turtlefn = {
           doQuickMove(elem, amount, sideways);
           if (doqueue) { $.dequeue(elem); }
         }
-        if (doqueue) { q.push(domove); } else { domove(); }
+        if (doqueue) {
+          domove.finish = domove;
+          q.push(domove);
+        } else {
+          domove();
+        }
       });
     }
     if (!sideways) {
@@ -1655,13 +1660,8 @@ var turtlefn = {
     return this.fd(-amount);
   },
   pen: function(penstyle) {
-    return this.each(function(j, elem) {
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function dodraw() {
-        $.style(elem, 'turtlePen', penstyle);
-        if (inqueue) { $.dequeue(elem); }
-      }
-      if (inqueue) { q.push(dodraw); } else { dodraw(); }
+    return this.direct(function(j, elem) {
+      this.css('turtlePen', penstyle);
     });
   },
   dot: function(style, diameter) {
@@ -1672,56 +1672,41 @@ var turtlefn = {
     if (diameter === undefined) { diameter = 8.8; }
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
-    return this.each(function(j, elem) {
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function dodraw() {
-        var c = $(elem).center();
-        fillDot(c, diameter, ps);
-        // Once drawing begins, origin must be stable.
-        watchImageToFixOriginOnLoad(elem);
-        if (inqueue) { $.dequeue(elem); }
-      }
-      if (inqueue) { q.push(dodraw); } else { dodraw(); }
+    return this.direct(function(j, elem) {
+      var c = this.center();
+      fillDot(c, diameter, ps);
+      // Once drawing begins, origin must be stable.
+      watchImageToFixOriginOnLoad(elem);
     });
   },
   erase: function(style) {
     if (!style) { style = 'transparent'; }
     var ps = parsePenStyle(style, 'fillStyle');
-    return this.each(function(j, elem) {
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function dodraw() {
-        eraseBox(elem, ps);
-        // Once drawing begins, origin must be stable.
-        watchImageToFixOriginOnLoad(elem);
-        if (inqueue) { $.dequeue(elem); }
-      }
-      if (inqueue) { q.push(dodraw); } else { dodraw(); }
+    return this.direct(function(j, elem) {
+      eraseBox(elem, ps);
+      // Once drawing begins, origin must be stable.
+      watchImageToFixOriginOnLoad(elem);
     });
   },
   img: function (name) {
     var img = nameToImg(name);
     if (!img) return this;
-    return this.each(function(j, elem) {
-      applyImg(elem, img);
+    return this.direct(function() {
+      applyImg(this, img);
     });
   },
   reload: function() {
     // Used to reload images to cycle animated gifs.
-    return this.each(function(j, elem) {
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function dodraw() {
-        if ($.isWindow(elem) || elem.nodeType === 9) {
-          window.location.reload();
-          return;
-        }
-        if (elt.src) {
-          var src = elt.src;
-          elt.src = '';
-          elt.src = src;
-        }
-        if (inqueue) { $.dequeue(elem); }
+    return this.direct(function(j, elem) {
+      if ($.isWindow(elem) || elem.nodeType === 9) {
+        window.location.reload();
+        return;
       }
-      if (inqueue) { q.push(dodraw); } else { dodraw(); }
+      if (elt.src) {
+        var src = elt.src;
+        elt.src = '';
+        elt.src = src;
+      }
     });
   },
   center: function() {
@@ -1739,25 +1724,20 @@ var turtlefn = {
       localy = y;
       limit = null;
     }
-    return this.each(function(j, elem) {
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function domove() {
-        var pos = position;
-        if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
-        if (!pos || !isPageCoordinate(pos)) return this;
-        if ($.isWindow(elem)) {
-          scrollWindowToDocumentPosition(pos, limit);
-          return;
-        } else if (elem.nodeType === 9) {
-          return;
-        }
-        setCenterInPageCoordinates(elem, pos, limit, localx, localy);
-        // moveto implies a request for a stable origin.
-        watchImageToFixOriginOnLoad(elem);
-        flushPenState(elem);
-        if (inqueue) { $.dequeue(elem); }
+    return this.direct(function(j, elem) {
+      var pos = position;
+      if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
+      if (!pos || !isPageCoordinate(pos)) return this;
+      if ($.isWindow(elem)) {
+        scrollWindowToDocumentPosition(pos, limit);
+        return;
+      } else if (elem.nodeType === 9) {
+        return;
       }
-      if (inqueue) { q.push(domove); } else { domove(); }
+      setCenterInPageCoordinates(elem, pos, limit, localx, localy);
+      // moveto implies a request for a stable origin.
+      watchImageToFixOriginOnLoad(elem);
+      flushPenState(elem);
     });
   },
   direction: function() {
@@ -1767,57 +1747,42 @@ var turtlefn = {
     return getDirectionOnPage(elem);
   },
   turnto: function(direction, limit) {
-    return this.each(function(j, elem) {
+    return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function domove() {
-        var dir = direction;
-        if (!$.isNumeric(direction)) {
-          var pos = direction, cur = $(elem).center();
-          if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
-          if (!pos || !isPageCoordinate(pos)) return;
-          dir = radiansToDegrees(
-              Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
-        }
-        setDirectionOnPage(elem, dir, limit);
-        if (inqueue) { $.dequeue(elem); }
+      var dir = direction;
+      if (!$.isNumeric(direction)) {
+        var pos = direction, cur = $(elem).center();
+        if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
+        if (!pos || !isPageCoordinate(pos)) return;
+        dir = radiansToDegrees(
+            Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
       }
-      if (inqueue) { q.push(domove); } else { domove(); }
+      setDirectionOnPage(elem, dir, limit);
     });
   },
   mirror: function(val) {
     if (val === undefined) {
+      // Zero arguments returns true if mirrored.
       var c = $.map(this.css('turtleScale').split(' '), parseFloat),
-          p = c[0] * (c.length > 1 ? c[1] : 1);
+          p = c[0] * (c.length > 1 ? c[1] : c[0]);
       return (p < 0);
     }
-    return this.each(function(j, elem) {
-      if ($.isWindow(elem) || elem.nodeType === 9) return;
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function domove() {
-        var c = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
-        if (c.length === 1) { c.push(c[0]); }
-        if ((c[0] * c[1] < 0) === (!val)) {
-          c[0] = -c[0];
-        }
-        $.style(elem, 'turtleScale', c.join(' '));
-        if (inqueue) { $.dequeue(elem); }
+    return this.direct(function(j, elem) {
+      var c = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
+      if (c.length === 1) { c.push(c[0]); }
+      if ((c[0] * c[1] < 0) === (!val)) {
+        c[0] = -c[0];
+        this.css('turtleScale', c.join(' '));
       }
-      if (inqueue) { q.push(domove); } else { domove(); }
     });
   },
   twist: function(val) {
     if (val === undefined) {
       return parseFloat(this.css('turtleTwist'));
     }
-    return this.each(function(j, elem) {
+    return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function domove() {
-        $.style(elem, 'turtleTwist', val);
-        if (inqueue) { $.dequeue(elem); }
-      }
-      if (inqueue) { q.push(domove); } else { domove(); }
+      this.css('turtleTwist', val);
     });
   },
   scale: function(valx, valy) {
@@ -1826,14 +1791,9 @@ var turtlefn = {
     }
     var val = '' + cssNum(valx) +
         (valy === undefined ? '' : ' ' + cssNum(valy));
-    return this.each(function(j, elem) {
+    return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
-      var q = $.queue(elem), inqueue = (q && q.length > 0);
-      function domove() {
-        $.style(elem, 'turtleScale', val);
-        if (inqueue) { $.dequeue(elem); }
-      }
-      if (inqueue) { q.push(domove); } else { domove(); }
+      this.css('turtleScale', val);
     });
   },
   shown: function() {
@@ -1913,7 +1873,7 @@ var turtlefn = {
   notwithin: function(distance, x, y) {
     return withinOrNot(this, false, distance, x, y);
   },
-  order: function(callback, args, qname) {
+  direct: function(callback, args, qname) {
     if (qname === undefined) {
       if (typeof(args) == 'string') {
         qname = args;
@@ -1927,35 +1887,33 @@ var turtlefn = {
     // further animations, they are inserted at the same location,
     // so that the callback can expand into several animations,
     // just as an ordinary function call expands into its subcalls.
-    function enqueue(elem) {
-      var queue = $.queue(elem, qname, function() {
-        var saved = $.queue(this, qname),
-            subst = [],
-            sel = $(this);
-        if (saved[0] === 'inprogress') {
-          subst.unshift(saved.shift());
-        }
-        $.queue(this, qname, subst);
-        if (args) {
-          callback.apply(sel, args);
-        } else {
-          callback.call(sel, j, sel);
-        }
-        $.merge($.queue(this, qname), saved);
-        $.dequeue(this, qname);
-      });
+    function enqueue(elem, index) {
+       var animation = (function() {
+            var saved = $.queue(this, qname),
+                subst = [];
+            if (saved[0] === 'inprogress') {
+              subst.unshift(saved.shift());
+            }
+            $.queue(elem, qname, subst);
+            action();
+            $.merge($.queue(elem, qname), saved);
+            $.dequeue(elem, qname);
+          }),
+          action = animation.finish = (args ?
+          (function() { callback.apply($(elem), args); }) :
+          (function() { callback.call($(elem), j, elem); }));
+      $.queue(elem, qname, animation);
     }
     var elem, sel, length = this.length, j = 0;
     for (; j < length; ++j) {
       elem = this[j];
-      if ($.queue(elem, qname).length) { enqueue(elem); }
-      else {
-        sel = $(elem);
-        if (args) {
-          callback.apply(sel, args);
-        } else {
-          callback.call(sel, j, sel);
-        }
+      // Queue an animation if there is a queue.
+      if ($.queue(elem, qname).length) {
+        enqueue(elem, j);
+      } else if (args) {
+        callback.apply($(elem), args);
+      } else {
+        callback.call($(elem), j, elem);
       }
     }
   }
@@ -1986,10 +1944,10 @@ var global_turtle = null;
 var global_turtle_methods = [];
 var attaching_ids = false;
 var dollar_turtle_methods = {
-  erase: function() { $(document).erase() },
+  erase: function() { directIfGlobal(function() { $(document).erase() }); },
+  tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
+  speed: function(mps) { directIfGlobal(function() { speed(mps); }); },
   random: random,
-  tick: tick,
-  speed: speed,
   hatch: hatch,
   input: input,
   output: output
@@ -2116,6 +2074,14 @@ function clearGlobalTurtle() {
     delete window[global_turtle_methods[j]];
   }
   global_turtle_methods.length = 0;
+}
+
+function directIfGlobal(fn) {
+  if (global_turtle) {
+    $(global_turtle).direct(fn);
+  } else {
+    fn();
+  }
 }
 
 function onDOMNodeRemoved(e) {
@@ -2261,7 +2227,7 @@ function hatchone(name) {
   var result;
   if (img) {
     result = $('<img>');
-    applyImg(result[0], img);
+    applyImg(result, img);
   } else if (isTag) {
     result = $(name);
   } else {

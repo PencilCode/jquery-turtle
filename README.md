@@ -55,14 +55,14 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its direction axis.
   $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
+  $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt.
   // Methods below this line do not queue for animation.
   $(x).center()     // Page coordinate position of transform-origin.
-  $(x).direction()  // Absolute heading taking into account nested transforms.
+  $(x).direction()  // Absolute bearing taking into account nested transforms.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).order(fn)    // Like each, but this is set to $(elt) instead of elt.
   $(x).within(d, t) // Filters to items with centers within d of t.center().
   $(x).notwithin()  // The negation of within.
 </pre>
