@@ -2407,13 +2407,13 @@ function input(name, callback) {
 
 // see.js version 0.2
 
-var pulljQueryVersion = null;
+var pulljQueryVersion = null;  // Disable auto-pull of jQuery
 
 var seepkg = 'see'; // Defines the global package name used.
 var version = '0.2';
 var oldvalue = noteoldvalue(seepkg);
 // Option defaults
-var linestyle = 'position:relative;font-family:monospace;' +
+var linestyle = 'position:relative;display:block;font-family:monospace;' +
   'word-break:break-all;margin-bottom:3px;padding-left:1em;';
 var logdepth = 5;
 var autoscroll = false;
@@ -2431,7 +2431,6 @@ var scopes = {
 };
 var coffeescript = window.CoffeeScript;
 var seejs = '(function(){return eval(arguments[0]);})';
-
 
 function init(options) {
   if (arguments.length === 0) {
@@ -2587,7 +2586,7 @@ function pulljQuery(callback) {
 // ---------------------------------------------------------------------
 // LOG FUNCTION SUPPORT
 // ---------------------------------------------------------------------
-var logcss = "input._log:focus{outline:none;}label._log > span:first-of-type:hover{text-decoration:underline;}div._log > label._log,div_.log > span > label._log{display:inline-block;vertical-align:top;}label._log > span:first-of-type{margin-left:2em;text-indent:-1em;}label._log > ul{display:none;padding-left:14px;margin:0;}label._log > span:before{content:'';font-size:70%;font-style:normal;display:inline-block;width:0;text-align:center;}label._log > span:first-of-type:before{content:'\\0025B6';}label._log > ul > li{display:block;white-space:pre-line;margin-left:2em;text-indent:-1em}label._log > ul > li > div{margin-left:-1em;text-indent:0;white-space:pre;}label._log > input[type=checkbox]:checked ~ span{margin-left:2em;text-indent:-1em;}label._log > input[type=checkbox]:checked ~ span:first-of-type:before{content:'\\0025BC';}label._log > input[type=checkbox]:checked ~ span:before{content:'';}label._log,label._log > input[type=checkbox]:checked ~ ul{display:block;}label._log > span:first-of-type,label._log > input[type=checkbox]:checked ~ span{display:inline-block;}label._log > input[type=checkbox],label._log > input[type=checkbox]:checked ~ span > span{display:none;}";
+var logcss = "input._log:focus{outline:none;}label._log > span:first-of-type:hover{text-decoration:underline;}samp._log > label._log,samp_.log > span > label._log{display:inline-block;vertical-align:top;}label._log > span:first-of-type{margin-left:2em;text-indent:-1em;}label._log > ul{display:none;padding-left:14px;margin:0;}label._log > span:before{content:'';font-size:70%;font-style:normal;display:inline-block;width:0;text-align:center;}label._log > span:first-of-type:before{content:'\\0025B6';}label._log > ul > li{display:block;white-space:pre-line;margin-left:2em;text-indent:-1em}label._log > ul > li > samp{margin-left:-1em;text-indent:0;white-space:pre;}label._log > input[type=checkbox]:checked ~ span{margin-left:2em;text-indent:-1em;}label._log > input[type=checkbox]:checked ~ span:first-of-type:before{content:'\\0025BC';}label._log > input[type=checkbox]:checked ~ span:before{content:'';}label._log,label._log > input[type=checkbox]:checked ~ ul{display:block;}label._log > span:first-of-type,label._log > input[type=checkbox]:checked ~ span{display:inline-block;}label._log > input[type=checkbox],label._log > input[type=checkbox]:checked ~ span > span{display:none;}";
 var addedcss = false;
 var cescapes = {
   '\0': '\\0', '\b': '\\b', '\f': '\\f', '\n': '\\n', '\r': '\\r',
@@ -2600,7 +2599,7 @@ see = function see() {
     logconsole.log.apply(window.console, arguments);
   }
   var args = Array.prototype.slice.call(arguments);
-  queue.push('<div class="_log">');
+  queue.push('<samp class="_log">');
   while (args.length) {
     var obj = args.shift();
     if (vtype(obj) == 'String')  {
@@ -2611,14 +2610,14 @@ see = function see() {
     }
     if (args.length) { queue.push(' '); }
   }
-  queue.push('</div>');
+  queue.push('</samp>');
   flushqueue();
 };
 
 function loghtml(html) {
-  queue.push('<div class="_log">');
+  queue.push('<samp class="_log">');
   queue.push(html);
-  queue.push('</div>');
+  queue.push('</samp>');
   flushqueue();
 }
 
@@ -2867,9 +2866,9 @@ function expand(prefix, obj, depth, output) {
     for (var node = obj.firstChild; node; node = node.nextSibling) {
       if (isnonspace(node)) {
         if (node.nodeType == 3) {
-          output.push('<li><div>');
+          output.push('<li><samp>');
           output.push(unindented(node.textContent));
-          output.push('</div></li>');
+          output.push('</samp></li>');
         } else if (isshort(node, true, 20) || depth <= 1) {
           output.push('<li>' + summary(node, 20) + '</li>');
         } else {
@@ -2892,13 +2891,13 @@ function expand(prefix, obj, depth, output) {
       var ft = obj.toString();
       var m = /\{(?:.|\n)*$/.exec(ft);
       if (m) { ft = m[0]; }
-      output.push('<li><div>');
+      output.push('<li><samp>');
       output.push(htmlescape(unindented(ft)));
-      output.push('</div></li>');
+      output.push('</samp></li>');
     } else if (vt == 'Error') {
-      output.push('<li><div>');
+      output.push('<li><samp>');
       output.push(htmlescape(obj.stack));
-      output.push('</div></li>');
+      output.push('</samp></li>');
     } else if (vt == 'Array') {
       for (var j = 0; j < Math.min(100, obj.length); ++j) {
         try {
@@ -2949,7 +2948,7 @@ function initlogcss() {
   if (!addedcss && !window.document.getElementById('_logcss')) {
     var style = window.document.createElement('style');
     style.id = '_logcss';
-    style.innerHTML = (linestyle ? 'div._log{' +
+    style.innerHTML = (linestyle ? 'samp._log{' +
         linestyle + '}' : '') + logcss;
     window.document.head.appendChild(style);
     addedcss = true;
@@ -3008,7 +3007,7 @@ function flushqueue() {
   var elt = aselement(logelement, null);
   if (elt && elt.appendChild && queue.length) {
     initlogcss();
-    var temp = window.document.createElement('div');
+    var temp = window.document.createElement('samp');
     temp.innerHTML = queue.join('');
     queue.length = 0;
     var complete = stickscroll();
@@ -3045,8 +3044,8 @@ function clear() {
   $('#_testlog').find('._log').not('#_testpaneltitle').remove();
 }
 function promptcaret(color) {
-  return '<div style="position:absolute;left:0;font-size:120%;color:' + color +
-      ';">&gt;</div>';
+  return '<samp style="position:absolute;left:0;font-size:120%;color:' + color +
+      ';">&gt;</samp>';
 }
 function getSelectedText(){
     if(window.getSelection) { return window.getSelection().toString(); }
@@ -3055,8 +3054,8 @@ function getSelectedText(){
         return document.selection.createRange().text; }
 }
 function formattitle(title) {
-  return '<div class="_log" id="_testpaneltitle" style="font-weight:bold;">' +
-      title + '</div>';
+  return '<samp class="_log" id="_testpaneltitle" style="font-weight:bold;">' +
+      title + '</samp>';
 }
 function readlocalstorage() {
   if (!uselocalstorage) {
@@ -3117,26 +3116,27 @@ function tryinitpanel() {
         state.height = Math.min(wheight(), Math.max(10, wheight() - 50));
       }
       $('body').prepend(
-        '<div id="_testpanel" style="overflow:hidden;' +
+        '<samp id="_testpanel" style="overflow:hidden;' +
             'position:fixed;bottom:0;left:0;width:100%;height:' + state.height +
             'px;background:rgba(240,240,240,0.8);' +
             'font:10pt monospace;' +
             // This last bit works around this position:fixed bug in webkit:
             // https://code.google.com/p/chromium/issues/detail?id=128375
             '-webkit-transform:translateZ(0);">' +
-          '<div id="_testdrag" style="' +
+          '<samp id="_testdrag" style="' +
               'cursor:row-resize;height:6px;width:100%;' +
-              'background:lightgray"></div>' +
-          '<div id="_testscroll" style="overflow-y:scroll;overflow-x:hidden;' +
-              'width:100%;height:' + (state.height - 6) + 'px;">' +
-            '<div id="_testlog">' + titlehtml + '</div>' +
-            '<div style="position:relative;">' +
+              'display:block;background:lightgray"></samp>' +
+          '<samp id="_testscroll" style="overflow-y:scroll;overflow-x:hidden;' +
+             'display:block;width:100%;height:' + (state.height - 6) + 'px;">' +
+            '<samp id="_testlog" style="display:block">' +
+            titlehtml + '</samp>' +
+            '<samp style="position:relative;display:block;">' +
             promptcaret('blue') +
             '<input id="_testinput" class="_log" style="width:100%;' +
                 'padding-left:1em;margin:0;border:0;font:inherit;' +
                 'background:rgba(255,255,255,0.8);">' +
-           '</div>' +
-        '</div>');
+           '</samp>' +
+        '</samp>');
       addedpanel = true;
       flushqueue();
       var historyindex = 0;
@@ -3157,9 +3157,9 @@ function tryinitpanel() {
           historyedited = {};
           historyindex = 0;
           // Copy the entered prompt into the log, with a grayed caret.
-          loghtml('<div class="_log" style="margin-left:-1em;">' +
+          loghtml('<samp class="_log" style="margin-left:-1em;">' +
                   promptcaret('lightgray') +
-                  htmlescape(text) + '</div>');
+                  htmlescape(text) + '</samp>');
           $(this).select();
           // Deal with the ":scope" command
           if (text.trim().length && text.trim()[0] == ':') {
