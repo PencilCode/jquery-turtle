@@ -583,11 +583,21 @@ function unattached(elt) {
 }
 
 function wh() {
+  // Quirks-mode compatible window height.
   return window.innerHeight || $(window).height();
 }
 
 function ww() {
+  // Quirks-mode compatible window width.
   return window.innerWidth || $(window).width();
+}
+
+function dh() {
+  return document.body ? $(document).height() : document.height;
+}
+
+function dw() {
+  return document.body ? $(document).width() : document.width;
 }
 
 function makeGbcrLTWH(left, top, width, height) {
@@ -604,7 +614,7 @@ function getPageGbcr(elem) {
     return makeGbcrLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return makeGbcrLTWH(0, 0, $(elem).width(), $(elem).height());
+    return makeGbcrLTWH(0, 0, dw(), dh());
   }
   return readPageGbcr.apply(elem);
 }
@@ -711,9 +721,7 @@ function getCenterInPageCoordinates(elem) {
     return getCenterLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return getCenterLTWH(0, 0,
-        elem.body ? $(elem).width() : elem.width,
-        elem.body ? $(elem).height() : elem.height);
+    return getCenterLTWH(0, 0, dw(), dh());
   }
   var tr = getElementTranslation(elem),
       totalParentTransform = totalTransform2x2(elem.parentElement),
@@ -751,7 +759,7 @@ function getCornersInPageCoordinates(elem, untransformed) {
     return getStraightRectLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return getStraightRectLTWH(0, 0, $(elem).width(), $(elem).height());
+    return getStraightRectLTWH(0, 0, dw(), dh());
   }
   var currentTransform = readTransformMatrix(elem) || [1, 0, 0, 1],
       totalParentTransform = totalTransform2x2(elem.parentElement),
@@ -817,22 +825,22 @@ function getDirectionOnPage(elem) {
 function scrollWindowToDocumentPosition(pos, limit) {
   var tx = pos.pageX,
       ty = pos.pageY,
-      ww = window.innerWidth || $(window).width(),
-      wh = window.innerHeight || $(window).height(),
+      ww2 = ww() / 2,
+      wh2 = wh() / 2,
       b = $('body'),
       dw = b.width(),
-      dh = b.height();
-  if (tx > dw - ww / 2) { tx = dw - ww / 2; }
-  if (tx < ww / 2) { tx = ww / 2; }
-  if (ty > dh - wh / 2) { ty = dh - wh / 2; }
-  if (ty < wh / 2) { ty = wh / 2; }
+      dh = b.height(),
+      w = $(window);
+  if (tx > dw - ww2) { tx = dw - ww2; }
+  if (tx < ww2) { tx = ww2; }
+  if (ty > dh - wh2) { ty = dh - wh2; }
+  if (ty < wh2) { ty = wh2; }
   targ = { pageX: tx, pageY: ty };
   if ($.isNumeric(limit)) {
-    targ = limitMovement($(window).center(), targ, limit);
+    targ = limitMovement(w.center(), targ, limit);
   }
-  item.scrollLeft(targ.pageX - item.width() / 2);
-  item.scrollTop(targ.pageY - item.height() / 2);
-  return;
+  w.scrollLeft(targ.pageX - ww2);
+  w.scrollTop(targ.pageY - wh2);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1701,10 +1709,10 @@ var turtlefn = {
         window.location.reload();
         return;
       }
-      if (elt.src) {
-        var src = elt.src;
-        elt.src = '';
-        elt.src = src;
+      if (elem.src) {
+        var src = elem.src;
+        elem.src = '';
+        elem.src = src;
       }
     });
   },
@@ -1912,6 +1920,7 @@ var turtlefn = {
         callback.call($(elem), j, elem);
       }
     }
+    return this;
   }
 };
 
@@ -2199,7 +2208,7 @@ function nameToImg(name) {
       }
     }
   }
-  if (/^https?:\/\//i.exec(name)) {
+  if (/^(?:https?:\/)?\//i.exec(name)) {
     return {
       url: name,
       css: {
@@ -2268,6 +2277,12 @@ function random(arg) {
       q = x * x + y * (0.19600 * y - 0.25472 * x);
     } while (q > 0.27597 && (q > 0.27846 || v * v > -4 * Math.log(u) * u * u));
     return v / u;
+  }
+  if (arg == 'position') {
+    return {
+      pageX: random(dw()),
+      pageY: random(dh())
+    };
   }
   return Math.random();
 }
@@ -2392,13 +2407,13 @@ function input(name, callback) {
 
 // see.js version 0.2
 
-var pulljQueryVersion = null;
+var pulljQueryVersion = null;  // Disable auto-pull of jQuery
 
 var seepkg = 'see'; // Defines the global package name used.
 var version = '0.2';
 var oldvalue = noteoldvalue(seepkg);
 // Option defaults
-var linestyle = 'position:relative;font-family:monospace;' +
+var linestyle = 'position:relative;display:block;font-family:monospace;' +
   'word-break:break-all;margin-bottom:3px;padding-left:1em;';
 var logdepth = 5;
 var autoscroll = false;
@@ -2416,7 +2431,6 @@ var scopes = {
 };
 var coffeescript = window.CoffeeScript;
 var seejs = '(function(){return eval(arguments[0]);})';
-
 
 function init(options) {
   if (arguments.length === 0) {
@@ -2572,7 +2586,7 @@ function pulljQuery(callback) {
 // ---------------------------------------------------------------------
 // LOG FUNCTION SUPPORT
 // ---------------------------------------------------------------------
-var logcss = "input._log:focus{outline:none;}label._log > span:first-of-type:hover{text-decoration:underline;}div._log > label._log,div_.log > span > label._log{display:inline-block;vertical-align:top;}label._log > span:first-of-type{margin-left:2em;text-indent:-1em;}label._log > ul{display:none;padding-left:14px;margin:0;}label._log > span:before{content:'';font-size:70%;font-style:normal;display:inline-block;width:0;text-align:center;}label._log > span:first-of-type:before{content:'\\0025B6';}label._log > ul > li{display:block;white-space:pre-line;margin-left:2em;text-indent:-1em}label._log > ul > li > div{margin-left:-1em;text-indent:0;white-space:pre;}label._log > input[type=checkbox]:checked ~ span{margin-left:2em;text-indent:-1em;}label._log > input[type=checkbox]:checked ~ span:first-of-type:before{content:'\\0025BC';}label._log > input[type=checkbox]:checked ~ span:before{content:'';}label._log,label._log > input[type=checkbox]:checked ~ ul{display:block;}label._log > span:first-of-type,label._log > input[type=checkbox]:checked ~ span{display:inline-block;}label._log > input[type=checkbox],label._log > input[type=checkbox]:checked ~ span > span{display:none;}";
+var logcss = "input._log:focus{outline:none;}label._log > span:first-of-type:hover{text-decoration:underline;}samp._log > label._log,samp_.log > span > label._log{display:inline-block;vertical-align:top;}label._log > span:first-of-type{margin-left:2em;text-indent:-1em;}label._log > ul{display:none;padding-left:14px;margin:0;}label._log > span:before{content:'';font-size:70%;font-style:normal;display:inline-block;width:0;text-align:center;}label._log > span:first-of-type:before{content:'\\0025B6';}label._log > ul > li{display:block;white-space:pre-line;margin-left:2em;text-indent:-1em}label._log > ul > li > samp{margin-left:-1em;text-indent:0;white-space:pre;}label._log > input[type=checkbox]:checked ~ span{margin-left:2em;text-indent:-1em;}label._log > input[type=checkbox]:checked ~ span:first-of-type:before{content:'\\0025BC';}label._log > input[type=checkbox]:checked ~ span:before{content:'';}label._log,label._log > input[type=checkbox]:checked ~ ul{display:block;}label._log > span:first-of-type,label._log > input[type=checkbox]:checked ~ span{display:inline-block;}label._log > input[type=checkbox],label._log > input[type=checkbox]:checked ~ span > span{display:none;}";
 var addedcss = false;
 var cescapes = {
   '\0': '\\0', '\b': '\\b', '\f': '\\f', '\n': '\\n', '\r': '\\r',
@@ -2585,7 +2599,7 @@ see = function see() {
     logconsole.log.apply(window.console, arguments);
   }
   var args = Array.prototype.slice.call(arguments);
-  queue.push('<div class="_log">');
+  queue.push('<samp class="_log">');
   while (args.length) {
     var obj = args.shift();
     if (vtype(obj) == 'String')  {
@@ -2596,14 +2610,14 @@ see = function see() {
     }
     if (args.length) { queue.push(' '); }
   }
-  queue.push('</div>');
+  queue.push('</samp>');
   flushqueue();
 };
 
 function loghtml(html) {
-  queue.push('<div class="_log">');
+  queue.push('<samp class="_log">');
   queue.push(html);
-  queue.push('</div>');
+  queue.push('</samp>');
   flushqueue();
 }
 
@@ -2852,9 +2866,9 @@ function expand(prefix, obj, depth, output) {
     for (var node = obj.firstChild; node; node = node.nextSibling) {
       if (isnonspace(node)) {
         if (node.nodeType == 3) {
-          output.push('<li><div>');
+          output.push('<li><samp>');
           output.push(unindented(node.textContent));
-          output.push('</div></li>');
+          output.push('</samp></li>');
         } else if (isshort(node, true, 20) || depth <= 1) {
           output.push('<li>' + summary(node, 20) + '</li>');
         } else {
@@ -2877,13 +2891,13 @@ function expand(prefix, obj, depth, output) {
       var ft = obj.toString();
       var m = /\{(?:.|\n)*$/.exec(ft);
       if (m) { ft = m[0]; }
-      output.push('<li><div>');
+      output.push('<li><samp>');
       output.push(htmlescape(unindented(ft)));
-      output.push('</div></li>');
+      output.push('</samp></li>');
     } else if (vt == 'Error') {
-      output.push('<li><div>');
+      output.push('<li><samp>');
       output.push(htmlescape(obj.stack));
-      output.push('</div></li>');
+      output.push('</samp></li>');
     } else if (vt == 'Array') {
       for (var j = 0; j < Math.min(100, obj.length); ++j) {
         try {
@@ -2934,7 +2948,7 @@ function initlogcss() {
   if (!addedcss && !window.document.getElementById('_logcss')) {
     var style = window.document.createElement('style');
     style.id = '_logcss';
-    style.innerHTML = (linestyle ? 'div._log{' +
+    style.innerHTML = (linestyle ? 'samp._log{' +
         linestyle + '}' : '') + logcss;
     window.document.head.appendChild(style);
     addedcss = true;
@@ -2993,7 +3007,7 @@ function flushqueue() {
   var elt = aselement(logelement, null);
   if (elt && elt.appendChild && queue.length) {
     initlogcss();
-    var temp = window.document.createElement('div');
+    var temp = window.document.createElement('samp');
     temp.innerHTML = queue.join('');
     queue.length = 0;
     var complete = stickscroll();
@@ -3030,8 +3044,8 @@ function clear() {
   $('#_testlog').find('._log').not('#_testpaneltitle').remove();
 }
 function promptcaret(color) {
-  return '<div style="position:absolute;left:0;font-size:120%;color:' + color +
-      ';">&gt;</div>';
+  return '<samp style="position:absolute;left:0;font-size:120%;color:' + color +
+      ';">&gt;</samp>';
 }
 function getSelectedText(){
     if(window.getSelection) { return window.getSelection().toString(); }
@@ -3040,8 +3054,8 @@ function getSelectedText(){
         return document.selection.createRange().text; }
 }
 function formattitle(title) {
-  return '<div class="_log" id="_testpaneltitle" style="font-weight:bold;">' +
-      title + '</div>';
+  return '<samp class="_log" id="_testpaneltitle" style="font-weight:bold;">' +
+      title + '</samp>';
 }
 function readlocalstorage() {
   if (!uselocalstorage) {
@@ -3102,26 +3116,27 @@ function tryinitpanel() {
         state.height = Math.min(wheight(), Math.max(10, wheight() - 50));
       }
       $('body').prepend(
-        '<div id="_testpanel" style="overflow:hidden;' +
+        '<samp id="_testpanel" style="overflow:hidden;' +
             'position:fixed;bottom:0;left:0;width:100%;height:' + state.height +
             'px;background:rgba(240,240,240,0.8);' +
             'font:10pt monospace;' +
             // This last bit works around this position:fixed bug in webkit:
             // https://code.google.com/p/chromium/issues/detail?id=128375
             '-webkit-transform:translateZ(0);">' +
-          '<div id="_testdrag" style="' +
+          '<samp id="_testdrag" style="' +
               'cursor:row-resize;height:6px;width:100%;' +
-              'background:lightgray"></div>' +
-          '<div id="_testscroll" style="overflow-y:scroll;overflow-x:hidden;' +
-              'width:100%;height:' + (state.height - 6) + 'px;">' +
-            '<div id="_testlog">' + titlehtml + '</div>' +
-            '<div style="position:relative;">' +
+              'display:block;background:lightgray"></samp>' +
+          '<samp id="_testscroll" style="overflow-y:scroll;overflow-x:hidden;' +
+             'display:block;width:100%;height:' + (state.height - 6) + 'px;">' +
+            '<samp id="_testlog" style="display:block">' +
+            titlehtml + '</samp>' +
+            '<samp style="position:relative;display:block;">' +
             promptcaret('blue') +
             '<input id="_testinput" class="_log" style="width:100%;' +
                 'padding-left:1em;margin:0;border:0;font:inherit;' +
                 'background:rgba(255,255,255,0.8);">' +
-           '</div>' +
-        '</div>');
+           '</samp>' +
+        '</samp>');
       addedpanel = true;
       flushqueue();
       var historyindex = 0;
@@ -3142,9 +3157,9 @@ function tryinitpanel() {
           historyedited = {};
           historyindex = 0;
           // Copy the entered prompt into the log, with a grayed caret.
-          loghtml('<div class="_log" style="margin-left:-1em;">' +
+          loghtml('<samp class="_log" style="margin-left:-1em;">' +
                   promptcaret('lightgray') +
-                  htmlescape(text) + '</div>');
+                  htmlescape(text) + '</samp>');
           $(this).select();
           // Deal with the ":scope" command
           if (text.trim().length && text.trim()[0] == ':') {
