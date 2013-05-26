@@ -583,11 +583,21 @@ function unattached(elt) {
 }
 
 function wh() {
+  // Quirks-mode compatible window height.
   return window.innerHeight || $(window).height();
 }
 
 function ww() {
+  // Quirks-mode compatible window width.
   return window.innerWidth || $(window).width();
+}
+
+function dh() {
+  return document.body ? $(document).height() : document.height;
+}
+
+function dw() {
+  return document.body ? $(document).width() : document.width;
 }
 
 function makeGbcrLTWH(left, top, width, height) {
@@ -604,7 +614,7 @@ function getPageGbcr(elem) {
     return makeGbcrLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return makeGbcrLTWH(0, 0, $(elem).width(), $(elem).height());
+    return makeGbcrLTWH(0, 0, dw(), dh());
   }
   return readPageGbcr.apply(elem);
 }
@@ -711,9 +721,7 @@ function getCenterInPageCoordinates(elem) {
     return getCenterLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return getCenterLTWH(0, 0,
-        elem.body ? $(elem).width() : elem.width,
-        elem.body ? $(elem).height() : elem.height);
+    return getCenterLTWH(0, 0, dw(), dh());
   }
   var tr = getElementTranslation(elem),
       totalParentTransform = totalTransform2x2(elem.parentElement),
@@ -751,7 +759,7 @@ function getCornersInPageCoordinates(elem, untransformed) {
     return getStraightRectLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return getStraightRectLTWH(0, 0, $(elem).width(), $(elem).height());
+    return getStraightRectLTWH(0, 0, dw(), dh());
   }
   var currentTransform = readTransformMatrix(elem) || [1, 0, 0, 1],
       totalParentTransform = totalTransform2x2(elem.parentElement),
@@ -817,22 +825,22 @@ function getDirectionOnPage(elem) {
 function scrollWindowToDocumentPosition(pos, limit) {
   var tx = pos.pageX,
       ty = pos.pageY,
-      ww = window.innerWidth || $(window).width(),
-      wh = window.innerHeight || $(window).height(),
+      ww2 = ww() / 2,
+      wh2 = wh() / 2,
       b = $('body'),
       dw = b.width(),
-      dh = b.height();
-  if (tx > dw - ww / 2) { tx = dw - ww / 2; }
-  if (tx < ww / 2) { tx = ww / 2; }
-  if (ty > dh - wh / 2) { ty = dh - wh / 2; }
-  if (ty < wh / 2) { ty = wh / 2; }
+      dh = b.height(),
+      w = $(window);
+  if (tx > dw - ww2) { tx = dw - ww2; }
+  if (tx < ww2) { tx = ww2; }
+  if (ty > dh - wh2) { ty = dh - wh2; }
+  if (ty < wh2) { ty = wh2; }
   targ = { pageX: tx, pageY: ty };
   if ($.isNumeric(limit)) {
-    targ = limitMovement($(window).center(), targ, limit);
+    targ = limitMovement(w.center(), targ, limit);
   }
-  item.scrollLeft(targ.pageX - item.width() / 2);
-  item.scrollTop(targ.pageY - item.height() / 2);
-  return;
+  w.scrollLeft(targ.pageX - ww2);
+  w.scrollTop(targ.pageY - wh2);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1701,10 +1709,10 @@ var turtlefn = {
         window.location.reload();
         return;
       }
-      if (elt.src) {
-        var src = elt.src;
-        elt.src = '';
-        elt.src = src;
+      if (elem.src) {
+        var src = elem.src;
+        elem.src = '';
+        elem.src = src;
       }
     });
   },
@@ -1912,6 +1920,7 @@ var turtlefn = {
         callback.call($(elem), j, elem);
       }
     }
+    return this;
   }
 };
 
@@ -2199,7 +2208,7 @@ function nameToImg(name) {
       }
     }
   }
-  if (/^https?:\/\//i.exec(name)) {
+  if (/^(?:https?:\/)?\//i.exec(name)) {
     return {
       url: name,
       css: {
@@ -2268,6 +2277,12 @@ function random(arg) {
       q = x * x + y * (0.19600 * y - 0.25472 * x);
     } while (q > 0.27597 && (q > 0.27846 || v * v > -4 * Math.log(u) * u * u));
     return v / u;
+  }
+  if (arg == 'position') {
+    return {
+      pageX: random(dw()),
+      pageY: random(dh())
+    };
   }
   return Math.random();
 }
