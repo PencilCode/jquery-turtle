@@ -1619,10 +1619,10 @@ $.extend(true, $.fx, {
 
 var turtlefn = {
   rt: function(amount) {
-    return this.animate({'turtleRotation': '+=' + amount + 'deg'}, 'turtle');
+    return this.animate({'turtleRotation': '+=' + amount}, 'turtle');
   },
   lt: function(amount) {
-    return this.animate({'turtleRotation': '-=' + amount + 'deg'}, 'turtle');
+    return this.animate({'turtleRotation': '-=' + amount}, 'turtle');
   },
   fd: function(amount, y) {
     var sideways = 0;
@@ -1647,7 +1647,7 @@ var turtlefn = {
       });
     }
     if (!sideways) {
-      return this.animate({'turtleForward': '+=' + amount + 'px'}, 'turtle');
+      return this.animate({'turtleForward': '+=' + amount}, 'turtle');
     } else {
       return this.each(function(j, elem) {
         $(elem).animate({'turtlePosition':
