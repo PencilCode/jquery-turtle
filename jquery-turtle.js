@@ -1403,7 +1403,7 @@ function makeTurtleForwardHook() {
         var r = convertToRadians(ts.rot),
             c = Math.cos(r),
             s = Math.sin(r);
-        return ts.tx * s - ts.ty * c;
+        return (ts.tx * s - ts.ty * c) + 'px';
       }
     },
     set: function(elem, value) {
@@ -1423,11 +1423,11 @@ function makeTurtleForwardHook() {
 }
 
 // Finally, add turtle support.
-function makeTurtleHook(prop, normalize, displace) {
+function makeTurtleHook(prop, normalize, unit, displace) {
   return {
     get: function(elem, computed, extra) {
       var ts = readTurtleTransform(elem, computed);
-      if (ts) { return '' + ts[prop]; }
+      if (ts) { return ts[prop] + unit; }
     },
     set: function(elem, value) {
       var ts = readTurtleTransform(elem, true) ||
@@ -1586,17 +1586,16 @@ $.extend(true, $, {
     turtlePen: makePenHook(),
     turtleForward: makeTurtleForwardHook(),
     turtlePosition: makeTurtleXYHook('turtlePosition', 'tx', 'ty', true),
-    turtlePositionX: makeTurtleHook('tx', identity, true),
-    turtlePositionY: makeTurtleHook('ty', identity, true),
-    turtleRotation: makeTurtleHook('rot', normalizeRotation),
+    turtlePositionX: makeTurtleHook('tx', identity, 'px', true),
+    turtlePositionY: makeTurtleHook('ty', identity, 'px', true),
+    turtleRotation: makeTurtleHook('rot', normalizeRotation, 'deg', false),
     turtleScale: makeTurtleXYHook('turtleScale', 'sx', 'sy', false),
-    turtleScaleX: makeTurtleHook('sx', identity),
-    turtleScaleY: makeTurtleHook('sy', identity),
-    turtleTwist: makeTurtleHook('twi', normalizeRotation),
+    turtleScaleX: makeTurtleHook('sx', identity, '', false),
+    turtleScaleY: makeTurtleHook('sy', identity, '', false),
+    turtleTwist: makeTurtleHook('twi', normalizeRotation, 'deg', false),
     turtleHull: makeHullHook()
   },
   cssNumber: {
-    turtleRotation: true,
     turtleScale: true,
     turtleScaleX: true,
     turtleScaleY: true,
@@ -1873,14 +1872,11 @@ var turtlefn = {
   notwithin: function(distance, x, y) {
     return withinOrNot(this, false, distance, x, y);
   },
-  direct: function(callback, args, qname) {
-    if (qname === undefined) {
-      if (typeof(args) == 'string') {
-        qname = args;
-        args = null;
-      } else {
-        qname = 'fx';
-      }
+  direct: function(qname, callback, args) {
+    if ($.isFunction(qname)) {
+      args = callback;
+      callback = qname;
+      qname = 'fx';
     }
     // If animation is active, then direct will queue the callback.
     // It will also arrange things so that if the callback enqueues
