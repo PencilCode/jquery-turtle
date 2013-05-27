@@ -1300,9 +1300,9 @@ function flushPenState(elem) {
       !isPointNearby(center, state.path[state.path.length - 1])) {
     state.path.push(center);
   }
-  if (!state.style.path) {
+  if (!state.style.savePath) {
     var ctx = getTurtleDrawingCtx();
-        isClosed = isPointNearby(
+        isClosed = state.path.length > 2 && isPointNearby(
             state.path[0], state.path[state.path.length - 1]);
     ctx.save();
     applyPenStyle(ctx, state.style);
