@@ -1389,12 +1389,14 @@ function doQuickMove(elem, distance, sideways) {
 function displacedPosition(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
       r = (ts || 0) && convertToRadians(ts.rot),
-      dy = -Math.cos(r) * distance,
-      dx = Math.sin(r) * distance;
+      scaledDistance = (ts || 0) && (distance * ts.sy),
+      scaledSideways = (ts || 0) && ((sideways || 0) * ts.sx),
+      dy = -Math.cos(r) * scaledDistance,
+      dx = Math.sin(r) * scaledDistance;
   if (!ts) { return; }
-  if (sideways) {
-    dy += Math.sin(r) * sideways;
-    dx += Math.cos(r) * sideways;
+  if (scaledSideways) {
+    dy += Math.sin(r) * scaledSideways;
+    dx += Math.cos(r) * scaledSideways;
   }
   return cssNum(ts.tx + dx) + ' ' + cssNum(ts.ty + dy);
 }
@@ -1411,13 +1413,13 @@ function makeTurtleForwardHook() {
         var r = convertToRadians(ts.rot),
             c = Math.cos(r),
             s = Math.sin(r);
-        return (ts.tx * s - ts.ty * c) + 'px';
+        return (ts.tx * s - ts.ty * c) / ts.sy + 'px';
       }
     },
     set: function(elem, value) {
       var ts = readTurtleTransform(elem, true) ||
               {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0},
-          v = parseFloat(value),
+          v = parseFloat(value) * ts.sy,
           r = convertToRadians(ts.rot),
           c = Math.cos(r),
           s = Math.sin(r),
@@ -1657,8 +1659,8 @@ var turtlefn = {
     if (!sideways) {
       return this.animate({'turtleForward': '+=' + amount}, 'turtle');
     } else {
-      return this.each(function(j, elem) {
-        $(elem).animate({'turtlePosition':
+      return this.direct(function(j, elem) {
+        this.animate({'turtlePosition':
             displacedPosition(elem, amount, sideways)}, 'turtle');
       });
     }
