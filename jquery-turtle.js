@@ -54,7 +54,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
-  $(x).scale(1.5)   // Scales the element up to 150% size.
+  $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its direction axis.
   $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
@@ -1795,14 +1795,16 @@ var turtlefn = {
     });
   },
   scale: function(valx, valy) {
-    if (valx === undefined && valy === undefined) {
-      return parseFloat(this.css('turtleTwist'));
-    }
-    var val = '' + cssNum(valx) +
-        (valy === undefined ? '' : ' ' + cssNum(valy));
+    if (valy === undefined) { valy = valx; }
+    // Disallow scaling to zero using this method.
+    if (!valx || !valy) { return this; }
     return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
-      this.css('turtleScale', val);
+      var c = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
+      if (c.length === 1) { c.push(c[0]); }
+      c[0] *= valx;
+      c[1] *= valy;
+      this.css('turtleScale', $.map(c, cssNum).join(' '));
     });
   },
   shown: function() {
