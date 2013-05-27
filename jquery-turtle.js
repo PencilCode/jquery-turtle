@@ -1683,7 +1683,9 @@ var turtlefn = {
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
       var c = this.center();
-      fillDot(c, diameter, ps);
+      // Scale by sx.  (TODO: consider drawing ellipse for sx != sy.)
+      var s = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
+      fillDot(c, diameter * s[0], ps);
       // Once drawing begins, origin must be stable.
       watchImageToFixOriginOnLoad(elem);
     });
