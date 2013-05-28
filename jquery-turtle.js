@@ -2398,7 +2398,7 @@ function button(name, callback) {
     name = '\u25CE';
   }
   var result = $('<button>' + escapeHtml(name) + '</button>');
-  result.wrap('<div>').parent().appendTo('body');
+  result.appendTo('body');
   if (callback) {
     result.click(callback);
   }
