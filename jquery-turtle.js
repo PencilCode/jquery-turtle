@@ -4,7 +4,7 @@
 jQuery-turtle
 =============
 
-version 2.0.4
+version 2.0.5
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -48,6 +48,8 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).bk(50)       // Back.
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
+
+  // Methods below happen in an instant, but queue after animation.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a dot of diameter 12.
   $(x).erase()      // Erases under the turtles collision hull.
@@ -59,6 +61,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).mirror(true) // Flips the turtle across its direction axis.
   $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
   $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt.
+
   // Methods below this line do not queue for animation.
   $(x).center()     // Page coordinate position of transform-origin.
   $(x).direction()  // Absolute bearing taking into account nested transforms.
@@ -132,36 +135,57 @@ After eval($.turtle()):
   * An eval debugging panel (see.js) is shown at the bottom of the screen.
   * Turtle methods on the default turtle are packaged as globals, e.g., fd(10).
   * Every #id element is turned into a global variable: window.id = $('#id').
-  * Globals are set up to save events: "lastclick", "lastmousemove", etc.
   * Default turtle animation is set to 1 move per sec so steps can be seen.
-  * speed(movesPerSec) adjusts $.fx.speeds.turtle to 1000 / movesPerSec.
-  * tick([ticksPerSec,] fn) is similarly an easier-to-call setInterval.
-  * random(lessThanThisInteger || array) is an easy alternative to Math.random.
-  * remove() will remove the global turtle and global turtle methods.
-  * hatch([n,] [spec]) creates and returns any number of new turtles.
-  * see(a, b, c) logs tree-expandable data into the debugging panel.
-  * output(html or text) appends html to the document body.
-  * input(label, callback) appends a labelled input field to the document body.
+  * And the following are defined:
+
+<pre>
+  lastclick             // Event object of the last click event in the doc.
+  lastmousemove         // The last mousemove event.
+  lastmouseup           // The last mouseup event.
+  lastmousedown         // The last mousedown event.
+  keydown               // The last keydown event.
+  keyup                 // The last keyup event.
+  keypress              // The last keypress event.
+  speed(movesPerSec)    // Sets $.fx.speeds.turtle to 1000 / movesPerSec.
+  tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
+  random(n)             // Returns a random number [0...n-1].
+  random(list)          // Returns a random element of the list.
+  random('normal')      // Returns a gaussian random (mean 0 stdev 1).
+  random('uniform')     // Returns a uniform random [0...1).
+  random('position')    // Returns a random {pageX:x, pageY:y} in the document.
+  remove()              // Removes default turtle and its globals (fd, etc).
+  hatch([n,], [img])    // Creates and returns n turtles with the given img.
+  see(a, b, c...)       // Logs tree-expandable data into debugging panel.
+  output(html || text)  // Appends html into the document body.
+  input([label,] fn)    // Makes a one-time input field, calls fn after entry.
+  button([label,] fn)   // Makes a clickable button, calls fn when clicked.
+</pre>
 
 For example, after eval($.turtle()), the following is a valid program
 in CoffeeScript syntax:
 
 <pre>
-speed 100
-pen 'red'
-chaser = hatch()
-chaser.moveto 0,0
-chaser.bg 'red'
-player = turtle
+speed Infinity
+output "Try to catch blue."
+r = hatch 'red'
+b = hatch 'blue'
+safe = 20
 tick 10, ->
-  player.turnto lastmousemove
-  player.fd 5
-  chaser.turnto player
-  chaser.rt (random 60) - 30
-  chaser.fd 5
-  if chaser.touches player
-    output "tag! you're it!"
-    tick ->
+  turnto lastmousemove
+  fd 6
+  if safe > 0
+    safe = safe - 1
+  else
+    r.turnto turtle
+    r.fd 4
+    b.turnto r
+    b.fd 3
+    if b.touches(turtle)
+      output "You win!"
+      tick null
+    else if r.touches(turtle)
+      output "Too slow!"
+      tick null
 </pre>
 
 The turtle teaching environment is designed to work well with either
@@ -1961,7 +1985,8 @@ var dollar_turtle_methods = {
   random: random,
   hatch: hatch,
   input: input,
-  output: output
+  output: output,
+  button: button
 };
 
 $.turtle = function turtle(id, options) {
@@ -2357,11 +2382,29 @@ function output(html) {
   if (html === undefined || html === null) {
     return $('<img>').img('turtle').appendTo('body');
   }
-  if (!html || html[0] != '<' || html.indexOf('>') == -1) {
+  if (!html || html[0] != '<') {
     html = '<div>' + escapeHtml(html) + '</div>';
   }
   return $(html).appendTo('body');
 }
+
+// Simplify $('body'>.append('<button>' + label + '</button>').click(fn).
+function button(name, callback) {
+  if ($.isFunction(name) && callback === undefined) {
+    callback = name;
+    name = null;
+  }
+  if (name === null || name === undefined) {
+    name = '\u25CE';
+  }
+  var result = $('<button>' + escapeHtml(name) + '</button>');
+  result.wrap('<div>').parent().appendTo('body');
+  if (callback) {
+    result.click(callback);
+  }
+  return result;
+}
+
 
 // Simplify $('body').append('<input>' + label) and onchange hookup.
 function input(name, callback) {
