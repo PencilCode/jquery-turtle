@@ -48,25 +48,25 @@ Turtle-oriented methods taking advantage of the css support:
 
   // Methods below happen in an instant, but queue after animation.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
-  $(x).dot(12)      // Draws a dot of diameter 12.
+  $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
-  $(x).mirror(true) // Flips the turtle across its direction axis.
+  $(x).mirror(true) // Flips the turtle across its main axis.
   $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
   $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt.
 
   // Methods below this line do not queue for animation.
-  $(x).center()     // Page coordinate position of transform-origin.
-  $(x).direction()  // Absolute bearing taking into account nested transforms.
+  $(x).origin()     // Page coordinate position of transform-origin.
+  $(x).bearing()    // Absolute direction taking into account all transforms.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).within(d, t) // Filters to items with centers within d of t.center().
+  $(x).within(d, t) // Filters to items with origins within d of t.origin().
   $(x).notwithin()  // The negation of within.
 </pre>
 

@@ -51,25 +51,25 @@ Turtle-oriented methods taking advantage of the css support:
 
   // Methods below happen in an instant, but queue after animation.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
-  $(x).dot(12)      // Draws a dot of diameter 12.
+  $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
   $(x).turnto(heading || position)      // Absolute heading adjustment.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
-  $(x).mirror(true) // Flips the turtle across its direction axis.
+  $(x).mirror(true) // Flips the turtle across its main axis.
   $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
   $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt.
 
   // Methods below this line do not queue for animation.
-  $(x).center()     // Page coordinate position of transform-origin.
-  $(x).direction()  // Absolute bearing taking into account nested transforms.
+  $(x).origin()     // Page coordinate position of transform-origin.
+  $(x).bearing()    // Absolute direction taking into account all transforms.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).within(d, t) // Filters to items with centers within d of t.center().
+  $(x).within(d, t) // Filters to items with origins within d of t.origin().
   $(x).notwithin()  // The negation of within.
 </pre>
 
@@ -525,7 +525,7 @@ function transformStyleAsMatrix(transformStyle) {
 
 //////////////////////////////////////////////////////////////////////////
 // ABSOLUTE PAGE POSITIONING
-// Dealing with the element center, rectangle, and direction on the page,
+// Dealing with the element origin, rectangle, and direction on the page,
 // taking into account nested parent transforms.
 //////////////////////////////////////////////////////////////////////////
 
@@ -755,7 +755,7 @@ function getCenterInPageCoordinates(elem) {
         { position: "absolute", visibility: "hidden", display: "block" } : {},
       st = swapout[transform] = (inverseParent ? 'matrix(' +
           $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
-      substTransform = (st == 'matrix(1, 0, 0, 1, 0, 0)') ? 'none' : st;
+      substTransform = (st == 'matrix(1, 0, 0, 1, 0, 0)') ? 'none' : st,
       saved = elem.style[transform],
       gbcr = cleanSwap(elem, swapout, readPageGbcr),
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
@@ -861,7 +861,7 @@ function scrollWindowToDocumentPosition(pos, limit) {
   if (ty < wh2) { ty = wh2; }
   targ = { pageX: tx, pageY: ty };
   if ($.isNumeric(limit)) {
-    targ = limitMovement(w.center(), targ, limit);
+    targ = limitMovement(w.origin(), targ, limit);
   }
   w.scrollLeft(targ.pageX - ww2);
   w.scrollTop(targ.pageY - wh2);
@@ -1597,7 +1597,7 @@ function withinOrNot(obj, within, distance, x, y) {
   }
   var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
     isPageCoordinate(x) ? x :
-    $(x).center(),
+    $(x).origin(),
     d2 = distance * distance;
   return obj.filter(function() {
     var gbcr = getPageGbcr(this);
@@ -1706,7 +1706,7 @@ var turtlefn = {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
-      var c = this.center();
+      var c = this.origin();
       // Scale by sx.  (TODO: consider drawing ellipse for sx != sy.)
       var s = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
       fillDot(c, diameter * s[0], ps);
@@ -1744,7 +1744,7 @@ var turtlefn = {
       }
     });
   },
-  center: function() {
+  origin: function() {
     if (!this.length) return;
     return getCenterInPageCoordinates(this[0]);
   },
@@ -1761,7 +1761,7 @@ var turtlefn = {
     }
     return this.direct(function(j, elem) {
       var pos = position;
-      if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
+      if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
       if (!pos || !isPageCoordinate(pos)) return this;
       if ($.isWindow(elem)) {
         scrollWindowToDocumentPosition(pos, limit);
@@ -1775,19 +1775,19 @@ var turtlefn = {
       flushPenState(elem);
     });
   },
-  direction: function() {
+  bearing: function() {
     if (!this.length) return;
     var elem = this[0], dir;
     if ($.isWindow(elem) || elem.nodeType === 9) return 0;
     return getDirectionOnPage(elem);
   },
-  turnto: function(direction, limit) {
+  turnto: function(bearing, limit) {
     return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
-      var dir = direction;
-      if (!$.isNumeric(direction)) {
-        var pos = direction, cur = $(elem).center();
-        if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
+      var dir = bearing;
+      if (!$.isNumeric(bearing)) {
+        var pos = bearing, cur = $(elem).origin();
+        if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
         if (!pos || !isPageCoordinate(pos)) return;
         dir = radiansToDegrees(
             Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
