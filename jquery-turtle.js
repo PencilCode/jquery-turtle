@@ -1325,14 +1325,19 @@ function isPointNearby(a, b) {
          Math.round(a.pageY - b.pageY) === 0;
 }
 
-function applyPenStyle(ctx, ps) {
+function applyPenStyle(ctx, ps, scale) {
+  scale = scale || 1;
   if (!ps || !('strokeStyle' in ps)) { ctx.strokeStyle = 'black'; }
-  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62; }
+  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62 * scale; }
   if (!ps || !('lineCap' in ps)) { ctx.lineCap = 'round'; }
   if (ps) {
     for (var a in ps) {
-      if (a === 'path') { continue; }
-      ctx[a] = ps[a];
+      if (a === 'savePath') { continue; }
+      if (scale && a === 'lineWidth') {
+        ctx[a] = scale * ps[a];
+      } else {
+        ctx[a] = ps[a];
+      }
     }
   }
 }
@@ -1360,10 +1365,15 @@ function flushPenState(elem) {
     state.path[0].push(center);
   }
   if (!state.style.savePath) {
-    var ctx = getTurtleDrawingCtx(), isClosed, j = state.path.length, segment;
+    var ts = readTurtleTransform(elem, true),
+        ctx = getTurtleDrawingCtx(),
+        isClosed,
+        j = state.path.length,
+        segment;
     ctx.save();
     ctx.beginPath();
-    applyPenStyle(ctx, state.style);
+    // Scale up lineWidth by sx.  (TODO: consider parent transforms.)
+    applyPenStyle(ctx, state.style, ts.sx);
     while (j--) {
       if (state.path[j].length) {
         segment = state.path[j];
@@ -1752,10 +1762,10 @@ var turtlefn = {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
-      var c = this.origin();
-      // Scale by sx.  (TODO: consider drawing ellipse for sx != sy.)
-      var s = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
-      fillDot(c, diameter * s[0], ps);
+      var c = this.origin(),
+          ts = readTurtleTransform(elem, true);
+      // Scale by sx.  (TODO: consider parent transforms.)
+      fillDot(c, diameter * ts.sx, ps);
       // Once drawing begins, origin must be stable.
       watchImageToFixOriginOnLoad(elem);
     });
