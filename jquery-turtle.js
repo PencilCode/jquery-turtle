@@ -106,7 +106,7 @@ motion:
   $(x).css('turtleScaleY', '2');         // y stretch before rotate after twist.
   $(x).css('turtleTwist', '45');         // turn before stretching.
   $(x).css('turtleForward', '50');       // position in direction of rotation.
-  $(x).css('turtlePen', 'red');          // or 'red lineWidth 2px' etc.
+  $(x).css('turtlePenStyle', 'red');     // or 'red lineWidth 2px' etc.
   $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>
 
@@ -1229,7 +1229,7 @@ function resizecanvas() {
   }
 }
 
-// turtlePen style syntax
+// turtlePenStyle style syntax
 function parsePenStyle(text, defaultProp) {
   if (!text) { return null; }
   text = text.trim();
@@ -1269,15 +1269,29 @@ function writePenStyle(style) {
   return result.join(' ');
 }
 
+function parsePenDown(style) {
+  if (style == 'down') return true;
+  if (style == 'up') return false;
+  return undefined;
+}
+
+function writePenDown(bool) {
+  return bool ? 'down' : 'up';
+}
+
 function getTurtleData(elem) {
   var state = $.data(elem, 'turtleData');
   if (!state) {
-    state = $.data(elem, 'turtleData', { style: null, path: [] });
+    state = $.data(elem, 'turtleData', {
+      style: {},
+      path: [[]],
+      down: true
+    });
   }
   return state;
 }
 
-function makePenHook() {
+function makePenStyleHook() {
   return {
     get: function(elem, computed, extra) {
       return writePenStyle(getTurtleData(elem).style);
@@ -1285,10 +1299,23 @@ function makePenHook() {
     set: function(elem, value) {
       var style = parsePenStyle(value, 'strokeStyle');
       getTurtleData(elem).style = style;
-      elem.style.turtlePen = writePenStyle(style);
-      if (style) {
-        flushPenState(elem);
-      }
+      elem.style.turtlePenStyle = writePenStyle(style);
+      flushPenState(elem);
+    }
+  };
+}
+
+function makePenDownHook() {
+  return {
+    get: function(elem, computed, extra) {
+      return writePenDown(getTurtleData(elem).down);
+    },
+    set: function(elem, value) {
+      var style = parsePenDown(value);
+      if (style === undefined) return;
+      getTurtleData(elem).down = style;
+      elem.style.turtlePenDown = writePenDown(style);
+      flushPenState(elem);
     }
   };
 }
@@ -1298,48 +1325,72 @@ function isPointNearby(a, b) {
          Math.round(a.pageY - b.pageY) === 0;
 }
 
-function applyPenStyle(ctx, ps) {
+function applyPenStyle(ctx, ps, scale) {
+  scale = scale || 1;
   if (!ps || !('strokeStyle' in ps)) { ctx.strokeStyle = 'black'; }
-  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62; }
+  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62 * scale; }
   if (!ps || !('lineCap' in ps)) { ctx.lineCap = 'round'; }
   if (ps) {
     for (var a in ps) {
-      if (a === 'path') { continue; }
-      ctx[a] = ps[a];
+      if (a === 'savePath') { continue; }
+      if (scale && a === 'lineWidth') {
+        ctx[a] = scale * ps[a];
+      } else {
+        ctx[a] = ps[a];
+      }
     }
   }
 }
 
 function flushPenState(elem) {
   var state = getTurtleData(elem);
-  if (!state.style) {
-    if (state.path.length) { state.path.length = 0; }
+  if (!state.style || (!state.down && !state.style.savePath)) {
+    if (state.path.length > 1) { state.path.length = 1; }
+    if (state.path[0].length) { state.path[0].length = 0; }
+    return;
+  }
+  if (!state.down) {
+    // Penup when saving path will start a new segment if one isn't started.
+    if (state.path.length && state.path[0].length) {
+      state.path.shift([]);
+    }
     return;
   }
   var center = getCenterInPageCoordinates(elem);
   // Once the pen is down, the origin needs to be stable when the image
   // loads.
   watchImageToFixOriginOnLoad(elem);
-  if (!state.path.length ||
-      !isPointNearby(center, state.path[state.path.length - 1])) {
-    state.path.push(center);
+  if (!state.path[0].length ||
+      !isPointNearby(center, state.path[0][state.path[0].length - 1])) {
+    state.path[0].push(center);
   }
   if (!state.style.savePath) {
-    var ctx = getTurtleDrawingCtx();
-        isClosed = state.path.length > 2 && isPointNearby(
-            state.path[0], state.path[state.path.length - 1]);
+    var ts = readTurtleTransform(elem, true),
+        ctx = getTurtleDrawingCtx(),
+        isClosed,
+        j = state.path.length,
+        segment;
     ctx.save();
-    applyPenStyle(ctx, state.style);
     ctx.beginPath();
-    ctx.moveTo(state.path[0].pageX, state.path[0].pageY);
-    for (var j = 1; j < state.path.length - (isClosed ? 1 : 0); ++j) {
-      ctx.lineTo(state.path[j].pageX, state.path[j].pageY);
+    // Scale up lineWidth by sx.  (TODO: consider parent transforms.)
+    applyPenStyle(ctx, state.style, ts.sx);
+    while (j--) {
+      if (state.path[j].length) {
+        segment = state.path[j];
+        isClosed = segment.length > 2 && isPointNearby(
+            segment[0], segment[segment.length - 1]);
+        ctx.moveTo(segment[0].pageX, segment[0].pageY);
+        for (var k = 1; k < segment.length - (isClosed ? 1 : 0); ++k) {
+          ctx.lineTo(segment[k].pageX, segment[k].pageY);
+        }
+        if (isClosed) { ctx.closePath(); }
+      }
     }
-    if (isClosed) { ctx.closePath(); }
     if ('fillStyle' in state.style) { ctx.fill(); }
     if ('strokeStyle' in state.style) { ctx.stroke(); }
     ctx.restore();
-    state.path.splice(0, state.path.length - 1);
+    state.path.length = 1;
+    state.path[0].splice(0, state.path[0].length - 1);
   }
 }
 
@@ -1617,7 +1668,8 @@ function withinOrNot(obj, within, distance, x, y) {
 
 $.extend(true, $, {
   cssHooks: {
-    turtlePen: makePenHook(),
+    turtlePenStyle: makePenStyleHook(),
+    turtlePenDown: makePenDownHook(),
     turtleForward: makeTurtleForwardHook(),
     turtlePosition: makeTurtleXYHook('turtlePosition', 'tx', 'ty', true),
     turtlePositionX: makeTurtleHook('tx', identity, 'px', true),
@@ -1694,7 +1746,11 @@ var turtlefn = {
   },
   pen: function(penstyle) {
     return this.direct(function(j, elem) {
-      this.css('turtlePen', penstyle);
+      if (penstyle == 'down' || penstyle == 'up') {
+        this.css('turtlePenDown', penstyle);
+      } else {
+        this.css('turtlePenStyle', penstyle);
+      }
     });
   },
   dot: function(style, diameter) {
@@ -1706,10 +1762,10 @@ var turtlefn = {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
-      var c = this.origin();
-      // Scale by sx.  (TODO: consider drawing ellipse for sx != sy.)
-      var s = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
-      fillDot(c, diameter * s[0], ps);
+      var c = this.origin(),
+          ts = readTurtleTransform(elem, true);
+      // Scale by sx.  (TODO: consider parent transforms.)
+      fillDot(c, diameter * ts.sx, ps);
       // Once drawing begins, origin must be stable.
       watchImageToFixOriginOnLoad(elem);
     });
@@ -2041,7 +2097,7 @@ $.turtle = function turtle(id, options) {
   }
   // Set turtle speed
   speed(options.hasOwnProperty('speed') ? options.speed : 1);
-  // Find or create a turtle if one does not exist.
+  // Find or create a singleton turtle if one does not exist.
   var selector = null;
   if (id) {
     selector = $('#' + id);
