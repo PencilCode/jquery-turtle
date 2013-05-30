@@ -1447,13 +1447,15 @@ function applyImg(sel, img) {
 
 function doQuickMove(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
-      r = (ts || 0) && convertToRadians(ts.rot),
-      dy = -Math.cos(r) * distance,
-      dx = Math.sin(r) * distance;
+      r = ts && convertToRadians(ts.rot),
+      scaledDistance = ts && (distance * ts.sy),
+      scaledSideways = ts && ((sideways || 0) * ts.sx),
+      dy = -Math.cos(r) * scaledDistance,
+      dx = Math.sin(r) * scaledDistance;
   if (!ts) { return; }
   if (sideways) {
-    dy += Math.sin(r) * sideways;
-    dx += Math.cos(r) * sideways;
+    dy += Math.sin(r) * scaledSideways;
+    dx += Math.cos(r) * scaledSideways;
   }
   ts.tx += dx;
   ts.ty += dy;
@@ -1463,9 +1465,9 @@ function doQuickMove(elem, distance, sideways) {
 
 function displacedPosition(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
-      r = (ts || 0) && convertToRadians(ts.rot),
-      scaledDistance = (ts || 0) && (distance * ts.sy),
-      scaledSideways = (ts || 0) && ((sideways || 0) * ts.sx),
+      r = ts && convertToRadians(ts.rot),
+      scaledDistance = ts && (distance * ts.sy),
+      scaledSideways = ts && ((sideways || 0) * ts.sx),
       dy = -Math.cos(r) * scaledDistance,
       dx = Math.sin(r) * scaledDistance;
   if (!ts) { return; }
