@@ -2396,8 +2396,10 @@ function random(arg) {
 // Simplify setInterval(fn, 1000) to just tick(fn).
 var tickinterval = null;
 function tick(rps, fn) {
-  fn = arguments.length >= 2 ? fn : rps;
-  rps = arguments.length > 1 && $.isNumeric(rps) ? rps : 1;
+  if (fn === undefined && $.isFunction(rps)) {
+    fn = rps;
+    rps = 1;
+  }
   if (tickinterval) {
     window.clearInterval(tickinterval);
     tickinterval = null;
