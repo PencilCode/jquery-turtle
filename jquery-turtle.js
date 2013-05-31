@@ -1749,7 +1749,9 @@ var turtlefn = {
   },
   pen: function(penstyle) {
     return this.direct(function(j, elem) {
-      if (penstyle == 'down' || penstyle == 'up') {
+      if (penstyle === false || penstyle === true) {
+        this.css('turtlePenDown', penstyle ? 'down': 'up');
+      } else if (penstyle == 'down' || penstyle == 'up') {
         this.css('turtlePenDown', penstyle);
       } else {
         this.css('turtlePenStyle', penstyle);
