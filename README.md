@@ -45,14 +45,16 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).bk(50)       // Back.
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
+  $(x).move(x, y)   // Move right by x while moving forward by y.
+  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
+  $(x).turnto(bearing || position)      // Absolute direction adjustment.
 
   // Methods below happen in an instant, but queue after animation.
+  $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
-  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
-  $(x).turnto(heading || position)      // Absolute heading adjustment.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its main axis.
@@ -61,7 +63,8 @@ Turtle-oriented methods taking advantage of the css support:
 
   // Methods below this line do not queue for animation.
   $(x).origin()     // Page coordinate position of transform-origin.
-  $(x).bearing()    // Absolute direction taking into account all transforms.
+  $(x).bearing([p]) // Absolute direction on page.
+  $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
@@ -71,7 +74,7 @@ Turtle-oriented methods taking advantage of the css support:
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
-$.turtle() is called), the first four movement functions animate
+$.turtle() is called), the first seven movement functions animate
 at that speed, and the remaining mutators also participate in the
 animation queue.  Note that property-reading functions such as
 touches() are synchronous and will not queue, and setting
@@ -103,7 +106,7 @@ motion:
   $(x).css('turtleScaleY', '2');         // y stretch before rotate after twist.
   $(x).css('turtleTwist', '45');         // turn before stretching.
   $(x).css('turtleForward', '50');       // position in direction of rotation.
-  $(x).css('turtlePen', 'red');          // or 'red lineWidth 2px' etc.
+  $(x).css('turtlePenStyle', 'red');     // or 'red lineWidth 2px' etc.
   $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>
 

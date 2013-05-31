@@ -48,14 +48,16 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).bk(50)       // Back.
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
+  $(x).move(x, y)   // Move right by x while moving forward by y.
+  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
+  $(x).turnto(bearing || position)      // Absolute direction adjustment.
 
   // Methods below happen in an instant, but queue after animation.
+  $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
-  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
-  $(x).turnto(heading || position)      // Absolute heading adjustment.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its main axis.
@@ -64,7 +66,7 @@ Turtle-oriented methods taking advantage of the css support:
 
   // Methods below this line do not queue for animation.
   $(x).origin()     // Page coordinate position of transform-origin.
-  $(x).bearing([p]) // Absolute direction taking into account all transforms.
+  $(x).bearing([p]) // Absolute direction on page.
   $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
@@ -75,7 +77,7 @@ Turtle-oriented methods taking advantage of the css support:
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
-$.turtle() is called), the first four movement functions animate
+$.turtle() is called), the first seven movement functions animate
 at that speed, and the remaining mutators also participate in the
 animation queue.  Note that property-reading functions such as
 touches() are synchronous and will not queue, and setting
@@ -704,7 +706,7 @@ function readPageGbcr() {
 // to get origin position; then calculate displacement needed to move
 // turtle to target coordinates (again reversing parent distortions
 // if possible).
-function setCenterInPageCoordinates(elem, target, limit, localx, localy) {
+function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
       hidden = ($.css(elem, 'display') === 'none'),
@@ -715,9 +717,10 @@ function setCenterInPageCoordinates(elem, target, limit, localx, localy) {
       gbcr = cleanSwap(elem, swapout, readPageGbcr),
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
       origin = addVector([gbcr.left, gbcr.top], middle),
-      pos, current, translation, localTarget;
+      pos, current, tr, localTarget;
   if (!inverseParent) { return; }
   if ($.isNumeric(limit)) {
+    tr = getElementTranslation(elem);
     pos = addVector(matrixVectorProduct(totalParentTransform, tr), origin);
     current = {
       pageX: pos[0],
@@ -733,7 +736,7 @@ function setCenterInPageCoordinates(elem, target, limit, localx, localy) {
     localTarget[0] += Math.cos(r) * localx + Math.sin(r) * localy;
     localTarget[1] += Math.sin(r) * localx - Math.cos(r) * localy;
   }
-  $.style(elem, 'turtlePosition', localTarget.join(' '));
+  return cssNum(localTarget[0]) + ' ' + cssNum(localTarget[1]);
 }
 
 // Uses getBoundingClientRect to figure out current position in page
@@ -816,7 +819,7 @@ function getCornersInPageCoordinates(elem, untransformed) {
   });
 }
 
-function setDirectionOnPage(elem, target, limit) {
+function computeDirectionAsTurtleRotation(elem, target, limit) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
       ts = readTurtleTransform(elem, true);
@@ -833,8 +836,7 @@ function setDirectionOnPage(elem, target, limit) {
   var rt = convertToRadians(target),
       lp = matrixVectorProduct(inverseParent, [Math.sin(rt), Math.cos(rt)]),
       tr = Math.atan2(lp[0], lp[1]);
-  ts.rot = radiansToDegrees(tr);
-  elem.style[transform] = writeTurtleTransform(ts);
+  return radiansToDegrees(tr);
 }
 
 function getDirectionOnPage(elem) {
@@ -1271,8 +1273,8 @@ function writePenStyle(style) {
 }
 
 function parsePenDown(style) {
-  if (style == 'down') return true;
-  if (style == 'up') return false;
+  if (style == 'down' || style === true) return true;
+  if (style == 'up' || style === false) return false;
   return undefined;
 }
 
@@ -1708,23 +1710,17 @@ $.extend(true, $.fx, {
 
 var turtlefn = {
   rt: function(amount) {
-    return this.animate({'turtleRotation': '+=' + amount}, 'turtle');
+    return this.animate({turtleRotation: '+=' + amount}, 'turtle');
   },
   lt: function(amount) {
-    return this.animate({'turtleRotation': '-=' + amount}, 'turtle');
+    return this.animate({turtleRotation: '-=' + amount}, 'turtle');
   },
-  fd: function(amount, y) {
-    var sideways = 0;
-    if (y !== undefined) {
-      sideways = amount;
-      amount = y;
-    }
-    // Fast path: do the move directly when there is no animation.
+  fd: function(amount) {
     if (!$.fx.speeds.turtle) {
       return this.each(function(j, elem) {
         var q = $.queue(elem), doqueue = (q && q.length > 0);
         function domove() {
-          doQuickMove(elem, amount, sideways);
+          doQuickMove(elem, amount, 0);
           if (doqueue) { $.dequeue(elem); }
         }
         if (doqueue) {
@@ -1735,23 +1731,75 @@ var turtlefn = {
         }
       });
     }
-    if (!sideways) {
-      return this.animate({'turtleForward': '+=' + amount}, 'turtle');
-    } else {
-      return this.direct(function(j, elem) {
-        this.animate({'turtlePosition':
-            displacedPosition(elem, amount, sideways)}, 'turtle');
-      });
-    }
+    return this.animate({turtleForward: '+=' + amount}, 'turtle');
   },
   bk: function(amount) {
     return this.fd(-amount);
   },
+  move: function(amount, y) {
+    var sideways = 0;
+    if (y !== undefined) {
+      sideways = amount;
+      amount = y;
+    }
+    return this.direct(function(j, elem) {
+      this.animate({turtlePosition:
+          displacedPosition(elem, amount, sideways)}, 'turtle');
+    });
+  },
+  moveto: function(position, limit, y) {
+    if ($.isNumeric(position) && $.isNumeric(limit)) {
+      position = { pageX: parseFloat(position), pageY: parseFloat(limit) };
+      limit = null;
+    }
+    var localx = 0, localy = 0;
+    if ($.isNumeric(y) && $.isNumeric(limit)) {
+      localx = limit;
+      localy = y;
+      limit = null;
+    }
+    return this.direct(function(j, elem) {
+      var pos = position;
+      if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
+      if (!pos || !isPageCoordinate(pos)) return this;
+      if ($.isWindow(elem)) {
+        scrollWindowToDocumentPosition(pos, limit);
+        return;
+      } else if (elem.nodeType === 9) {
+        return;
+      }
+      this.animate({turtlePosition:
+          computeTargetAsTurtlePosition(elem, pos, limit, localx, localy)},
+          'turtle');
+    });
+  },
+  turnto: function(bearing, limit) {
+    return this.direct(function(j, elem) {
+      if ($.isWindow(elem) || elem.nodeType === 9) return;
+      var dir = bearing;
+      if (!$.isNumeric(bearing)) {
+        var pos = bearing, cur = $(elem).origin();
+        if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
+        if (!pos || !isPageCoordinate(pos)) return;
+        dir = radiansToDegrees(
+            Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
+      }
+      this.animate({turtleRotation:
+          computeDirectionAsTurtleRotation(elem, dir, limit)}, 'turtle');
+    });
+  },
+  home: function() {
+    return this.direct(function(j, elem) {
+      this.css({
+        turtlePosition:
+          computeTargetAsTurtlePosition(elem, $(document).origin(), null, 0, 0),
+        turtleRotation: 0});
+    });
+  },
   pen: function(penstyle) {
     return this.direct(function(j, elem) {
-      if (penstyle === false || penstyle === true) {
-        this.css('turtlePenDown', penstyle ? 'down': 'up');
-      } else if (penstyle == 'down' || penstyle == 'up') {
+      if (penstyle === false || penstyle === true ||
+          penstyle == 'down' || penstyle == 'up') {
         this.css('turtlePenDown', penstyle);
       } else {
         this.css('turtlePenStyle', penstyle);
@@ -1809,33 +1857,6 @@ var turtlefn = {
     if (!this.length) return;
     return getCenterInPageCoordinates(this[0]);
   },
-  moveto: function(position, limit, y) {
-    if ($.isNumeric(position) && $.isNumeric(limit)) {
-      position = { pageX: parseFloat(position), pageY: parseFloat(limit) };
-      limit = null;
-    }
-    var localx = 0, localy = 0;
-    if ($.isNumeric(y) && $.isNumeric(limit)) {
-      localx = limit;
-      localy = y;
-      limit = null;
-    }
-    return this.direct(function(j, elem) {
-      var pos = position;
-      if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
-      if (!pos || !isPageCoordinate(pos)) return this;
-      if ($.isWindow(elem)) {
-        scrollWindowToDocumentPosition(pos, limit);
-        return;
-      } else if (elem.nodeType === 9) {
-        return;
-      }
-      setCenterInPageCoordinates(elem, pos, limit, localx, localy);
-      // moveto implies a request for a stable origin.
-      watchImageToFixOriginOnLoad(elem);
-      flushPenState(elem);
-    });
-  },
   bearing: function(pos, y) {
     if (!this.length) return;
     var elem = this[0], dir, cur;
@@ -1857,20 +1878,6 @@ var turtlefn = {
     dx = pos.pageX - cur.pageX;
     dy = pos.pageY - cur.pageY;
     return Math.sqrt(dx * dx + dy * dy);
-  },
-  turnto: function(bearing, limit) {
-    return this.direct(function(j, elem) {
-      if ($.isWindow(elem) || elem.nodeType === 9) return;
-      var dir = bearing;
-      if (!$.isNumeric(bearing)) {
-        var pos = bearing, cur = $(elem).origin();
-        if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
-        if (!pos || !isPageCoordinate(pos)) return;
-        dir = radiansToDegrees(
-            Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
-      }
-      setDirectionOnPage(elem, dir, limit);
-    });
   },
   mirror: function(val) {
     if (val === undefined) {
@@ -2351,7 +2358,7 @@ function hatchone(name) {
     'display': 'inline-block',
     'top': 0,
     'left': 0
-  }).appendTo(getTurtleClipSurface()).moveto(document);
+  }).appendTo(getTurtleClipSurface()).home();
 
   // Every hatched turtle has class="turtle".
   result.addClass('turtle');
