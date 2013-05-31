@@ -64,7 +64,8 @@ Turtle-oriented methods taking advantage of the css support:
 
   // Methods below this line do not queue for animation.
   $(x).origin()     // Page coordinate position of transform-origin.
-  $(x).bearing()    // Absolute direction taking into account all transforms.
+  $(x).bearing([p]) // Absolute direction taking into account all transforms.
+  $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
@@ -1833,11 +1834,27 @@ var turtlefn = {
       flushPenState(elem);
     });
   },
-  bearing: function() {
+  bearing: function(pos, y) {
     if (!this.length) return;
-    var elem = this[0], dir;
+    var elem = this[0], dir, cur;
+    if (pos !== undefined) {
+      cur = $(elem).origin();
+      if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
+      else if (!isPageCoordinate(pos)) { pos = $(pos).origin(); }
+      return radiansToDegrees(
+          Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
+    }
     if ($.isWindow(elem) || elem.nodeType === 9) return 0;
     return getDirectionOnPage(elem);
+  },
+  distance: function(pos, y) {
+    if (!this.length) return;
+    var elem = this[0], dx, dy, cur = $(elem).origin();
+    if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
+    else if (!isPageCoordinate(pos)) { pos = $(pos).origin(); }
+    dx = pos.pageX - cur.pageX;
+    dy = pos.pageY - cur.pageY;
+    return Math.sqrt(dx * dx + dy * dy);
   },
   turnto: function(bearing, limit) {
     return this.direct(function(j, elem) {
