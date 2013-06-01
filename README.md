@@ -168,7 +168,7 @@ For example, after eval($.turtle()), the following is a valid program
 in CoffeeScript syntax:
 
 <pre>
-speed Infinity
+turtlespeed Infinity
 output "Catch blue before red gets you."
 bk 100
 r = hatch 'red'
