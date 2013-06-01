@@ -46,13 +46,14 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
   $(x).move(x, y)   // Move right by x while moving forward by y.
-  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion in page coordinates.
+  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion on page.
   $(x).turnto(bearing || position)      // Absolute direction adjustment.
 
   // Methods below happen in an instant, but queue after animation.
   $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
+  $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
@@ -97,16 +98,18 @@ Turtle-oriented 2d transform cssHooks, with animation support on all
 motion:
 
 <pre>
+  $(x).css('turtleSpeed', '10');         // default speed in moves per second.
   $(x).css('turtlePosition', '30 40');   // position in local coordinates.
   $(x).css('turtlePositionX', '30');     // x component.
   $(x).css('turtlePositionY', '40');     // y component.
   $(x).css('turtleRotation', '90');      // rotation in degrees.
   $(x).css('turtleScale', '2');          // double the size of any element.
-  $(x).css('turtleScaleX', '2');         // x stretch before rotate after twist.
-  $(x).css('turtleScaleY', '2');         // y stretch before rotate after twist.
+  $(x).css('turtleScaleX', '2');         // x stretch after twist.
+  $(x).css('turtleScaleY', '2');         // y stretch after twist.
   $(x).css('turtleTwist', '45');         // turn before stretching.
   $(x).css('turtleForward', '50');       // position in direction of rotation.
   $(x).css('turtlePenStyle', 'red');     // or 'red lineWidth 2px' etc.
+  $(x).css('turtlePenDown', 'up');       // default 'down' to draw with pen.
   $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>
 
@@ -146,13 +149,13 @@ After eval($.turtle()):
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
-  speed(movesPerSec)    // Sets $.fx.speeds.turtle to 1000 / movesPerSec.
+  turtlespeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0...n-1].
   random(list)          // Returns a random element of the list.
   random('normal')      // Returns a gaussian random (mean 0 stdev 1).
   random('uniform')     // Returns a uniform random [0...1).
-  random('position')    // Returns a random {pageX:x, pageY:y} in the document.
+  random('position')    // Returns a random {pageX:x, pageY:y} coordinate.
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
@@ -166,26 +169,26 @@ in CoffeeScript syntax:
 
 <pre>
 speed Infinity
-output "Try to catch blue."
+output "Catch blue before red gets you."
+bk 100
 r = hatch 'red'
 b = hatch 'blue'
-safe = 20
 tick 10, ->
   turnto lastmousemove
   fd 6
-  if safe > 0
-    safe = safe - 1
-  else
-    r.turnto turtle
-    r.fd 4
-    b.turnto r
-    b.fd 3
-    if b.touches(turtle)
-      output "You win!"
-      tick null
-    else if r.touches(turtle)
-      output "Too slow!"
-      tick null
+  r.turnto turtle
+  r.fd 4
+  b.turnto bearing b
+  b.fd 3
+  if b.touches(turtle)
+    output "You win!"
+    tick off
+  else if r.touches(turtle)
+    output "Red got you!"
+    tick off
+  else if not b.touches(document)
+    output "Blue got away!"
+    tick off
 </pre>
 
 The turtle teaching environment is designed to work well with either

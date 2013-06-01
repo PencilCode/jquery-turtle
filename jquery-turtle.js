@@ -56,6 +56,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
+  $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
@@ -100,6 +101,7 @@ Turtle-oriented 2d transform cssHooks, with animation support on all
 motion:
 
 <pre>
+  $(x).css('turtleSpeed', '10');         // default speed in moves per second.
   $(x).css('turtlePosition', '30 40');   // position in local coordinates.
   $(x).css('turtlePositionX', '30');     // x component.
   $(x).css('turtlePositionY', '40');     // y component.
@@ -150,7 +152,7 @@ After eval($.turtle()):
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
-  speed(movesPerSec)    // Sets $.fx.speeds.turtle to 1000 / movesPerSec.
+  turtlespeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0...n-1].
   random(list)          // Returns a random element of the list.
@@ -1289,7 +1291,8 @@ function getTurtleData(elem) {
     state = $.data(elem, 'turtleData', {
       style: {},
       path: [[]],
-      down: true
+      down: true,
+      speed: 'turtle'
     });
   }
   return state;
@@ -1486,6 +1489,30 @@ function isPageCoordinate(obj) {
   return $.isNumeric(obj.pageX) && $.isNumeric(obj.pageY);
 }
 
+function makeTurtleSpeedHook() {
+  return {
+    get: function(elem, computed, extra) {
+      return getTurtleData(elem).speed;
+    },
+    set: function(elem, value) {
+      if ((!$.isNumeric(value) || value <= 0) &&
+          !(value in $.fx.speeds) && ('' + value != 'Infinity')) {
+        return;
+      }
+      getTurtleData(elem).speed = '' + value;
+    }
+  }
+}
+
+function animMs(elem) {
+  var state = $.data(elem, 'turtleData');
+  if (!state) return 'turtle';
+  if ($.isNumeric(state.speed) || state.speed == 'Infinity') {
+    return 1000 / state.speed;
+  }
+  return state.speed;
+}
+
 function makeTurtleForwardHook() {
   return {
     get: function(elem, computed, extra) {
@@ -1676,6 +1703,7 @@ $.extend(true, $, {
   cssHooks: {
     turtlePenStyle: makePenStyleHook(),
     turtlePenDown: makePenDownHook(),
+    turtleSpeed: makeTurtleSpeedHook(),
     turtleForward: makeTurtleForwardHook(),
     turtlePosition: makeTurtleXYHook('turtlePosition', 'tx', 'ty', true),
     turtlePositionX: makeTurtleHook('tx', identity, 'px', true),
@@ -1688,6 +1716,7 @@ $.extend(true, $, {
     turtleHull: makeHullHook()
   },
   cssNumber: {
+    turtleSpeed: true,
     turtleScale: true,
     turtleScaleX: true,
     turtleScaleY: true,
@@ -1711,28 +1740,35 @@ $.extend(true, $.fx, {
 
 var turtlefn = {
   rt: function(amount) {
-    return this.animate({turtleRotation: '+=' + amount}, 'turtle');
+    return this.direct(function(j, elem) {
+      this.animate({turtleRotation: '+=' + amount}, animMs(elem));
+    });
   },
   lt: function(amount) {
-    return this.animate({turtleRotation: '-=' + amount}, 'turtle');
+    return this.direct(function(j, elem) {
+      this.animate({turtleRotation: '-=' + amount}, animMs(elem));
+    });
   },
   fd: function(amount) {
-    if (!$.fx.speeds.turtle) {
-      return this.each(function(j, elem) {
-        var q = $.queue(elem), doqueue = (q && q.length > 0);
-        function domove() {
-          doQuickMove(elem, amount, 0);
-          if (doqueue) { $.dequeue(elem); }
-        }
-        if (doqueue) {
-          domove.finish = domove;
-          q.push(domove);
-        } else {
-          domove();
-        }
-      });
+    var elem, q, doqueue;
+    if (this.length == 1 && !$.fx.speeds.turtle &&
+        animMs(elem = this[0]) == 'turtle') {
+      q = $.queue(elem);
+      doqueue = (q.length > 0);
+      function domove() {
+        doQuickMove(elem, amount, 0);
+        if (doqueue) { $.dequeue(elem); }
+      }
+      if (doqueue) {
+        domove.finish = domove;
+        q.push(domove);
+      } else {
+        domove();
+      }
     }
-    return this.animate({turtleForward: '+=' + amount}, 'turtle');
+    return this.direct(function(j, elem) {
+      this.animate({turtleForward: '+=' + amount}, animMs(elem));
+    });
   },
   bk: function(amount) {
     return this.fd(-amount);
@@ -1745,7 +1781,7 @@ var turtlefn = {
     }
     return this.direct(function(j, elem) {
       this.animate({turtlePosition:
-          displacedPosition(elem, amount, sideways)}, 'turtle');
+          displacedPosition(elem, amount, sideways)}, animMs(elem));
     });
   },
   moveto: function(position, limit, y) {
@@ -1771,7 +1807,7 @@ var turtlefn = {
       }
       this.animate({turtlePosition:
           computeTargetAsTurtlePosition(elem, pos, limit, localx, localy)},
-          'turtle');
+          animMs(elem));
     });
   },
   turnto: function(bearing, limit) {
@@ -1786,7 +1822,7 @@ var turtlefn = {
             Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
       }
       this.animate({turtleRotation:
-          computeDirectionAsTurtleRotation(elem, dir, limit)}, 'turtle');
+          computeDirectionAsTurtleRotation(elem, dir, limit)}, animMs(elem));
     });
   },
   home: function() {
@@ -1831,6 +1867,11 @@ var turtlefn = {
       eraseBox(elem, ps);
       // Once drawing begins, origin must be stable.
       watchImageToFixOriginOnLoad(elem);
+    });
+  },
+  speed: function(mps) {
+    return this.direct(function(j, elem) {
+      this.css('turtleSpeed', mps);
     });
   },
   img: function (name) {
@@ -2066,7 +2107,8 @@ var attaching_ids = false;
 var dollar_turtle_methods = {
   erase: function() { directIfGlobal(function() { $(document).erase() }); },
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
-  speed: function(mps) { directIfGlobal(function() { speed(mps); }); },
+  turtlespeed: function(mps) {
+    directIfGlobal(function() { turtlespeed(mps); }); },
   random: random,
   hatch: hatch,
   input: input,
@@ -2124,8 +2166,8 @@ $.turtle = function turtle(id, options) {
   if (!options.hasOwnProperty('functions') || options.functions) {
     $.extend(window, dollar_turtle_methods);
   }
-  // Set turtle speed
-  speed(options.hasOwnProperty('speed') ? options.speed : 1);
+  // Set default turtle speed
+  turtlespeed(options.hasOwnProperty('turtlespeed') ? options.turtlespeed : 1);
   // Find or create a singleton turtle if one does not exist.
   var selector = null;
   if (id) {
@@ -2420,7 +2462,7 @@ function tick(rps, fn) {
 }
 
 // Allow speed to be set in moves per second.
-function speed(mps) {
+function turtlespeed(mps) {
   if (mps === undefined) {
     return 1000 / $.fx.speeds.turtle;
   } else {
