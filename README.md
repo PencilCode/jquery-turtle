@@ -72,6 +72,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).encloses(y)  // Containment collision test.
   $(x).within(d, t) // Filters to items with origins within d of t.origin().
   $(x).notwithin()  // The negation of within.
+  $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
@@ -149,7 +150,7 @@ After eval($.turtle()):
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
-  turtlespeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
+  defaultspeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0...n-1].
   random(list)          // Returns a random element of the list.
@@ -159,16 +160,17 @@ After eval($.turtle()):
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  output(html || text)  // Appends html into the document body.
+  output(html)          // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
+  grid(w, h)            // Outputs a table with h rows and w columns.
 </pre>
 
 For example, after eval($.turtle()), the following is a valid program
 in CoffeeScript syntax:
 
 <pre>
-turtlespeed Infinity
+defaultspeed Infinity
 output "Catch blue before red gets you."
 bk 100
 r = hatch 'red'

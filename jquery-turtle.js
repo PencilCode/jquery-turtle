@@ -75,6 +75,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).encloses(y)  // Containment collision test.
   $(x).within(d, t) // Filters to items with origins within d of t.origin().
   $(x).notwithin()  // The negation of within.
+  $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
@@ -152,7 +153,7 @@ After eval($.turtle()):
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
-  turtlespeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
+  defaultspeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0...n-1].
   random(list)          // Returns a random element of the list.
@@ -162,16 +163,17 @@ After eval($.turtle()):
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  output(html || text)  // Appends html into the document body.
+  output(html)          // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
+  grid(w, h)            // Outputs a table with h rows and w columns.
 </pre>
 
 For example, after eval($.turtle()), the following is a valid program
 in CoffeeScript syntax:
 
 <pre>
-turtlespeed Infinity
+defaultspeed Infinity
 output "Catch blue before red gets you."
 bk 100
 r = hatch 'red'
@@ -1504,7 +1506,7 @@ function makeTurtleSpeedHook() {
   }
 }
 
-function animMs(elem) {
+function animTime(elem) {
   var state = $.data(elem, 'turtleData');
   if (!state) return 'turtle';
   if ($.isNumeric(state.speed) || state.speed == 'Infinity') {
@@ -1741,18 +1743,18 @@ $.extend(true, $.fx, {
 var turtlefn = {
   rt: function(amount) {
     return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '+=' + amount}, animMs(elem));
+      this.animate({turtleRotation: '+=' + amount}, animTime(elem));
     });
   },
   lt: function(amount) {
     return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '-=' + amount}, animMs(elem));
+      this.animate({turtleRotation: '-=' + amount}, animTime(elem));
     });
   },
   fd: function(amount) {
     var elem, q, doqueue;
     if (this.length == 1 && !$.fx.speeds.turtle &&
-        animMs(elem = this[0]) == 'turtle') {
+        animTime(elem = this[0]) == 'turtle') {
       q = $.queue(elem);
       doqueue = (q.length > 0);
       function domove() {
@@ -1765,9 +1767,10 @@ var turtlefn = {
       } else {
         domove();
       }
+      return this;
     }
     return this.direct(function(j, elem) {
-      this.animate({turtleForward: '+=' + amount}, animMs(elem));
+      this.animate({turtleForward: '+=' + amount}, animTime(elem));
     });
   },
   bk: function(amount) {
@@ -1781,7 +1784,7 @@ var turtlefn = {
     }
     return this.direct(function(j, elem) {
       this.animate({turtlePosition:
-          displacedPosition(elem, amount, sideways)}, animMs(elem));
+          displacedPosition(elem, amount, sideways)}, animTime(elem));
     });
   },
   moveto: function(position, limit, y) {
@@ -1807,7 +1810,7 @@ var turtlefn = {
       }
       this.animate({turtlePosition:
           computeTargetAsTurtlePosition(elem, pos, limit, localx, localy)},
-          animMs(elem));
+          animTime(elem));
     });
   },
   turnto: function(bearing, limit) {
@@ -1822,7 +1825,7 @@ var turtlefn = {
             Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
       }
       this.animate({turtleRotation:
-          computeDirectionAsTurtleRotation(elem, dir, limit)}, animMs(elem));
+          computeDirectionAsTurtleRotation(elem, dir, limit)}, animTime(elem));
     });
   },
   home: function() {
@@ -1958,6 +1961,12 @@ var turtlefn = {
       c[1] *= valy;
       this.css('turtleScale', $.map(c, cssNum).join(' '));
     });
+  },
+  cell: function(x, y) {
+    var sel = this.find(
+        $.isNumeric(y) ? 'tr:nth-of-type(' + (y + 1) + ')' : 'tr');
+    return sel.find(
+        $.isNumeric(x) ? 'td:nth-of-type(' + (x + 1) + ')' : 'td');
   },
   shown: function() {
     return this.is(':visible');
@@ -2107,13 +2116,14 @@ var attaching_ids = false;
 var dollar_turtle_methods = {
   erase: function() { directIfGlobal(function() { $(document).erase() }); },
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
-  turtlespeed: function(mps) {
-    directIfGlobal(function() { turtlespeed(mps); }); },
+  defaultspeed: function(mps) {
+    directIfGlobal(function() { defaultspeed(mps); }); },
   random: random,
   hatch: hatch,
   input: input,
   output: output,
-  button: button
+  button: button,
+  grid: grid
 };
 
 $.turtle = function turtle(id, options) {
@@ -2167,7 +2177,7 @@ $.turtle = function turtle(id, options) {
     $.extend(window, dollar_turtle_methods);
   }
   // Set default turtle speed
-  turtlespeed(options.hasOwnProperty('turtlespeed') ? options.turtlespeed : 1);
+  defaultspeed(options.hasOwnProperty('defaultspeed') ? options.defaultspeed : 1);
   // Find or create a singleton turtle if one does not exist.
   var selector = null;
   if (id) {
@@ -2462,7 +2472,7 @@ function tick(rps, fn) {
 }
 
 // Allow speed to be set in moves per second.
-function turtlespeed(mps) {
+function defaultspeed(mps) {
   if (mps === undefined) {
     return 1000 / $.fx.speeds.turtle;
   } else {
@@ -2512,7 +2522,7 @@ function output(html) {
     return $('<img>').img('turtle').appendTo('body');
   }
   if (!html || html[0] != '<') {
-    html = '<div>' + escapeHtml(html) + '</div>';
+    html = '<div>' + html + '</div>';
   }
   return $(html).appendTo('body');
 }
@@ -2576,6 +2586,35 @@ function input(name, callback) {
   $('body').append(label);
   textbox.focus();
   return thisval;
+}
+
+function grid(width, height, cellCss, tableCss) {
+  var html = ['<table>'];
+  for (var row = 0; row < height; row++) {
+    html.push('<tr>');
+    for (var col = 0; col < width; col++) {
+      html.push('<td></td>');
+    }
+    html.push('</tr>');
+  }
+  html.push('</table>');
+  var result = $(html.join(''));
+  var defaultCss = {
+    borderCollapse: 'collapse',
+    width: '35px',
+    height: '35px',
+    border: '1px solid black',
+    tableLayout: 'fixed',
+    textAlign: 'center',
+    margin: '0',
+    padding: '0'
+  };
+  result.css($.extend({}, defaultCss, cellCss,
+    { width: 'auto', height: 'auto', maxWidth: 'auto'},
+    tableCss));
+  result.find('td').css($.extend({}, defaultCss, cellCss));
+  result.appendTo('body');
+  return result;
 }
 
 //////////////////////////////////////////////////////////////////////////
