@@ -562,8 +562,8 @@ function limitRotation(start, target, limit) {
   return normalizeRotation(target);
 }
 
-function getCenterLTWH(x0, y0, w, h) {
-  return { pageX: x0 + w / 2, pageY: y0 + h / 2 };
+function getRoundedCenterLTWH(x0, y0, w, h) {
+  return { pageX: Math.floor(x0 + w / 2), pageY: Math.floor(y0 + h / 2) };
 }
 
 function getStraightRectLTWH(x0, y0, w, h) {
@@ -751,10 +751,10 @@ function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
 // to get the final x and y, returned as {pageX:, pagey:}.
 function getCenterInPageCoordinates(elem) {
   if ($.isWindow(elem)) {
-    return getCenterLTWH(
+    return getRoundedCenterLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return getCenterLTWH(0, 0, dw(), dh());
+    return getRoundedCenterLTWH(0, 0, dw(), dh());
   }
   var tr = getElementTranslation(elem),
       totalParentTransform = totalTransform2x2(elem.parentElement),
@@ -1830,10 +1830,13 @@ var turtlefn = {
   },
   home: function() {
     return this.direct(function(j, elem) {
+      var down = this.css('turtlePenDown');
+      this.css({turtlePenDown: 'up' });
       this.css({
         turtlePosition:
           computeTargetAsTurtlePosition(elem, $(document).origin(), null, 0, 0),
         turtleRotation: 0});
+      this.css({turtlePenDown: down });
     });
   },
   pen: function(penstyle) {
