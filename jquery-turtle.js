@@ -166,7 +166,7 @@ After eval($.turtle()):
   output(html)          // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
-  grid(w, h)            // Outputs a table with h rows and w columns.
+  table(w, h)           // Outputs a table with h rows and w columns.
 </pre>
 
 For example, after eval($.turtle()), the following is a valid program
@@ -2126,7 +2126,7 @@ var dollar_turtle_methods = {
   input: input,
   output: output,
   button: button,
-  grid: grid
+  table: table
 };
 
 $.turtle = function turtle(id, options) {
@@ -2591,7 +2591,7 @@ function input(name, callback) {
   return thisval;
 }
 
-function grid(width, height, cellCss, tableCss) {
+function table(width, height, cellCss, tableCss) {
   var html = ['<table>'];
   for (var row = 0; row < height; row++) {
     html.push('<tr>');
