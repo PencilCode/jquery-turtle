@@ -1854,7 +1854,7 @@ var turtlefn = {
       // Allow for parameters in either order.
       var t = style;
       style = diameter;
-      diameter = style;
+      diameter = t;
     }
     if (diameter === undefined) { diameter = 8.8; }
     if (!style) { style = 'black'; }
