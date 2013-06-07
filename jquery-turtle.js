@@ -1850,9 +1850,11 @@ var turtlefn = {
     });
   },
   dot: function(style, diameter) {
-    if ($.isNumeric(style) && diameter === undefined) {
+    if ($.isNumeric(style)) {
+      // Allow for parameters in either order.
+      var t = style;
+      style = diameter;
       diameter = style;
-      style = null;
     }
     if (diameter === undefined) { diameter = 8.8; }
     if (!style) { style = 'black'; }
