@@ -163,7 +163,7 @@ After eval($.turtle()):
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  out(html)             // Appends html into the document body.
+  print(html)           // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
@@ -174,7 +174,7 @@ in CoffeeScript syntax:
 
 <pre>
 defaultspeed Infinity
-output "Catch blue before red gets you."
+print "Catch blue before red gets you."
 bk 100
 r = hatch 'red'
 b = hatch 'blue'
@@ -186,13 +186,13 @@ tick 10, ->
   b.turnto bearing b
   b.fd 3
   if b.touches(turtle)
-    output "You win!"
+    print "You win!"
     tick off
   else if r.touches(turtle)
-    output "Red got you!"
+    print "Red got you!"
     tick off
   else if not b.touches(document)
-    output "Blue got away!"
+    print "Blue got away!"
     tick off
 </pre>
 
@@ -2126,7 +2126,7 @@ var dollar_turtle_methods = {
   random: random,
   hatch: hatch,
   input: input,
-  out: output,
+  print: output,
   button: button,
   table: table
 };
