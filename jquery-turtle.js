@@ -163,7 +163,7 @@ After eval($.turtle()):
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  output(html)          // Appends html into the document body.
+  out(html)             // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
@@ -2126,7 +2126,7 @@ var dollar_turtle_methods = {
   random: random,
   hatch: hatch,
   input: input,
-  output: output,
+  out: output,
   button: button,
   table: table
 };
@@ -2456,6 +2456,12 @@ function random(arg) {
       pageX: random(dw()),
       pageY: random(dh())
     };
+  }
+  if (arg == 'color') {
+    return 'hsl(' + Math.floor(Math.random() * 360) + ',100%,50%)';
+  }
+  if (arg == 'gray') {
+    return 'hsl(0,0,' + Math.floor(Math.random() * 100) + '%)';
   }
   return Math.random();
 }
