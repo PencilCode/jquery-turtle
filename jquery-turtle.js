@@ -2139,7 +2139,7 @@ var dollar_turtle_methods = {
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
-  print: function(html) {directIfGlobal(function(){output(html, 'div');});},
+  print: function(html) { return output(html, 'div'); },
   random: random,
   hatch: hatch,
   input: input,
