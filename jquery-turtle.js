@@ -2469,8 +2469,8 @@ function random(arg) {
   }
   if (arg == 'position') {
     return {
-      pageX: random(dw()),
-      pageY: random(dh())
+      pageX: random(dw() + 1),
+      pageY: random(dh() + 1)
     };
   }
   if (arg == 'color') {
@@ -2548,10 +2548,19 @@ function output(html, defaulttag) {
   if (html === undefined || html === null) {
     return $('<img>').img('turtle').appendTo('body');
   }
-  if (!html || html[0] != '<') {
-    html = '<' + defaulttag + '>' + html + '</' + defaulttag + '>';
+  var wrapped = false, result = null;
+  html = '' + html;
+  while ((result === null || result.length != 1) && !wrapped) {
+    // Wrap if obviously not surrounded by a tag already, or if we tried
+    // to trust a surrounding tag but found multiple bits.
+    if (html.charAt(0) != '<' || html.charAt(html.length - 1) != '>' ||
+        (result !== null && result.length != 1)) {
+      html = '<' + defaulttag + '>' + html + '</' + defaulttag + '>';
+      wrapped = true;
+    }
+    result = $(html);
   }
-  return $(html).appendTo('body');
+  return result.appendTo('body');
 }
 
 // Simplify $('body'>.append('<button>' + label + '</button>').click(fn).
