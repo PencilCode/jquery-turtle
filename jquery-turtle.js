@@ -1895,7 +1895,7 @@ var turtlefn = {
       var out = output(html, 'mark').css({
         position: 'absolute',
         display: 'inline-block'
-      });
+      }).addClass('turtle');
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
             out.get(0), this.origin(), null, 0, 0)
