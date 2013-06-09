@@ -56,6 +56,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
+  $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
@@ -1889,6 +1890,21 @@ var turtlefn = {
       applyImg(this, img);
     });
   },
+  mark: function(html, fn) {
+    return this.direct(function() {
+      var out = output(html, 'mark').css({
+        position: 'absolute',
+        display: 'inline-block'
+      });
+      out.css({
+        turtlePosition: computeTargetAsTurtlePosition(
+            out.get(0), this.origin(), null, 0, 0)
+      });
+      if ($.isFunction(fn)) {
+        out.direct(fn);
+      }
+    });
+  },
   reload: function() {
     // Used to reload images to cycle animated gifs.
     return this.direct(function(j, elem) {
@@ -2123,10 +2139,10 @@ var dollar_turtle_methods = {
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
+  print: function(html) {directIfGlobal(function(){output(html, 'div');});},
   random: random,
   hatch: hatch,
   input: input,
-  print: output,
   button: button,
   table: table
 };
@@ -2528,12 +2544,12 @@ function turtleevents(prefix) {
 }
 
 // Simplify $('body').append(html).
-function output(html) {
+function output(html, defaulttag) {
   if (html === undefined || html === null) {
     return $('<img>').img('turtle').appendTo('body');
   }
   if (!html || html[0] != '<') {
-    html = '<div>' + html + '</div>';
+    html = '<' + defaulttag + '>' + html + '</' + defaulttag + '>';
   }
   return $(html).appendTo('body');
 }
