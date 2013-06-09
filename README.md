@@ -53,6 +53,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
+  $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
@@ -160,7 +161,7 @@ After eval($.turtle()):
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  output(html)          // Appends html into the document body.
+  print(html)           // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
@@ -171,7 +172,7 @@ in CoffeeScript syntax:
 
 <pre>
 defaultspeed Infinity
-output "Catch blue before red gets you."
+print "Catch blue before red gets you."
 bk 100
 r = hatch 'red'
 b = hatch 'blue'
@@ -183,13 +184,13 @@ tick 10, ->
   b.turnto bearing b
   b.fd 3
   if b.touches(turtle)
-    output "You win!"
+    print "You win!"
     tick off
   else if r.touches(turtle)
-    output "Red got you!"
+    print "Red got you!"
     tick off
   else if not b.touches(document)
-    output "Blue got away!"
+    print "Blue got away!"
     tick off
 </pre>
 
