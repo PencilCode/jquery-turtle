@@ -2142,13 +2142,18 @@ var dollar_turtle_methods = {
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
+  play: function(ops) {
+    var x = arguments;
+    directIfGlobal(function() {
+      play.apply(null, x);
+    });
+  },
   print: function(html) { return output(html, 'div'); },
   random: random,
   hatch: hatch,
   input: input,
   button: button,
   table: table,
-  play: play
 };
 
 $.turtle = function turtle(id, options) {
