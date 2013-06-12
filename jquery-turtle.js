@@ -154,7 +154,7 @@ After eval($.turtle()):
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
-  defaultspeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
+  defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0...n-1].
   random(list)          // Returns a random element of the list.
@@ -168,6 +168,7 @@ After eval($.turtle()):
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
+  play("ccggaag2")      // Plays a couple measures of song using ABC notation.
 </pre>
 
 For example, after eval($.turtle()), the following is a valid program
@@ -2144,7 +2145,8 @@ var dollar_turtle_methods = {
   hatch: hatch,
   input: input,
   button: button,
-  table: table
+  table: table,
+  play: play
 };
 
 $.turtle = function turtle(id, options) {
@@ -2652,6 +2654,161 @@ function table(width, height, cellCss, tableCss) {
   result.appendTo('body');
   return result;
 }
+
+//////////////////////////////////////////////////////////////////////////
+// WEB AUDIO SUPPORT
+// Definition of play("ABC") - uses ABC music note syntax.
+//////////////////////////////////////////////////////////////////////////
+
+var ABCtoken = /\s+|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\d*\/\d+|\d+|\/+|[xzXZ]|./g;
+var audioTop = null;
+function getAudioTop() {
+  if (!audioTop) {
+    var ac = new (window.audioContext || window.webkitAudioContext),
+        dcn = ac.createDynamicsCompressor();
+    dcn.connect(ac.destination);
+    audioTop = {
+      ac: ac,
+      out: dcn
+    }
+  }
+  return audioTop;
+}
+function parseABCNotes(str) {
+  var tokens = str.match(ABCtoken), result = [], stem = null,
+      index = 0, dotted = 0, t;
+  while (index < tokens.length) {
+    if (/^s+$/.test(tokens[index])) { index++; continue; }
+    if (/</.test(tokens[index])) { dotted = -tokens[index++].length; continue; }
+    if (/>/.test(tokens[index])) { dotted = tokens[index++].length; continue; }
+    stem = parseStem(tokens, index);
+    if (stem === null) {
+      // Skip unparsable bits
+      index++;
+      continue;
+    }
+    if (stem !== null) {
+      if (dotted && result.length) {
+        if (dotted > 0) {
+          t = (1 - Math.pow(0.5, dotted)) * stem.value.time;
+        } else {
+          t = (Math.pow(0.5, -dotted) - 1) * result[result.length - 1].time;
+        }
+        result[result.length - 1].time += t;
+        stem.value.time -= t;
+        dotted = 0;
+      }
+      result.push(stem.value);
+      index = stem.index;
+    }
+  }
+  return result;
+}
+function parseStem(tokens, index) {
+  var pitch = [];
+  if (index < tokens.length && tokens[index] == '[') {
+    index++;
+    while (index < tokens.length && /[A-Ga-g]/.test(tokens[index])) {
+      pitch.push(tokens[index++]);
+    }
+    if (tokens[index] != ']') {
+      return null;
+    }
+    index++;
+  } else if (index < tokens.length && /[A-Ga-g]/.test(tokens[index])) {
+    pitch.push(tokens[index++]);
+  } else if (/^[xzXZ]$/.test(tokens[index])) {
+    // Rest - no pitch.
+    index++;
+  } else {
+    return null;
+  }
+  var duration = '';
+  if (tokens.length && /\d|\//.test(tokens[index])) {
+    duration = tokens[index++];
+  }
+  return {
+    index: index,
+    value: {
+      pitch: pitch,
+      duration: duration,
+      frequency: pitch.map(pitchToFrequency),
+      time: durationToTime(duration)
+    }
+  }
+}
+function pitchToFrequency(pitch) {
+  var m = /^(\^\^|\^|__|_|=|)([A-Ga-g])(,+|'+|)$/.exec(pitch);
+  if (!m) { return null; }
+  var n = {C:-9,D:-7,E:-5,F:-4,G:-2,A:0,B:2,c:3,d:5,e:7,f:8,g:10,a:12,b:14};
+  var a = { '^^':2, '^':1, '': 0, '=':0, '_':-1, '__':-2 };
+  var semitone = n[m[2]] + a[m[1]] + (/,/.test(m[3]) ? -12 : 12) * m[3].length;
+  return 440 * Math.pow(2, semitone / 12);
+}
+function durationToTime(duration) {
+  var m = /^(\d*)(?:\/(\d*))?$|^(\/+)$/.exec(duration), n, d;
+  if (m[3]) return Math.pow(0.5, m[3].length);
+  n = (m[1] ? parseFloat(m[1]) : 1);
+  d = (m[2] ? parseFloat(m[2]) : /\//.test(duration) ? 2 : 1);
+  return n / d;
+}
+function play(opts) {
+  var atop = getAudioTop(),
+      start_time = atop.ac.currentTime,
+      firstvoice = 0, voice, freqmult, beatsecs,
+      volume = 0.5, tempo = 120, transpose = 0, type = ['sine'];
+  if ($.isPlainObject(opts)) {
+    if ('volume' in opts) { volume = opts.volume; }
+    if ('tempo' in opts) { tempo = opts.tempo; }
+    if ('transpose' in opts) { transpose = opts.transpose; }
+    if ('type' in opts) { type = opts.type; }
+    firstvoice = 1;
+  }
+  voice = firstvoice;
+  beatsecs = 60 / tempo;
+  freqmult = Math.pow(2, transpose / 12);
+  if (!$.isArray(type)) { type = [type]; }
+  for (; voice < arguments.length; voice++) {
+    var notes = parseABCNotes(arguments[voice]),
+        vtype = type[(voice - firstvoice) % type.length] || 'sine',
+        time = start_time, fingers = 0, strength, i;
+    for (i = 0; i < notes.length; i++) {
+      fingers = Math.max(fingers, notes[i].frequency.length);
+    }
+    if (fingers == 0) { continue; }
+    // Attenuate chorded voice so chorded power matches volume.
+    strength = volume / Math.sqrt(fingers);
+    for (i = 0; i < notes.length; i++) {
+      if (notes[i].frequency.length > 0) {
+        var g = atop.ac.createGainNode(),
+            secs = notes[i].time * beatsecs,
+            envelope, pt;
+        g.gain.setValueAtTime(0, time);
+        envelope = [
+          {v: 1.0, t: Math.min(0.01 * beatsecs, 0.1 * secs)},
+          {v: 0.9, t: Math.min(0.05 * beatsecs, 0.2 * secs)},
+          {v: 0.6, t: Math.min(secs - 0.05 * beatsecs, 0.9 * secs)},
+          {v: 0.0, t: secs}
+        ];
+        for (var e = 0; e < envelope.length; e++) {
+          pt = envelope[e];
+          g.gain.linearRampToValueAtTime(pt.v * strength, time + pt.t);
+        }
+        g.connect(atop.out);
+        for (var x = 0; x < notes[i].frequency.length; x++) {
+          var o = atop.ac.createOscillator();
+          o.type = vtype;
+          o.frequency.value = notes[i].frequency[x] * freqmult;
+          o.connect(g);
+          o.start(time);
+          o.stop(time + secs);
+        }
+      }
+      time += notes[i].time * beatsecs;
+    }
+  }
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // SEE LOGGING SUPPORT
@@ -3500,5 +3657,7 @@ function tryinitpanel() {
     inittesttimer = setTimeout(tryinitpanel, 100);
   }
 }
+
+eval("scope('jquery-turtle', " + seejs + ", this)");
 
 })(jQuery);
