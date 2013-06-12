@@ -51,10 +51,6 @@ positioning, and absolute direction reading and setting.</p>
 
 <p><a href="http://davidbau.github.io/jquery-turtle/demo.html">Try an interactive demo (CoffeeScript syntax) here.</a></p>
 
-<iframe src="http://davidbau.github.io/jquery-turtle/demo.html" height="540" width="640" style="background:lightblue">
-interactive demo
-</iframe>
-
 <p>Under the covers, CSS3 2D transforms and jQuery animations are
 used to execute and store turtle movement, so jQuery-turtle
 interacts well with other jQuery animations or direct uses of
@@ -91,6 +87,7 @@ has been developed to support a curriculum for young students.</p>
   $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
+  $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
@@ -110,6 +107,7 @@ has been developed to support a curriculum for young students.</p>
   $(x).encloses(y)  // Containment collision test.
   $(x).within(d, t) // Filters to items with origins within d of t.origin().
   $(x).notwithin()  // The negation of within.
+  $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
 </pre>
 
 <p>When $.fx.speeds.turtle is nonzero (the default is zero unless
@@ -188,27 +186,31 @@ It provides easy packaging for the above functionality.</p>
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
-  turtlespeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
+  defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0...n-1].
   random(list)          // Returns a random element of the list.
   random('normal')      // Returns a gaussian random (mean 0 stdev 1).
   random('uniform')     // Returns a uniform random [0...1).
   random('position')    // Returns a random {pageX:x, pageY:y} coordinate.
+  random('color')       // Returns a random hsl(*, 100%, 50%) color.
+  random('gray')        // Returns a random hsl(0, 0, *) gray.
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  output(html || text)  // Appends html into the document body.
+  print(html)           // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
+  table(w, h)           // Outputs a table with h rows and w columns.
+  play("ccggaag2")      // Plays a couple measures of song using ABC notation.
 </pre>
 
 <p>For example, after eval($.turtle()), the following is a valid program
 in CoffeeScript syntax:</p>
 
 <pre>
-turtlespeed Infinity
-output "Catch blue before red gets you."
+defaultspeed Infinity
+print "Catch blue before red gets you."
 bk 100
 r = hatch 'red'
 b = hatch 'blue'
@@ -220,13 +222,13 @@ tick 10, -&gt;
   b.turnto bearing b
   b.fd 3
   if b.touches(turtle)
-    output "You win!"
+    print "You win!"
     tick off
   else if r.touches(turtle)
-    output "Red got you!"
+    print "Red got you!"
     tick off
   else if not b.touches(document)
-    output "Blue got away!"
+    print "Blue got away!"
     tick off
 </pre>
 
