@@ -158,6 +158,8 @@ After eval($.turtle()):
   random('normal')      // Returns a gaussian random (mean 0 stdev 1).
   random('uniform')     // Returns a uniform random [0...1).
   random('position')    // Returns a random {pageX:x, pageY:y} coordinate.
+  random('color')       // Returns a random hsl(*, 100%, 50%) color.
+  random('gray')        // Returns a random hsl(0, 0, *) gray.
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
