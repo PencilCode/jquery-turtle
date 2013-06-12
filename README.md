@@ -151,7 +151,7 @@ After eval($.turtle()):
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
-  defaultspeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
+  defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0...n-1].
   random(list)          // Returns a random element of the list.
@@ -165,6 +165,7 @@ After eval($.turtle()):
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
+  play("ccggaag2")      // Plays a couple measures of song using ABC notation.
 </pre>
 
 For example, after eval($.turtle()), the following is a valid program

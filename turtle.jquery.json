@@ -10,6 +10,8 @@
         "animation",
         "rotate",
         "game",
+        "music",
+        "audio",
         "collision"
     ],
     "version": "2.0.5",
