@@ -56,6 +56,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
+  $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
@@ -75,6 +76,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).encloses(y)  // Containment collision test.
   $(x).within(d, t) // Filters to items with origins within d of t.origin().
   $(x).notwithin()  // The negation of within.
+  $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
 </pre>
 
 When $.fx.speeds.turtle is nonzero (the default is zero unless
@@ -152,7 +154,7 @@ After eval($.turtle()):
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
-  turtlespeed(mps)      // Sets $.fx.speeds.turtle to 1000 / mps.
+  defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0...n-1].
   random(list)          // Returns a random element of the list.
@@ -162,17 +164,19 @@ After eval($.turtle()):
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  output(html || text)  // Appends html into the document body.
+  print(html)           // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
+  table(w, h)           // Outputs a table with h rows and w columns.
+  play("ccggaag2")      // Plays a couple measures of song using ABC notation.
 </pre>
 
 For example, after eval($.turtle()), the following is a valid program
 in CoffeeScript syntax:
 
 <pre>
-turtlespeed Infinity
-output "Catch blue before red gets you."
+defaultspeed Infinity
+print "Catch blue before red gets you."
 bk 100
 r = hatch 'red'
 b = hatch 'blue'
@@ -184,13 +188,13 @@ tick 10, ->
   b.turnto bearing b
   b.fd 3
   if b.touches(turtle)
-    output "You win!"
+    print "You win!"
     tick off
   else if r.touches(turtle)
-    output "Red got you!"
+    print "Red got you!"
     tick off
   else if not b.touches(document)
-    output "Blue got away!"
+    print "Blue got away!"
     tick off
 </pre>
 
@@ -560,8 +564,8 @@ function limitRotation(start, target, limit) {
   return normalizeRotation(target);
 }
 
-function getCenterLTWH(x0, y0, w, h) {
-  return { pageX: x0 + w / 2, pageY: y0 + h / 2 };
+function getRoundedCenterLTWH(x0, y0, w, h) {
+  return { pageX: Math.floor(x0 + w / 2), pageY: Math.floor(y0 + h / 2) };
 }
 
 function getStraightRectLTWH(x0, y0, w, h) {
@@ -749,10 +753,10 @@ function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
 // to get the final x and y, returned as {pageX:, pagey:}.
 function getCenterInPageCoordinates(elem) {
   if ($.isWindow(elem)) {
-    return getCenterLTWH(
+    return getRoundedCenterLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
   } else if (elem.nodeType === 9) {
-    return getCenterLTWH(0, 0, dw(), dh());
+    return getRoundedCenterLTWH(0, 0, dw(), dh());
   }
   var tr = getElementTranslation(elem),
       totalParentTransform = totalTransform2x2(elem.parentElement),
@@ -1504,7 +1508,7 @@ function makeTurtleSpeedHook() {
   }
 }
 
-function animMs(elem) {
+function animTime(elem) {
   var state = $.data(elem, 'turtleData');
   if (!state) return 'turtle';
   if ($.isNumeric(state.speed) || state.speed == 'Infinity') {
@@ -1741,18 +1745,18 @@ $.extend(true, $.fx, {
 var turtlefn = {
   rt: function(amount) {
     return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '+=' + amount}, animMs(elem));
+      this.animate({turtleRotation: '+=' + amount}, animTime(elem));
     });
   },
   lt: function(amount) {
     return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '-=' + amount}, animMs(elem));
+      this.animate({turtleRotation: '-=' + amount}, animTime(elem));
     });
   },
   fd: function(amount) {
     var elem, q, doqueue;
     if (this.length == 1 && !$.fx.speeds.turtle &&
-        animMs(elem = this[0]) == 'turtle') {
+        animTime(elem = this[0]) == 'turtle') {
       q = $.queue(elem);
       doqueue = (q.length > 0);
       function domove() {
@@ -1765,9 +1769,10 @@ var turtlefn = {
       } else {
         domove();
       }
+      return this;
     }
     return this.direct(function(j, elem) {
-      this.animate({turtleForward: '+=' + amount}, animMs(elem));
+      this.animate({turtleForward: '+=' + amount}, animTime(elem));
     });
   },
   bk: function(amount) {
@@ -1781,7 +1786,7 @@ var turtlefn = {
     }
     return this.direct(function(j, elem) {
       this.animate({turtlePosition:
-          displacedPosition(elem, amount, sideways)}, animMs(elem));
+          displacedPosition(elem, amount, sideways)}, animTime(elem));
     });
   },
   moveto: function(position, limit, y) {
@@ -1807,7 +1812,7 @@ var turtlefn = {
       }
       this.animate({turtlePosition:
           computeTargetAsTurtlePosition(elem, pos, limit, localx, localy)},
-          animMs(elem));
+          animTime(elem));
     });
   },
   turnto: function(bearing, limit) {
@@ -1822,15 +1827,18 @@ var turtlefn = {
             Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
       }
       this.animate({turtleRotation:
-          computeDirectionAsTurtleRotation(elem, dir, limit)}, animMs(elem));
+          computeDirectionAsTurtleRotation(elem, dir, limit)}, animTime(elem));
     });
   },
   home: function() {
     return this.direct(function(j, elem) {
+      var down = this.css('turtlePenDown');
+      this.css({turtlePenDown: 'up' });
       this.css({
         turtlePosition:
           computeTargetAsTurtlePosition(elem, $(document).origin(), null, 0, 0),
         turtleRotation: 0});
+      this.css({turtlePenDown: down });
     });
   },
   pen: function(penstyle) {
@@ -1844,9 +1852,11 @@ var turtlefn = {
     });
   },
   dot: function(style, diameter) {
-    if ($.isNumeric(style) && diameter === undefined) {
-      diameter = style;
-      style = null;
+    if ($.isNumeric(style)) {
+      // Allow for parameters in either order.
+      var t = style;
+      style = diameter;
+      diameter = t;
     }
     if (diameter === undefined) { diameter = 8.8; }
     if (!style) { style = 'black'; }
@@ -1879,6 +1889,21 @@ var turtlefn = {
     if (!img) return this;
     return this.direct(function() {
       applyImg(this, img);
+    });
+  },
+  mark: function(html, fn) {
+    return this.direct(function() {
+      var out = output(html, 'mark').css({
+        position: 'absolute',
+        display: 'inline-block'
+      }).addClass('turtle');
+      out.css({
+        turtlePosition: computeTargetAsTurtlePosition(
+            out.get(0), this.origin(), null, 0, 0)
+      });
+      if ($.isFunction(fn)) {
+        out.direct(fn);
+      }
     });
   },
   reload: function() {
@@ -1958,6 +1983,12 @@ var turtlefn = {
       c[1] *= valy;
       this.css('turtleScale', $.map(c, cssNum).join(' '));
     });
+  },
+  cell: function(x, y) {
+    var sel = this.find(
+        $.isNumeric(y) ? 'tr:nth-of-type(' + (y + 1) + ')' : 'tr');
+    return sel.find(
+        $.isNumeric(x) ? 'td:nth-of-type(' + (x + 1) + ')' : 'td');
   },
   shown: function() {
     return this.is(':visible');
@@ -2107,13 +2138,15 @@ var attaching_ids = false;
 var dollar_turtle_methods = {
   erase: function() { directIfGlobal(function() { $(document).erase() }); },
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
-  turtlespeed: function(mps) {
-    directIfGlobal(function() { turtlespeed(mps); }); },
+  defaultspeed: function(mps) {
+    directIfGlobal(function() { defaultspeed(mps); }); },
+  print: function(html) { return output(html, 'div'); },
   random: random,
   hatch: hatch,
   input: input,
-  output: output,
-  button: button
+  button: button,
+  table: table,
+  play: play
 };
 
 $.turtle = function turtle(id, options) {
@@ -2167,7 +2200,7 @@ $.turtle = function turtle(id, options) {
     $.extend(window, dollar_turtle_methods);
   }
   // Set default turtle speed
-  turtlespeed(options.hasOwnProperty('turtlespeed') ? options.turtlespeed : 1);
+  defaultspeed(options.hasOwnProperty('defaultspeed') ? options.defaultspeed : 1);
   // Find or create a singleton turtle if one does not exist.
   var selector = null;
   if (id) {
@@ -2438,9 +2471,15 @@ function random(arg) {
   }
   if (arg == 'position') {
     return {
-      pageX: random(dw()),
-      pageY: random(dh())
+      pageX: random(dw() + 1),
+      pageY: random(dh() + 1)
     };
+  }
+  if (arg == 'color') {
+    return 'hsl(' + Math.floor(Math.random() * 360) + ',100%,50%)';
+  }
+  if (arg == 'gray') {
+    return 'hsl(0,0,' + Math.floor(Math.random() * 100) + '%)';
   }
   return Math.random();
 }
@@ -2462,7 +2501,7 @@ function tick(rps, fn) {
 }
 
 // Allow speed to be set in moves per second.
-function turtlespeed(mps) {
+function defaultspeed(mps) {
   if (mps === undefined) {
     return 1000 / $.fx.speeds.turtle;
   } else {
@@ -2507,14 +2546,23 @@ function turtleevents(prefix) {
 }
 
 // Simplify $('body').append(html).
-function output(html) {
+function output(html, defaulttag) {
   if (html === undefined || html === null) {
     return $('<img>').img('turtle').appendTo('body');
   }
-  if (!html || html[0] != '<') {
-    html = '<div>' + escapeHtml(html) + '</div>';
+  var wrapped = false, result = null;
+  html = '' + html;
+  while ((result === null || result.length != 1) && !wrapped) {
+    // Wrap if obviously not surrounded by a tag already, or if we tried
+    // to trust a surrounding tag but found multiple bits.
+    if (html.charAt(0) != '<' || html.charAt(html.length - 1) != '>' ||
+        (result !== null && result.length != 1)) {
+      html = '<' + defaulttag + '>' + html + '</' + defaulttag + '>';
+      wrapped = true;
+    }
+    result = $(html);
   }
-  return $(html).appendTo('body');
+  return result.appendTo('body');
 }
 
 // Simplify $('body'>.append('<button>' + label + '</button>').click(fn).
@@ -2577,6 +2625,190 @@ function input(name, callback) {
   textbox.focus();
   return thisval;
 }
+
+function table(width, height, cellCss, tableCss) {
+  var html = ['<table>'];
+  for (var row = 0; row < height; row++) {
+    html.push('<tr>');
+    for (var col = 0; col < width; col++) {
+      html.push('<td></td>');
+    }
+    html.push('</tr>');
+  }
+  html.push('</table>');
+  var result = $(html.join(''));
+  var defaultCss = {
+    borderCollapse: 'collapse',
+    width: '35px',
+    height: '35px',
+    border: '1px solid black',
+    tableLayout: 'fixed',
+    textAlign: 'center',
+    margin: '0',
+    padding: '0'
+  };
+  result.css($.extend({}, defaultCss, cellCss,
+    { width: 'auto', height: 'auto', maxWidth: 'auto'},
+    tableCss));
+  result.find('td').css($.extend({}, defaultCss, cellCss));
+  result.appendTo('body');
+  return result;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// WEB AUDIO SUPPORT
+// Definition of play("ABC") - uses ABC music note syntax.
+//////////////////////////////////////////////////////////////////////////
+
+var ABCtoken = /\s+|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\d*\/\d+|\d+|\/+|[xzXZ]|./g;
+var audioTop = null;
+function getAudioTop() {
+  if (!audioTop) {
+    var ac = new (window.audioContext || window.webkitAudioContext),
+        dcn = ac.createDynamicsCompressor();
+    dcn.connect(ac.destination);
+    audioTop = {
+      ac: ac,
+      out: dcn
+    }
+  }
+  return audioTop;
+}
+function parseABCNotes(str) {
+  var tokens = str.match(ABCtoken), result = [], stem = null,
+      index = 0, dotted = 0, t;
+  while (index < tokens.length) {
+    if (/^s+$/.test(tokens[index])) { index++; continue; }
+    if (/</.test(tokens[index])) { dotted = -tokens[index++].length; continue; }
+    if (/>/.test(tokens[index])) { dotted = tokens[index++].length; continue; }
+    stem = parseStem(tokens, index);
+    if (stem === null) {
+      // Skip unparsable bits
+      index++;
+      continue;
+    }
+    if (stem !== null) {
+      if (dotted && result.length) {
+        if (dotted > 0) {
+          t = (1 - Math.pow(0.5, dotted)) * stem.value.time;
+        } else {
+          t = (Math.pow(0.5, -dotted) - 1) * result[result.length - 1].time;
+        }
+        result[result.length - 1].time += t;
+        stem.value.time -= t;
+        dotted = 0;
+      }
+      result.push(stem.value);
+      index = stem.index;
+    }
+  }
+  return result;
+}
+function parseStem(tokens, index) {
+  var pitch = [];
+  if (index < tokens.length && tokens[index] == '[') {
+    index++;
+    while (index < tokens.length && /[A-Ga-g]/.test(tokens[index])) {
+      pitch.push(tokens[index++]);
+    }
+    if (tokens[index] != ']') {
+      return null;
+    }
+    index++;
+  } else if (index < tokens.length && /[A-Ga-g]/.test(tokens[index])) {
+    pitch.push(tokens[index++]);
+  } else if (/^[xzXZ]$/.test(tokens[index])) {
+    // Rest - no pitch.
+    index++;
+  } else {
+    return null;
+  }
+  var duration = '';
+  if (tokens.length && /\d|\//.test(tokens[index])) {
+    duration = tokens[index++];
+  }
+  return {
+    index: index,
+    value: {
+      pitch: pitch,
+      duration: duration,
+      frequency: pitch.map(pitchToFrequency),
+      time: durationToTime(duration)
+    }
+  }
+}
+function pitchToFrequency(pitch) {
+  var m = /^(\^\^|\^|__|_|=|)([A-Ga-g])(,+|'+|)$/.exec(pitch);
+  if (!m) { return null; }
+  var n = {C:-9,D:-7,E:-5,F:-4,G:-2,A:0,B:2,c:3,d:5,e:7,f:8,g:10,a:12,b:14};
+  var a = { '^^':2, '^':1, '': 0, '=':0, '_':-1, '__':-2 };
+  var semitone = n[m[2]] + a[m[1]] + (/,/.test(m[3]) ? -12 : 12) * m[3].length;
+  return 440 * Math.pow(2, semitone / 12);
+}
+function durationToTime(duration) {
+  var m = /^(\d*)(?:\/(\d*))?$|^(\/+)$/.exec(duration), n, d;
+  if (m[3]) return Math.pow(0.5, m[3].length);
+  n = (m[1] ? parseFloat(m[1]) : 1);
+  d = (m[2] ? parseFloat(m[2]) : /\//.test(duration) ? 2 : 1);
+  return n / d;
+}
+function play(opts) {
+  var atop = getAudioTop(),
+      start_time = atop.ac.currentTime,
+      firstvoice = 0, voice, freqmult, beatsecs,
+      volume = 0.5, tempo = 120, transpose = 0, type = ['sine'];
+  if ($.isPlainObject(opts)) {
+    if ('volume' in opts) { volume = opts.volume; }
+    if ('tempo' in opts) { tempo = opts.tempo; }
+    if ('transpose' in opts) { transpose = opts.transpose; }
+    if ('type' in opts) { type = opts.type; }
+    firstvoice = 1;
+  }
+  voice = firstvoice;
+  beatsecs = 60 / tempo;
+  freqmult = Math.pow(2, transpose / 12);
+  if (!$.isArray(type)) { type = [type]; }
+  for (; voice < arguments.length; voice++) {
+    var notes = parseABCNotes(arguments[voice]),
+        vtype = type[(voice - firstvoice) % type.length] || 'sine',
+        time = start_time, fingers = 0, strength, i;
+    for (i = 0; i < notes.length; i++) {
+      fingers = Math.max(fingers, notes[i].frequency.length);
+    }
+    if (fingers == 0) { continue; }
+    // Attenuate chorded voice so chorded power matches volume.
+    strength = volume / Math.sqrt(fingers);
+    for (i = 0; i < notes.length; i++) {
+      if (notes[i].frequency.length > 0) {
+        var g = atop.ac.createGainNode(),
+            secs = notes[i].time * beatsecs,
+            envelope, pt;
+        g.gain.setValueAtTime(0, time);
+        envelope = [
+          {v: 1.0, t: Math.min(0.01 * beatsecs, 0.1 * secs)},
+          {v: 0.9, t: Math.min(0.05 * beatsecs, 0.2 * secs)},
+          {v: 0.6, t: Math.min(secs - 0.05 * beatsecs, 0.9 * secs)},
+          {v: 0.0, t: secs}
+        ];
+        for (var e = 0; e < envelope.length; e++) {
+          pt = envelope[e];
+          g.gain.linearRampToValueAtTime(pt.v * strength, time + pt.t);
+        }
+        g.connect(atop.out);
+        for (var x = 0; x < notes[i].frequency.length; x++) {
+          var o = atop.ac.createOscillator();
+          o.type = vtype;
+          o.frequency.value = notes[i].frequency[x] * freqmult;
+          o.connect(g);
+          o.start(time);
+          o.stop(time + secs);
+        }
+      }
+      time += notes[i].time * beatsecs;
+    }
+  }
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // SEE LOGGING SUPPORT
@@ -3425,5 +3657,7 @@ function tryinitpanel() {
     inittesttimer = setTimeout(tryinitpanel, 100);
   }
 }
+
+eval("scope('jquery-turtle', " + seejs + ", this)");
 
 })(jQuery);
