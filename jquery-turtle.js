@@ -57,6 +57,7 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
+  $(x).play("ccgg") // Plays notes using ABC notation.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
@@ -170,7 +171,6 @@ After eval($.turtle()):
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
-  play("ccggaag2")      // Plays a couple measures of song using ABC notation.
 </pre>
 
 For example, after eval($.turtle()), the following is a valid program
@@ -1881,6 +1881,12 @@ var turtlefn = {
       watchImageToFixOriginOnLoad(elem);
     });
   },
+  play: function(notes) {
+    var args = arguments;
+    return this.direct(function(j, elem) {
+      playABC.apply(null, args);
+    });
+  },
   speed: function(mps) {
     return this.direct(function(j, elem) {
       this.css('turtleSpeed', mps);
@@ -2094,7 +2100,7 @@ var turtlefn = {
           }),
           action = animation.finish = (args ?
           (function() { callback.apply($(elem), args); }) :
-          (function() { callback.call($(elem), j, elem); }));
+          (function() { callback.call($(elem), index, elem); }));
       $.queue(elem, qname, animation);
     }
     var elem, sel, length = this.length, j = 0;
@@ -2142,10 +2148,10 @@ var dollar_turtle_methods = {
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
-  play: function(ops) {
-    var x = arguments;
+  play: function(notes) {
+    var args = arguments;
     directIfGlobal(function() {
-      play.apply(null, x);
+      playABC.apply(null, args);
     });
   },
   print: function(html) { return output(html, 'div'); },
@@ -2207,7 +2213,12 @@ $.turtle = function turtle(id, options) {
     $.extend(window, dollar_turtle_methods);
   }
   // Set default turtle speed
-  defaultspeed(options.hasOwnProperty('defaultspeed') ? options.defaultspeed : 1);
+  defaultspeed(options.hasOwnProperty('defaultspeed') ?
+      options.defaultspeed : 1);
+  // Initialize audio context (avoids delay in first notes).
+  try {
+    getAudioTop();
+  } catch (e) { }
   // Find or create a singleton turtle if one does not exist.
   var selector = null;
   if (id) {
@@ -2759,16 +2770,20 @@ function durationToTime(duration) {
   d = (m[2] ? parseFloat(m[2]) : /\//.test(duration) ? 2 : 1);
   return n / d;
 }
-function play(opts) {
+function playABC(opts) {
   var atop = getAudioTop(),
       start_time = atop.ac.currentTime,
       firstvoice = 0, voice, freqmult, beatsecs,
-      volume = 0.5, tempo = 120, transpose = 0, type = ['sine'];
+      volume = 0.5, tempo = 120, transpose = 0, type = ['square'],
+      envelope = {a: 0.01, d: 0.2, s: 0.1, r: 0.1},
+      notes, vtype, time, fingers, strength, i, g, t,
+      atime, slast, rtime, stime, dt;
   if ($.isPlainObject(opts)) {
     if ('volume' in opts) { volume = opts.volume; }
     if ('tempo' in opts) { tempo = opts.tempo; }
     if ('transpose' in opts) { transpose = opts.transpose; }
     if ('type' in opts) { type = opts.type; }
+    if ('envelope' in opts) { $.extend(envelope, opts.envelope); }
     firstvoice = 1;
   }
   voice = firstvoice;
@@ -2776,9 +2791,10 @@ function play(opts) {
   freqmult = Math.pow(2, transpose / 12);
   if (!$.isArray(type)) { type = [type]; }
   for (; voice < arguments.length; voice++) {
-    var notes = parseABCNotes(arguments[voice]),
-        vtype = type[(voice - firstvoice) % type.length] || 'sine',
-        time = start_time, fingers = 0, strength, i;
+    notes = parseABCNotes(arguments[voice]);
+    vtype = type[(voice - firstvoice) % type.length] || 'square';
+    time = start_time;
+    fingers = 0;
     for (i = 0; i < notes.length; i++) {
       fingers = Math.max(fingers, notes[i].frequency.length);
     }
@@ -2786,21 +2802,21 @@ function play(opts) {
     // Attenuate chorded voice so chorded power matches volume.
     strength = volume / Math.sqrt(fingers);
     for (i = 0; i < notes.length; i++) {
+      t = notes[i].time;
       if (notes[i].frequency.length > 0) {
-        var g = atop.ac.createGainNode(),
-            secs = notes[i].time * beatsecs,
-            envelope, pt;
+        g = atop.ac.createGainNode();
+        stime = t * beatsecs + time;
+        atime = Math.min(t, envelope.a) * beatsecs + time;
+        rtime = Math.max(0, t + envelope.r) * beatsecs + time;
+        if (atime > rtime) { atime = rtime = (atime + rtime) / 2; }
+        if (rtime < stime) { stime = rtime; rtime = t * beatsecs + time; }
+        dt = envelope.d * beatsecs;
         g.gain.setValueAtTime(0, time);
-        envelope = [
-          {v: 1.0, t: Math.min(0.01 * beatsecs, 0.1 * secs)},
-          {v: 0.9, t: Math.min(0.05 * beatsecs, 0.2 * secs)},
-          {v: 0.6, t: Math.min(secs - 0.05 * beatsecs, 0.9 * secs)},
-          {v: 0.0, t: secs}
-        ];
-        for (var e = 0; e < envelope.length; e++) {
-          pt = envelope[e];
-          g.gain.linearRampToValueAtTime(pt.v * strength, time + pt.t);
-        }
+        g.gain.linearRampToValueAtTime(strength, atime);
+        g.gain.setTargetAtTime(envelope.s * strength, atime, dt);
+        slast = envelope.s + (1 - envelope.s) * Math.exp((atime - stime) / dt);
+        g.gain.setValueAtTime(slast * strength, stime);
+        g.gain.linearRampToValueAtTime(0, rtime);
         g.connect(atop.out);
         for (var x = 0; x < notes[i].frequency.length; x++) {
           var o = atop.ac.createOscillator();
@@ -2808,10 +2824,10 @@ function play(opts) {
           o.frequency.value = notes[i].frequency[x] * freqmult;
           o.connect(g);
           o.start(time);
-          o.stop(time + secs);
+          o.stop(rtime);
         }
       }
-      time += notes[i].time * beatsecs;
+      time += t * beatsecs;
     }
   }
 }
