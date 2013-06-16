@@ -1904,8 +1904,9 @@ var turtlefn = {
   },
   play: function(notes) {
     var args = arguments;
-    return this.direct(function(j, elem) {
-      playABC.apply(null, args);
+    return this.queue(function() {
+      // playABC will call $(this).dequeue() when song is done.
+      playABC(this, args);
     });
   },
   speed: function(mps) {
@@ -2169,12 +2170,6 @@ var dollar_turtle_methods = {
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
-  play: function(notes) {
-    var args = arguments;
-    directIfGlobal(function() {
-      playABC.apply(null, args);
-    });
-  },
   print: function(html) { return output(html, 'div'); },
   random: random,
   hatch: hatch,
@@ -2791,15 +2786,16 @@ function durationToTime(duration) {
   d = (m[2] ? parseFloat(m[2]) : /\//.test(duration) ? 2 : 1);
   return n / d;
 }
-function playABC(opts) {
+function playABC(elem, args) {
   var atop = getAudioTop(),
-      start_time = atop.ac.currentTime,
+      start_time = atop.ac.currentTime, end_time = start_time,
       firstvoice = 0, voice, freqmult, beatsecs,
       volume = 0.5, tempo = 120, transpose = 0, type = ['square'],
       envelope = {a: 0.01, d: 0.2, s: 0.1, r: 0.1},
       notes, vtype, time, fingers, strength, i, g, t,
-      atime, slast, rtime, stime, dt;
-  if ($.isPlainObject(opts)) {
+      atime, slast, rtime, stime, dt, opts;
+  if ($.isPlainObject(args[0])) {
+    opts = args[0];
     if ('volume' in opts) { volume = opts.volume; }
     if ('tempo' in opts) { tempo = opts.tempo; }
     if ('transpose' in opts) { transpose = opts.transpose; }
@@ -2811,8 +2807,8 @@ function playABC(opts) {
   beatsecs = 60 / tempo;
   freqmult = Math.pow(2, transpose / 12);
   if (!$.isArray(type)) { type = [type]; }
-  for (; voice < arguments.length; voice++) {
-    notes = parseABCNotes(arguments[voice]);
+  for (; voice < args.length; voice++) {
+    notes = parseABCNotes(args[voice]);
     vtype = type[(voice - firstvoice) % type.length] || 'square';
     time = start_time;
     fingers = 0;
@@ -2850,6 +2846,17 @@ function playABC(opts) {
       }
       time += t * beatsecs;
     }
+    end_time = Math.max(end_time, time);
+  }
+  function callDequeueWhenDone() {
+    if (atop.ac.currentTime < end_time) {
+      setTimeout(callDequeueWhenDone, (end_time - atop.ac.currentTime) * 1000);
+    } else {
+      $(elem).dequeue();
+    }
+  }
+  if (elem) {
+    callDequeueWhenDone();
   }
 }
 
