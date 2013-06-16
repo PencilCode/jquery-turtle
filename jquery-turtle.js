@@ -55,6 +55,7 @@ Turtle-oriented methods taking advantage of the css support:
   // Methods below happen in an instant, but queue after animation.
   $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
+  $(x).fill('pink') // Fills a shape previously outlined by pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
   $(x).play("ccgg") // Plays notes using ABC notation.
@@ -1355,6 +1356,34 @@ function applyPenStyle(ctx, ps, scale) {
   }
 }
 
+function drawAndClearPath(path, style, scale) {
+  var ctx = getTurtleDrawingCtx(),
+      isClosed,
+      j = path.length,
+      segment;
+  ctx.save();
+  ctx.beginPath();
+  // Scale up lineWidth by sx.  (TODO: consider parent transforms.)
+  applyPenStyle(ctx, style, scale);
+  while (j--) {
+    if (path[j].length) {
+      segment = path[j];
+      isClosed = segment.length > 2 && isPointNearby(
+          segment[0], segment[segment.length - 1]);
+      ctx.moveTo(segment[0].pageX, segment[0].pageY);
+      for (var k = 1; k < segment.length - (isClosed ? 1 : 0); ++k) {
+        ctx.lineTo(segment[k].pageX, segment[k].pageY);
+      }
+      if (isClosed) { ctx.closePath(); }
+    }
+  }
+  if ('fillStyle' in style) { ctx.fill(); }
+  if ('strokeStyle' in style) { ctx.stroke(); }
+  ctx.restore();
+  path.length = 1;
+  path[0].splice(0, path[0].length - 1);
+}
+
 function flushPenState(elem) {
   var state = getTurtleData(elem);
   if (!state.style || (!state.down && !state.style.savePath)) {
@@ -1378,32 +1407,17 @@ function flushPenState(elem) {
     state.path[0].push(center);
   }
   if (!state.style.savePath) {
-    var ts = readTurtleTransform(elem, true),
-        ctx = getTurtleDrawingCtx(),
-        isClosed,
-        j = state.path.length,
-        segment;
-    ctx.save();
-    ctx.beginPath();
-    // Scale up lineWidth by sx.  (TODO: consider parent transforms.)
-    applyPenStyle(ctx, state.style, ts.sx);
-    while (j--) {
-      if (state.path[j].length) {
-        segment = state.path[j];
-        isClosed = segment.length > 2 && isPointNearby(
-            segment[0], segment[segment.length - 1]);
-        ctx.moveTo(segment[0].pageX, segment[0].pageY);
-        for (var k = 1; k < segment.length - (isClosed ? 1 : 0); ++k) {
-          ctx.lineTo(segment[k].pageX, segment[k].pageY);
-        }
-        if (isClosed) { ctx.closePath(); }
-      }
-    }
-    if ('fillStyle' in state.style) { ctx.fill(); }
-    if ('strokeStyle' in state.style) { ctx.stroke(); }
-    ctx.restore();
-    state.path.length = 1;
-    state.path[0].splice(0, state.path[0].length - 1);
+    var ts = readTurtleTransform(elem, true);
+    drawAndClearPath(state.path, state.style, ts.sx);
+  }
+}
+
+function endAndFillPenPath(elem, style) {
+  var ts = readTurtleTransform(elem, true),
+      state = getTurtleData(elem);
+  drawAndClearPath(state.path, style);
+  if (state.style.savePath) {
+    $.style(elem, 'turtlePenStyle', 'none');
   }
 }
 
@@ -1851,6 +1865,13 @@ var turtlefn = {
       } else {
         this.css('turtlePenStyle', penstyle);
       }
+    });
+  },
+  fill: function(style) {
+    if (!style) { style = 'black'; }
+    var ps = parsePenStyle(style, 'fillStyle');
+    return this.direct(function(j, elem) {
+      endAndFillPenPath(elem, ps);
     });
   },
   dot: function(style, diameter) {
