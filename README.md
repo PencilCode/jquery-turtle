@@ -52,8 +52,10 @@ Turtle-oriented methods taking advantage of the css support:
   // Methods below happen in an instant, but queue after animation.
   $(x).home()       // Moves to the origin of the document, turned up.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
+  $(x).fill('pink') // Fills a shape previously outlined by pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
+  $(x).play("ccgg") // Plays notes using ABC notation.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases under the turtles collision hull.
   $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
@@ -167,7 +169,6 @@ After eval($.turtle()):
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
-  play("ccggaag2")      // Plays a couple measures of song using ABC notation.
 </pre>
 
 For example, after eval($.turtle()), the following is a valid program
