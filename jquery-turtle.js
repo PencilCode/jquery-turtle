@@ -31,7 +31,7 @@ CoffeeScript program that uses the default turtle to draw a grid of
 sixteen colored polygons.
 
 <pre>
-  eval $.turtle() # create the default turtle
+  eval $.turtle()  # Create the default turtle.
 
   speed 100
   for color in ['red', 'gold', 'green', 'blue']
@@ -171,7 +171,7 @@ Here is another CoffeeScript example that demonstrates some of
 the functions:
 
 <pre>
-  eval $.turtle() # Create the default turtle and global functions.
+  eval $.turtle()  # Create the default turtle and global functions.
 
   defaultspeed Infinity
   print "Catch blue before red gets you."
