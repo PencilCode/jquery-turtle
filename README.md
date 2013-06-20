@@ -23,9 +23,9 @@ jQuery-turtle provides:
   * An interactive turtle console in either Javascript or CoffeeScript.
 
 The plugin can also create a learning environment with a default
-turtle that is friendly for beginners.  For example, the following
-is a complete CoffeeScript program that uses the default turtle to
-render a grid of sixteen colored polygons.
+turtle that is friendly for beginners.  The following is a complete
+CoffeeScript program that uses the default turtle to draw a grid of
+sixteen colored polygons.
 
 <pre>
   eval $.turtle() # create the default turtle
@@ -45,12 +45,13 @@ render a grid of sixteen colored polygons.
 [Try an interactive demo (CoffeeScript syntax) here.](
 http://davidbau.github.io/jquery-turtle/demo.html)
 
-Brief summary of the turtle API below.
 
 JQuery Methods for Turtle Movement
 ----------------------------------
 
-Turtle-oriented methods that operate on a jQuery object:
+The turtle API is briefly summarized below.  All the following
+turtle-oriented methods operate on any jQuery object (including
+the default turtle, if used):
 
 <pre>
   $(x).fd(100)      // Forward relative motion in local coordinates.
@@ -118,7 +119,7 @@ Turtle Teaching Environment
 ---------------------------
 
 A default turtle together with an interactive console are created by
-calling eval($.turtle()).  This call will also expose a the default turtle
+calling eval($.turtle()).  This call will expose a the default turtle
 methods as global functions.  It will also set up a number of other global
 symbols to provide beginners with a simplified programming environment.
 
@@ -129,8 +130,10 @@ In detail, after eval($.turtle()):
   * Every #id element is turned into a global variable: window.id = $('#id').
   * Default turtle animation is set to 1 move per sec so steps can be seen.
   * Global event listeners are created to update global event variables.
-  * Methods of $.turtle.* are exposed as global functions.
-  * Beyond the turtle methods listed above, the added global are as follows:
+  * Methods of $.turtle.* (enumerated below) are exposed as global functions.
+
+Beyond the functions to control the default turtle, the globals added by
+$.turtle() are as follows:
 
 <pre>
   lastclick             // Event object of the last click event in the doc.
@@ -164,7 +167,7 @@ the functions:
 
 <pre>
   eval $.turtle() # Create the default turtle and global functions.
-  
+
   defaultspeed Infinity
   print "Catch blue before red gets you."
   bk 100
