@@ -104,16 +104,18 @@ for realtime game-making.  To play music without stalling turtle
 movement, use the global function playnow() instead of the turtle
 method play().
 
-The absolute motion methods moveto and turnto accept any argument
-with pageX and pageY, including, usefully, mouse events.  They
-operate in absolute page coordinates and work properly even when the
-turtle is nested within further CSS transformed elements.
+The absolute motion methods moveto and turnto accept any object
+that has pageX and pageY properties (or an origin() method that will
+return such an object), including, usefully, mouse events.
+Moveto and turnto operate in absolute page coordinates and work
+properly even when the turtle is nested within further CSS
+transformed elements.
 
 The hit-testing functions touches() and encloses() will test for
-collisions using the convex hull for the objects in question.
-The hull defaults to the bounding box of the elements (as transformed)
-but can be overridden by the turtleHull CSS property, if present.
-The default turtle is given a turtle-shaped hull.
+collisions using the convex hulls of the objects in question.
+The hull of an element defaults to the bounding box of the element
+(as transformed) but can be overridden by the turtleHull CSS property,
+if present.  The default turtle is given a turtle-shaped hull.
 
 Turtle Teaching Environment
 ---------------------------
