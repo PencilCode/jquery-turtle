@@ -9,40 +9,53 @@ version 2.0.5
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
 With jQuery-turtle, every DOM element is a turtle that can be
-moved using LOGO-inspired turtle methods like fd, bk, rt, and lt.
+moved using turtle graphics methods like fd (forward), bk (back),
+rt (right turn), and lt (left turn).  The pen function allows
+a turtle to draw on a full-document canvas as it moves.
+
 <pre>
   $('#turtle').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
 </pre>
-The plugin also provides functions to help in a rotated,
-scaled, and transformed world where nested elements may be
-transformed.  There are functions for collision testing, absolute
-positioning, and absolute direction reading and setting.
+
+jQuery-turtle provides:
+  * Relative and absolute motion and drawing.
+  * Functions to ease basic input, output, and game-making for beginners.
+  * Operations on sets of turtles, and turtle motion of arbitrary elements.
+  * Accurate collision-testing of turtles with arbitrary convex hulls.
+  * Simplified access to CSS3 transforms, jQuery animations, Canvas, and Web Audio.
+  * An interactive turtle console in either Javascript or CoffeeScript.
+
+The plugin can also create a learning environment with a default
+turtle that is friendly for beginners.  The following is a complete
+CoffeeScript program that uses the default turtle to draw a grid of
+sixteen colored polygons.
+
+<pre>
+  eval $.turtle()  # Create the default turtle.
+
+  speed 100
+  for color in ['red', 'gold', 'green', 'blue']
+    for sides in [3..6]
+      pen color
+      for x in [1..sides]
+        fd 100 / sides
+        lt 360 / sides
+      pen 'none'
+      fd 40
+    move 40, -160
+</pre>
 
 [Try an interactive demo (CoffeeScript syntax) here.](
 http://davidbau.github.io/jquery-turtle/demo.html)
 
-Under the covers, CSS3 2D transforms and jQuery animations are
-used to execute and store turtle movement, so jQuery-turtle
-interacts well with other jQuery animations or direct uses of
-2D CSS3 transforms.  The plugin sets up jQuery CSS hooks for
-synthetic CSS properties such as turtleForward that can be
-animated or used to directly manipulate turtle geometry at a basic
-mathematical level.
-
-A high-level educational environment is enabled by $.turtle().
-That call creates a set of global objects and functions
-catering to beginners.  These include a default turtle
-and global functions to control it; an onpage debugger panel;
-jQuery instances for every object with an #id; simplified
-globals to access recent mouse and keyboard events, and
-simplified functions for randomness, timers, animation control,
-and creation of new turtles.  The jQuery teaching environment
-has been developed to support a curriculum for young students.
 
 JQuery Methods for Turtle Movement
 ----------------------------------
 
-Turtle-oriented methods taking advantage of the css support:
+The turtle API is briefly summarized below.  All the following
+turtle-oriented methods operate on any jQuery object (including
+the default turtle, if used):
+
 <pre>
   $(x).fd(100)      // Forward relative motion in local coordinates.
   $(x).bk(50)       // Back.
@@ -51,24 +64,27 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).move(x, y)   // Move right by x while moving forward by y.
   $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion on page.
   $(x).turnto(bearing || position)      // Absolute direction adjustment.
+  $(x).play("ccgg") // Plays notes using ABC notation.
 
-  // Methods below happen in an instant, but queue after animation.
-  $(x).home()       // Moves to the origin of the document, turned up.
+  // Methods below happen in an instant, but line up in the animation queue.
+  $(x).home()       // Moves to the origin of the document, with bearing 0.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
+  $(x).fill('pink') // Fills a shape previously outlined using pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
-  $(x).erase()      // Erases under the turtles collision hull.
-  $(x).img('blue')  // Switch the image to a blue pointer.  May use any url.
+  $(x).erase()      // Erases the canvas under the turtle collision hull.
+  $(x).img('blue')  // Switches the turtle to a blue picture.  Use any url.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its main axis.
   $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
-  $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt.
+  $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt,
+                    // and the callback fn can insert into the animation queue.
 
   // Methods below this line do not queue for animation.
-  $(x).origin()     // Page coordinate position of transform-origin.
-  $(x).bearing([p]) // Absolute direction on page.
+  $(x).origin()     // Page coordinate of the turtle's transform-origin.
+  $(x).bearing([p]) // The turtles absolute direction (or direction towards p).
   $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
@@ -79,28 +95,115 @@ Turtle-oriented methods taking advantage of the css support:
   $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
 </pre>
 
-When $.fx.speeds.turtle is nonzero (the default is zero unless
-$.turtle() is called), the first seven movement functions animate
-at that speed, and the remaining mutators also participate in the
-animation queue.  Note that property-reading functions such as
-touches() are synchronous and will not queue, and setting
-$.fx.speed.turtle to 0 will make movement functions synchronous.
+When the speed of a turtle is nonzero, the first seven movement
+functions animate at that speed, and the remaining mutators also
+participate in the animation queue.  The default turtle speed is
+a leisurely one move per second (as appropriate for the creature),
+but you may soon discover the desire to set speed higher.
 
-The absolute motion methods moveto and turnto accept any argument
-with pageX and pageY, including, usefully, mouse events.  They
-operate in absolute page coordinates even when the turtle is nested
-within further transformed elements.
+Setting the turtle speed to Infinity will make movement synchronous,
+which makes the synchronous distance, direction, and hit-testing useful
+for realtime game-making.  To play music without stalling turtle
+movement, use the global function playnow() instead of the turtle
+method play().
 
-The hit-testing functions touches() and encloses() will test using
-the convex hull for the two objects in question. This defaults to
-the bounding box of the elements (as transformed) but can be overridden
-by the turtleHull CSS property, if present.
+The absolute motion methods moveto and turnto accept any object
+that has pageX and pageY properties (or an origin() method that will
+return such an object), including, usefully, mouse events.
+Moveto and turnto operate in absolute page coordinates and work
+properly even when the turtle is nested within further CSS
+transformed elements.
+
+The hit-testing functions touches() and encloses() will test for
+collisions using the convex hulls of the objects in question.
+The hull of an element defaults to the bounding box of the element
+(as transformed) but can be overridden by the turtleHull CSS property,
+if present.  The default turtle is given a turtle-shaped hull.
+
+Turtle Teaching Environment
+---------------------------
+
+A default turtle together with an interactive console are created by
+calling eval($.turtle()).  This call will expose a the default turtle
+methods as global functions.  It will also set up a number of other global
+symbols to provide beginners with a simplified programming environment.
+
+In detail, after eval($.turtle()):
+  * An &lt;img id="turtle"&gt; is created if #turtle doesn't already exist.
+  * An eval debugging panel (see.js) is shown at the bottom of the screen.
+  * Turtle methods on the default turtle are packaged as globals, e.g., fd(10).
+  * Every #id element is turned into a global variable: window.id = $('#id').
+  * Default turtle animation is set to 1 move per sec so steps can be seen.
+  * Global event listeners are created to update global event variables.
+  * Methods of $.turtle.* (enumerated below) are exposed as global functions.
+
+Beyond the functions to control the default turtle, the globals added by
+$.turtle() are as follows:
+
+<pre>
+  lastclick             // Event object of the last click event in the doc.
+  lastmousemove         // The last mousemove event.
+  lastmouseup           // The last mouseup event.
+  lastmousedown         // The last mousedown event.
+  keydown               // The last keydown event.
+  keyup                 // The last keyup event.
+  keypress              // The last keypress event.
+  defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
+  tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
+  random(n)             // Returns a random number [0...n-1].
+  random(list)          // Returns a random element of the list.
+  random('normal')      // Returns a gaussian random (mean 0 stdev 1).
+  random('uniform')     // Returns a uniform random [0...1).
+  random('position')    // Returns a random {pageX:x, pageY:y} coordinate.
+  random('color')       // Returns a random hsl(*, 100%, 50%) color.
+  random('gray')        // Returns a random hsl(0, 0, *) gray.
+  remove()              // Removes default turtle and its globals (fd, etc).
+  hatch([n,], [img])    // Creates and returns n turtles with the given img.
+  see(a, b, c...)       // Logs tree-expandable data into debugging panel.
+  print(html)           // Appends html into the document body.
+  input([label,] fn)    // Makes a one-time input field, calls fn after entry.
+  button([label,] fn)   // Makes a clickable button, calls fn when clicked.
+  table(w, h)           // Outputs a table with h rows and w columns.
+  playnow('CEG')        // Plays musical notes now, without queueing.
+</pre>
+
+Here is another CoffeeScript example that demonstrates some of
+the functions:
+
+<pre>
+  eval $.turtle()  # Create the default turtle and global functions.
+
+  defaultspeed Infinity
+  print "Catch blue before red gets you."
+  bk 100
+  r = hatch 'red'
+  b = hatch 'blue'
+  tick 10, ->
+    turnto lastmousemove
+    fd 6
+    r.turnto turtle
+    r.fd 4
+    b.turnto bearing b
+    b.fd 3
+    if b.touches(turtle)
+      print "You win!"
+      tick off
+    else if r.touches(turtle)
+      print "Red got you!"
+      tick off
+    else if not b.touches(document)
+      print "Blue got away!"
+      tick off
+</pre>
+
+The turtle teaching environment is designed to work well with either
+Javascript or CoffeeScript.
 
 JQuery CSS Hooks for Turtle Geometry
 ------------------------------------
 
-Turtle-oriented 2d transform cssHooks, with animation support on all
-motion:
+Underlying turtle motion are turtle-oriented 2d transform jQuery cssHooks,
+with animation support on all motion:
 
 <pre>
   $(x).css('turtleSpeed', '10');         // default speed in moves per second.
@@ -131,77 +234,6 @@ and hit-testing functions (encloses, touches).  The turtleHull is a list
 of (unrotated) x-y coordinates relative to the object's transformOrigin.
 If set to 'auto' (the default) the hull is just the bounding box for the
 element.
-
-Turtle Teaching Environment
----------------------------
-
-An optional teaching environment setup is created by eval($.turtle()).
-It provides easy packaging for the above functionality.
-
-After eval($.turtle()):
-  * An &lt;img id="turtle"&gt; is created if #turtle doesn't already exist.
-  * An eval debugging panel (see.js) is shown at the bottom of the screen.
-  * Turtle methods on the default turtle are packaged as globals, e.g., fd(10).
-  * Every #id element is turned into a global variable: window.id = $('#id').
-  * Default turtle animation is set to 1 move per sec so steps can be seen.
-  * And the following are defined:
-
-<pre>
-  lastclick             // Event object of the last click event in the doc.
-  lastmousemove         // The last mousemove event.
-  lastmouseup           // The last mouseup event.
-  lastmousedown         // The last mousedown event.
-  keydown               // The last keydown event.
-  keyup                 // The last keyup event.
-  keypress              // The last keypress event.
-  defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
-  tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
-  random(n)             // Returns a random number [0...n-1].
-  random(list)          // Returns a random element of the list.
-  random('normal')      // Returns a gaussian random (mean 0 stdev 1).
-  random('uniform')     // Returns a uniform random [0...1).
-  random('position')    // Returns a random {pageX:x, pageY:y} coordinate.
-  random('color')       // Returns a random hsl(*, 100%, 50%) color.
-  random('gray')        // Returns a random hsl(0, 0, *) gray.
-  remove()              // Removes default turtle and its globals (fd, etc).
-  hatch([n,], [img])    // Creates and returns n turtles with the given img.
-  see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  print(html)           // Appends html into the document body.
-  input([label,] fn)    // Makes a one-time input field, calls fn after entry.
-  button([label,] fn)   // Makes a clickable button, calls fn when clicked.
-  table(w, h)           // Outputs a table with h rows and w columns.
-  play("ccggaag2")      // Plays a couple measures of song using ABC notation.
-</pre>
-
-For example, after eval($.turtle()), the following is a valid program
-in CoffeeScript syntax:
-
-<pre>
-defaultspeed Infinity
-print "Catch blue before red gets you."
-bk 100
-r = hatch 'red'
-b = hatch 'blue'
-tick 10, ->
-  turnto lastmousemove
-  fd 6
-  r.turnto turtle
-  r.fd 4
-  b.turnto bearing b
-  b.fd 3
-  if b.touches(turtle)
-    print "You win!"
-    tick off
-  else if r.touches(turtle)
-    print "Red got you!"
-    tick off
-  else if not b.touches(document)
-    print "Blue got away!"
-    tick off
-</pre>
-
-The turtle teaching environment is designed to work well with either
-Javascript or CoffeeScript.
 
 License (MIT)
 -------------
@@ -1355,6 +1387,34 @@ function applyPenStyle(ctx, ps, scale) {
   }
 }
 
+function drawAndClearPath(path, style, scale) {
+  var ctx = getTurtleDrawingCtx(),
+      isClosed,
+      j = path.length,
+      segment;
+  ctx.save();
+  ctx.beginPath();
+  // Scale up lineWidth by sx.  (TODO: consider parent transforms.)
+  applyPenStyle(ctx, style, scale);
+  while (j--) {
+    if (path[j].length) {
+      segment = path[j];
+      isClosed = segment.length > 2 && isPointNearby(
+          segment[0], segment[segment.length - 1]);
+      ctx.moveTo(segment[0].pageX, segment[0].pageY);
+      for (var k = 1; k < segment.length - (isClosed ? 1 : 0); ++k) {
+        ctx.lineTo(segment[k].pageX, segment[k].pageY);
+      }
+      if (isClosed) { ctx.closePath(); }
+    }
+  }
+  if ('fillStyle' in style) { ctx.fill(); }
+  if ('strokeStyle' in style) { ctx.stroke(); }
+  ctx.restore();
+  path.length = 1;
+  path[0].splice(0, path[0].length - 1);
+}
+
 function flushPenState(elem) {
   var state = getTurtleData(elem);
   if (!state.style || (!state.down && !state.style.savePath)) {
@@ -1378,32 +1438,17 @@ function flushPenState(elem) {
     state.path[0].push(center);
   }
   if (!state.style.savePath) {
-    var ts = readTurtleTransform(elem, true),
-        ctx = getTurtleDrawingCtx(),
-        isClosed,
-        j = state.path.length,
-        segment;
-    ctx.save();
-    ctx.beginPath();
-    // Scale up lineWidth by sx.  (TODO: consider parent transforms.)
-    applyPenStyle(ctx, state.style, ts.sx);
-    while (j--) {
-      if (state.path[j].length) {
-        segment = state.path[j];
-        isClosed = segment.length > 2 && isPointNearby(
-            segment[0], segment[segment.length - 1]);
-        ctx.moveTo(segment[0].pageX, segment[0].pageY);
-        for (var k = 1; k < segment.length - (isClosed ? 1 : 0); ++k) {
-          ctx.lineTo(segment[k].pageX, segment[k].pageY);
-        }
-        if (isClosed) { ctx.closePath(); }
-      }
-    }
-    if ('fillStyle' in state.style) { ctx.fill(); }
-    if ('strokeStyle' in state.style) { ctx.stroke(); }
-    ctx.restore();
-    state.path.length = 1;
-    state.path[0].splice(0, state.path[0].length - 1);
+    var ts = readTurtleTransform(elem, true);
+    drawAndClearPath(state.path, state.style, ts.sx);
+  }
+}
+
+function endAndFillPenPath(elem, style) {
+  var ts = readTurtleTransform(elem, true),
+      state = getTurtleData(elem);
+  drawAndClearPath(state.path, style);
+  if (state.style.savePath) {
+    $.style(elem, 'turtlePenStyle', 'none');
   }
 }
 
@@ -1853,6 +1898,13 @@ var turtlefn = {
       }
     });
   },
+  fill: function(style) {
+    if (!style) { style = 'black'; }
+    var ps = parsePenStyle(style, 'fillStyle');
+    return this.direct(function(j, elem) {
+      endAndFillPenPath(elem, ps);
+    });
+  },
   dot: function(style, diameter) {
     if ($.isNumeric(style)) {
       // Allow for parameters in either order.
@@ -1879,6 +1931,13 @@ var turtlefn = {
       eraseBox(elem, ps);
       // Once drawing begins, origin must be stable.
       watchImageToFixOriginOnLoad(elem);
+    });
+  },
+  play: function(notes) {
+    var args = arguments;
+    return this.queue(function() {
+      // playABC will call $(this).dequeue() when song is done.
+      playABC(this, args);
     });
   },
   speed: function(mps) {
@@ -2094,7 +2153,7 @@ var turtlefn = {
           }),
           action = animation.finish = (args ?
           (function() { callback.apply($(elem), args); }) :
-          (function() { callback.call($(elem), j, elem); }));
+          (function() { callback.call($(elem), index, elem); }));
       $.queue(elem, qname, animation);
     }
     var elem, sel, length = this.length, j = 0;
@@ -2142,12 +2201,7 @@ var dollar_turtle_methods = {
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
-  play: function(ops) {
-    var x = arguments;
-    directIfGlobal(function() {
-      play.apply(null, x);
-    });
-  },
+  playnow: function() { playABC(null, arguments); },
   print: function(html) { return output(html, 'div'); },
   random: random,
   hatch: hatch,
@@ -2207,7 +2261,12 @@ $.turtle = function turtle(id, options) {
     $.extend(window, dollar_turtle_methods);
   }
   // Set default turtle speed
-  defaultspeed(options.hasOwnProperty('defaultspeed') ? options.defaultspeed : 1);
+  defaultspeed(options.hasOwnProperty('defaultspeed') ?
+      options.defaultspeed : 1);
+  // Initialize audio context (avoids delay in first notes).
+  try {
+    getAudioTop();
+  } catch (e) { }
   // Find or create a singleton turtle if one does not exist.
   var selector = null;
   if (id) {
@@ -2759,26 +2818,32 @@ function durationToTime(duration) {
   d = (m[2] ? parseFloat(m[2]) : /\//.test(duration) ? 2 : 1);
   return n / d;
 }
-function play(opts) {
+function playABC(elem, args) {
   var atop = getAudioTop(),
-      start_time = atop.ac.currentTime,
+      start_time = atop.ac.currentTime, end_time = start_time,
       firstvoice = 0, voice, freqmult, beatsecs,
-      volume = 0.5, tempo = 120, transpose = 0, type = ['sine'];
-  if ($.isPlainObject(opts)) {
+      volume = 0.5, tempo = 120, transpose = 0, type = ['square'],
+      envelope = {a: 0.01, d: 0.2, s: 0.1, r: 0.1},
+      notes, vtype, time, fingers, strength, i, g, t,
+      atime, slast, rtime, stime, dt, opts;
+  if ($.isPlainObject(args[0])) {
+    opts = args[0];
     if ('volume' in opts) { volume = opts.volume; }
     if ('tempo' in opts) { tempo = opts.tempo; }
     if ('transpose' in opts) { transpose = opts.transpose; }
     if ('type' in opts) { type = opts.type; }
+    if ('envelope' in opts) { $.extend(envelope, opts.envelope); }
     firstvoice = 1;
   }
   voice = firstvoice;
   beatsecs = 60 / tempo;
   freqmult = Math.pow(2, transpose / 12);
   if (!$.isArray(type)) { type = [type]; }
-  for (; voice < arguments.length; voice++) {
-    var notes = parseABCNotes(arguments[voice]),
-        vtype = type[(voice - firstvoice) % type.length] || 'sine',
-        time = start_time, fingers = 0, strength, i;
+  for (; voice < args.length; voice++) {
+    notes = parseABCNotes(args[voice]);
+    vtype = type[(voice - firstvoice) % type.length] || 'square';
+    time = start_time;
+    fingers = 0;
     for (i = 0; i < notes.length; i++) {
       fingers = Math.max(fingers, notes[i].frequency.length);
     }
@@ -2786,21 +2851,21 @@ function play(opts) {
     // Attenuate chorded voice so chorded power matches volume.
     strength = volume / Math.sqrt(fingers);
     for (i = 0; i < notes.length; i++) {
+      t = notes[i].time;
       if (notes[i].frequency.length > 0) {
-        var g = atop.ac.createGainNode(),
-            secs = notes[i].time * beatsecs,
-            envelope, pt;
+        g = atop.ac.createGainNode();
+        stime = t * beatsecs + time;
+        atime = Math.min(t, envelope.a) * beatsecs + time;
+        rtime = Math.max(0, t + envelope.r) * beatsecs + time;
+        if (atime > rtime) { atime = rtime = (atime + rtime) / 2; }
+        if (rtime < stime) { stime = rtime; rtime = t * beatsecs + time; }
+        dt = envelope.d * beatsecs;
         g.gain.setValueAtTime(0, time);
-        envelope = [
-          {v: 1.0, t: Math.min(0.01 * beatsecs, 0.1 * secs)},
-          {v: 0.9, t: Math.min(0.05 * beatsecs, 0.2 * secs)},
-          {v: 0.6, t: Math.min(secs - 0.05 * beatsecs, 0.9 * secs)},
-          {v: 0.0, t: secs}
-        ];
-        for (var e = 0; e < envelope.length; e++) {
-          pt = envelope[e];
-          g.gain.linearRampToValueAtTime(pt.v * strength, time + pt.t);
-        }
+        g.gain.linearRampToValueAtTime(strength, atime);
+        g.gain.setTargetAtTime(envelope.s * strength, atime, dt);
+        slast = envelope.s + (1 - envelope.s) * Math.exp((atime - stime) / dt);
+        g.gain.setValueAtTime(slast * strength, stime);
+        g.gain.linearRampToValueAtTime(0, rtime);
         g.connect(atop.out);
         for (var x = 0; x < notes[i].frequency.length; x++) {
           var o = atop.ac.createOscillator();
@@ -2808,11 +2873,22 @@ function play(opts) {
           o.frequency.value = notes[i].frequency[x] * freqmult;
           o.connect(g);
           o.start(time);
-          o.stop(time + secs);
+          o.stop(rtime);
         }
       }
-      time += notes[i].time * beatsecs;
+      time += t * beatsecs;
     }
+    end_time = Math.max(end_time, time);
+  }
+  function callDequeueWhenDone() {
+    if (atop.ac.currentTime < end_time) {
+      setTimeout(callDequeueWhenDone, (end_time - atop.ac.currentTime) * 1000);
+    } else {
+      $(elem).dequeue();
+    }
+  }
+  if (elem) {
+    callDequeueWhenDone();
   }
 }
 
