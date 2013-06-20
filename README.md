@@ -14,28 +14,6 @@ a turtle to draw on a full-document canvas as it moves.
   $('#turtle').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
 </pre>
 
-The plugin can also create a default turtle that is controlled
-by simple global functions, to provide an intuitive LOGO-like
-environment that is designed for learning.  For example, the
-following is a complete CoffeeScript program that uses jQuery
-and jQuery-turtle to render a grid of colored polygons.
-
-<pre>
-  eval $.turtle()
-  speed 100
-  rt 90
-  for color in ['red', 'gold', 'green', 'blue']
-    for sides in [3..6]
-      pen color
-      for x in [1..sides]
-        fd 100 / sides
-        lt 360 / sides
-      fd 40
-</pre>
-
-[Try an interactive demo (CoffeeScript syntax) here.](
-http://davidbau.github.io/jquery-turtle/demo.html)
-
 jQuery-turtle provides:
   * Relative and absolute motion and drawing.
   * Functions to ease basic input, output, and game-making for beginners.
@@ -43,6 +21,29 @@ jQuery-turtle provides:
   * Accurate collision-testing of turtles with arbitrary convex hulls.
   * Simplified access to CSS3 transforms, jQuery animations, Canvas, and Web Audio.
   * An interactive turtle console in either Javascript or CoffeeScript.
+
+The plugin can also create a learning environment with a default
+turtle that is friendly for beginners.  For example, the following
+is a complete CoffeeScript program that uses the default turtle to
+render a grid of sixteen colored polygons.
+
+<pre>
+  eval $.turtle() # create the default turtle
+
+  speed 100
+  for color in ['red', 'gold', 'green', 'blue']
+    for sides in [3..6]
+      pen color
+      for x in [1..sides]
+        fd 100 / sides
+        lt 360 / sides
+      pen 'none'
+      fd 40
+    move 40, -160
+</pre>
+
+[Try an interactive demo (CoffeeScript syntax) here.](
+http://davidbau.github.io/jquery-turtle/demo.html)
 
 Brief summary of the turtle API below.
 
@@ -68,8 +69,8 @@ Turtle-oriented methods that operate on a jQuery object:
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
-  $(x).erase()      // Erases canvas under the turtle collision hull.
-  $(x).img('blue')  // Switch the turtle to a blue picture.  May use any url.
+  $(x).erase()      // Erases the canvas under the turtle collision hull.
+  $(x).img('blue')  // Switches the turtle to a blue picture.  Use any url.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its main axis.
@@ -158,31 +159,33 @@ In detail, after eval($.turtle()):
   playnow('CEG')        // Plays musical notes now, without queueing.
 </pre>
 
-For example, after eval($.turtle()), the following is a valid CoffeeScript
-program:
+Here is another CoffeeScript example that demonstrates some of
+the functions:
 
 <pre>
-defaultspeed Infinity
-print "Catch blue before red gets you."
-bk 100
-r = hatch 'red'
-b = hatch 'blue'
-tick 10, ->
-  turnto lastmousemove
-  fd 6
-  r.turnto turtle
-  r.fd 4
-  b.turnto bearing b
-  b.fd 3
-  if b.touches(turtle)
-    print "You win!"
-    tick off
-  else if r.touches(turtle)
-    print "Red got you!"
-    tick off
-  else if not b.touches(document)
-    print "Blue got away!"
-    tick off
+  eval $.turtle() # Create the default turtle and global functions.
+  
+  defaultspeed Infinity
+  print "Catch blue before red gets you."
+  bk 100
+  r = hatch 'red'
+  b = hatch 'blue'
+  tick 10, ->
+    turnto lastmousemove
+    fd 6
+    r.turnto turtle
+    r.fd 4
+    b.turnto bearing b
+    b.fd 3
+    if b.touches(turtle)
+      print "You win!"
+      tick off
+    else if r.touches(turtle)
+      print "Red got you!"
+      tick off
+    else if not b.touches(document)
+      print "Blue got away!"
+      tick off
 </pre>
 
 The turtle teaching environment is designed to work well with either
