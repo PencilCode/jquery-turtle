@@ -2851,9 +2851,9 @@ function durationToTime(duration) {
 function playABC(elem, args) {
   var atop = getAudioTop(),
       start_time = atop.ac.currentTime, end_time = start_time,
-      firstvoice = 0, voice, freqmult, beatsecs,
+      firstvoice = 0, argindex, voice, freqmult, beatsecs,
       volume = 0.5, tempo = 120, transpose = 0, type = ['square'],
-      envelope = {a: 0.01, d: 0.2, s: 0.1, r: 0.1},
+      venv = {a: 0.01, d: 0.2, s: 0.1, r: 0.1}, envelope = [venv],
       notes, vtype, time, fingers, strength, i, g, t,
       atime, slast, rtime, stime, dt, opts;
   if ($.isPlainObject(args[0])) {
@@ -2862,16 +2862,26 @@ function playABC(elem, args) {
     if ('tempo' in opts) { tempo = opts.tempo; }
     if ('transpose' in opts) { transpose = opts.transpose; }
     if ('type' in opts) { type = opts.type; }
-    if ('envelope' in opts) { $.extend(envelope, opts.envelope); }
+    if ('envelope' in opts) {
+      if ($.isArray(opts.envelope)) {
+        envelope = []
+        for (i = 0; i < opts.envelope.length; i++) {
+          envelope.push($.extend({}, venv, opts.envelope[i]));
+        }
+      } else {
+        $.extend(venv, opts.envelope);
+      }
+    }
     firstvoice = 1;
   }
-  voice = firstvoice;
   beatsecs = 60 / tempo;
-  freqmult = Math.pow(2, transpose / 12);
   if (!$.isArray(type)) { type = [type]; }
-  for (; voice < args.length; voice++) {
-    notes = parseABCNotes(args[voice]);
-    vtype = type[(voice - firstvoice) % type.length] || 'square';
+  if (!$.isArray(volume)) { volume = [volume]; }
+  if (!$.isArray(transpose)) { transpose= [transpose]; }
+  for (argindex = firstvoice; argindex < args.length; argindex++) {
+    voice = argindex - firstvoice;
+    notes = parseABCNotes(args[argindex]);
+    vtype = type[voice % type.length] || 'square';
     time = start_time;
     fingers = 0;
     for (i = 0; i < notes.length; i++) {
@@ -2879,21 +2889,23 @@ function playABC(elem, args) {
     }
     if (fingers == 0) { continue; }
     // Attenuate chorded voice so chorded power matches volume.
-    strength = volume / Math.sqrt(fingers);
+    strength = volume[voice % volume.length] / Math.sqrt(fingers);
+    venv = envelope[voice % envelope.length];
+    freqmult = Math.pow(2, transpose[voice % transpose.length] / 12);
     for (i = 0; i < notes.length; i++) {
       t = notes[i].time;
       if (notes[i].frequency.length > 0) {
         g = atop.ac.createGainNode();
         stime = t * beatsecs + time;
-        atime = Math.min(t, envelope.a) * beatsecs + time;
-        rtime = Math.max(0, t + envelope.r) * beatsecs + time;
+        atime = Math.min(t, venv.a) * beatsecs + time;
+        rtime = Math.max(0, t + venv.r) * beatsecs + time;
         if (atime > rtime) { atime = rtime = (atime + rtime) / 2; }
         if (rtime < stime) { stime = rtime; rtime = t * beatsecs + time; }
-        dt = envelope.d * beatsecs;
+        dt = venv.d * beatsecs;
         g.gain.setValueAtTime(0, time);
         g.gain.linearRampToValueAtTime(strength, atime);
-        g.gain.setTargetAtTime(envelope.s * strength, atime, dt);
-        slast = envelope.s + (1 - envelope.s) * Math.exp((atime - stime) / dt);
+        g.gain.setTargetAtTime(venv.s * strength, atime, dt);
+        slast = venv.s + (1 - venv.s) * Math.exp((atime - stime) / dt);
         g.gain.setValueAtTime(slast * strength, stime);
         g.gain.linearRampToValueAtTime(0, rtime);
         g.connect(atop.out);
