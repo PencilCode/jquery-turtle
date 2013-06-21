@@ -4,7 +4,7 @@
 jQuery-turtle
 =============
 
-version 2.0.5
+version 2.0.6
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -67,7 +67,7 @@ the default turtle, if used):
   $(x).play("ccgg") // Plays notes using ABC notation.
 
   // Methods below happen in an instant, but line up in the animation queue.
-  $(x).home()       // Moves to the origin of the document, with bearing 0.
+  $(x).home()       // Moves to the center of the document, with bearing 0.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).fill('pink') // Fills a shape previously outlined using pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
@@ -83,14 +83,14 @@ the default turtle, if used):
                     // and the callback fn can insert into the animation queue.
 
   // Methods below this line do not queue for animation.
-  $(x).origin()     // Page coordinate of the turtle's transform-origin.
+  $(x).center()     // Page coordinate of the turtle's transform-origin.
   $(x).bearing([p]) // The turtles absolute direction (or direction towards p).
   $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).within(d, t) // Filters to items with origins within d of t.origin().
+  $(x).within(d, t) // Filters to items with centers within d of t.center().
   $(x).notwithin()  // The negation of within.
   $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
 </pre>
@@ -108,7 +108,7 @@ movement, use the global function playnow() instead of the turtle
 method play().
 
 The absolute motion methods moveto and turnto accept any object
-that has pageX and pageY properties (or an origin() method that will
+that has pageX and pageY properties (or an center() method that will
 return such an object), including, usefully, mouse events.
 Moveto and turnto operate in absolute page coordinates and work
 properly even when the turtle is nested within further CSS
@@ -150,7 +150,7 @@ $.turtle() are as follows:
   keypress              // The last keypress event.
   defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
-  random(n)             // Returns a random number [0...n-1].
+  random(n)             // Returns a random number [0..n-1].
   random(list)          // Returns a random element of the list.
   random('normal')      // Returns a gaussian random (mean 0 stdev 1).
   random('uniform')     // Returns a uniform random [0...1).
@@ -773,11 +773,33 @@ function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
       subtractVector([target.pageX, target.pageY], origin));
   if (localx || localy) {
     var ts = readTurtleTransform(elem, true),
-        r = (ts || 0) && convertToRadians(ts.rot);
-    localTarget[0] += Math.cos(r) * localx + Math.sin(r) * localy;
-    localTarget[1] += Math.sin(r) * localx - Math.cos(r) * localy;
+        sx = ts ? ts.sx : 1,
+        sy = ts ? ts.sy : 1;
+    localTarget[0] += localx * sx;
+    localTarget[1] -= localy * sy;
   }
   return cssNum(localTarget[0]) + ' ' + cssNum(localTarget[1]);
+}
+
+// Compute the start position and the turtle location in local turtle
+// coordinates; return the local offset from the start position.
+function computePositionAsLocalOffset(elem, start) {
+  var totalParentTransform = totalTransform2x2(elem.parentElement),
+      inverseParent = inverse2x2(totalParentTransform),
+      hidden = ($.css(elem, 'display') === 'none'),
+      swapout = hidden ?
+        { position: "absolute", visibility: "hidden", display: "block" } : {},
+      substTransform = swapout[transform] = (inverseParent ? 'matrix(' +
+          $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
+      gbcr = cleanSwap(elem, swapout, readPageGbcr),
+      middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
+      origin = addVector([gbcr.left, gbcr.top], middle),
+      ts = readTurtleTransform(elem, true),
+      localStart = inverseParent && matrixVectorProduct(inverseParent,
+          subtractVector([start.pageX, start.pageY], origin));
+  if (!inverseParent) { return; }
+  return [(ts.tx - localStart[0]) / ts.sx,
+          (localStart[1] - ts.ty) / ts.sy];
 }
 
 // Uses getBoundingClientRect to figure out current position in page
@@ -1732,7 +1754,7 @@ function withinOrNot(obj, within, distance, x, y) {
   }
   var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
     isPageCoordinate(x) ? x :
-    $(x).origin(),
+    $(x).center(),
     d2 = distance * distance;
   return obj.filter(function() {
     var gbcr = getPageGbcr(this);
@@ -1825,23 +1847,27 @@ var turtlefn = {
   bk: function(amount) {
     return this.fd(-amount);
   },
-  move: function(amount, y) {
-    var sideways = 0;
-    if (y !== undefined) {
-      sideways = amount;
-      amount = y;
-    }
+  slide: function(x, y) {
+    if (!y) { y = 0; }
+    if (!x) { x = 0; }
     return this.direct(function(j, elem) {
       this.animate({turtlePosition:
-          displacedPosition(elem, amount, sideways)}, animTime(elem));
+          displacedPosition(elem, y, x)}, animTime(elem));
     });
   },
   moveto: function(position, limit, y) {
-    if ($.isNumeric(position) && $.isNumeric(limit)) {
-      position = { pageX: parseFloat(position), pageY: parseFloat(limit) };
+    var localx = 0, localy = 0;
+    if ($.isNumeric(position) && $.isNumeric(limit) && !y) {
+      localx = parseFloat(position);
+      localy = parseFloat(limit);
+      position = $(document).center();
+      limit = null;
+    } else if ($.isArray(position) && !limit & !y) {
+      localx = position[0];
+      localy = position[1];
+      position = $(document).center();
       limit = null;
     }
-    var localx = 0, localy = 0;
     if ($.isNumeric(y) && $.isNumeric(limit)) {
       localx = limit;
       localy = y;
@@ -1849,7 +1875,7 @@ var turtlefn = {
     }
     return this.direct(function(j, elem) {
       var pos = position;
-      if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
+      if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
       if (!pos || !isPageCoordinate(pos)) return this;
       if ($.isWindow(elem)) {
         scrollWindowToDocumentPosition(pos, limit);
@@ -1867,8 +1893,8 @@ var turtlefn = {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       var dir = bearing;
       if (!$.isNumeric(bearing)) {
-        var pos = bearing, cur = $(elem).origin();
-        if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
+        var pos = bearing, cur = $(elem).center();
+        if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
         if (!pos || !isPageCoordinate(pos)) return;
         dir = radiansToDegrees(
             Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
@@ -1883,7 +1909,7 @@ var turtlefn = {
       this.css({turtlePenDown: 'up' });
       this.css({
         turtlePosition:
-          computeTargetAsTurtlePosition(elem, $(document).origin(), null, 0, 0),
+          computeTargetAsTurtlePosition(elem, $(document).center(), null, 0, 0),
         turtleRotation: 0});
       this.css({turtlePenDown: down });
     });
@@ -1916,7 +1942,7 @@ var turtlefn = {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
-      var c = this.origin(),
+      var c = this.center(),
           ts = readTurtleTransform(elem, true);
       // Scale by sx.  (TODO: consider parent transforms.)
       fillDot(c, diameter * ts.sx, ps);
@@ -1952,15 +1978,15 @@ var turtlefn = {
       applyImg(this, img);
     });
   },
-  mark: function(html, fn) {
+  label: function(html, fn) {
     return this.direct(function() {
-      var out = output(html, 'mark').css({
+      var out = output(html, 'label').css({
         position: 'absolute',
         display: 'inline-block'
       }).addClass('turtle');
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
-            out.get(0), this.origin(), null, 0, 0)
+            out.get(0), this.center(), null, 0, 0)
       });
       if ($.isFunction(fn)) {
         out.direct(fn);
@@ -1981,17 +2007,21 @@ var turtlefn = {
       }
     });
   },
-  origin: function() {
+  center: function() {
     if (!this.length) return;
     return getCenterInPageCoordinates(this[0]);
+  },
+  getxy: function() {
+    if (!this.length) return;
+    return computePositionAsLocalOffset(this[0], $(document).center());
   },
   bearing: function(pos, y) {
     if (!this.length) return;
     var elem = this[0], dir, cur;
     if (pos !== undefined) {
-      cur = $(elem).origin();
+      cur = $(elem).center();
       if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
-      else if (!isPageCoordinate(pos)) { pos = $(pos).origin(); }
+      else if (!isPageCoordinate(pos)) { pos = $(pos).center(); }
       return radiansToDegrees(
           Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
     }
@@ -2000,9 +2030,9 @@ var turtlefn = {
   },
   distance: function(pos, y) {
     if (!this.length) return;
-    var elem = this[0], dx, dy, cur = $(elem).origin();
+    var elem = this[0], dx, dy, cur = $(elem).center();
     if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
-    else if (!isPageCoordinate(pos)) { pos = $(pos).origin(); }
+    else if (!isPageCoordinate(pos)) { pos = $(pos).center(); }
     dx = pos.pageX - cur.pageX;
     dy = pos.pageY - cur.pageY;
     return Math.sqrt(dx * dx + dy * dy);
@@ -2984,7 +3014,7 @@ function seeeval(scope, code) {
 
 var varpat = '[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*';
 var initialvardecl = new RegExp(
-  '^\\s*var\\s+(?:' + varpat + '\\s*,)*' + varpat + '\\s*;\\s*');
+  '^\\s*var\\s+(?:' + varpat + '\\s*,\\s*)*' + varpat + '\\s*;\\s*');
 
 function barecs(s) {
   // Compile coffeescript in bare mode.

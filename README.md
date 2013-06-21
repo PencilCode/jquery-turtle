@@ -1,7 +1,7 @@
 jQuery-turtle
 =============
 
-version 2.0.5
+version 2.0.6
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -64,7 +64,7 @@ the default turtle, if used):
   $(x).play("ccgg") // Plays notes using ABC notation.
 
   // Methods below happen in an instant, but line up in the animation queue.
-  $(x).home()       // Moves to the origin of the document, with bearing 0.
+  $(x).home()       // Moves to the center of the document, with bearing 0.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).fill('pink') // Fills a shape previously outlined using pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
@@ -80,14 +80,14 @@ the default turtle, if used):
                     // and the callback fn can insert into the animation queue.
 
   // Methods below this line do not queue for animation.
-  $(x).origin()     // Page coordinate of the turtle's transform-origin.
+  $(x).center()     // Page coordinate of the turtle's transform-origin.
   $(x).bearing([p]) // The turtles absolute direction (or direction towards p).
   $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).within(d, t) // Filters to items with origins within d of t.origin().
+  $(x).within(d, t) // Filters to items with centers within d of t.center().
   $(x).notwithin()  // The negation of within.
   $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
 </pre>
@@ -105,7 +105,7 @@ movement, use the global function playnow() instead of the turtle
 method play().
 
 The absolute motion methods moveto and turnto accept any object
-that has pageX and pageY properties (or an origin() method that will
+that has pageX and pageY properties (or an center() method that will
 return such an object), including, usefully, mouse events.
 Moveto and turnto operate in absolute page coordinates and work
 properly even when the turtle is nested within further CSS
@@ -147,7 +147,7 @@ $.turtle() are as follows:
   keypress              // The last keypress event.
   defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
-  random(n)             // Returns a random number [0...n-1].
+  random(n)             // Returns a random number [0..n-1].
   random(list)          // Returns a random element of the list.
   random('normal')      // Returns a gaussian random (mean 0 stdev 1).
   random('uniform')     // Returns a uniform random [0...1).
