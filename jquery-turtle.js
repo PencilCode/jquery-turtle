@@ -2758,6 +2758,9 @@ function table(width, height, cellCss, tableCss) {
 
 var ABCtoken = /\s+|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\d*\/\d+|\d+|\/+|[xzXZ]|./g;
 var audioTop = null;
+function isAudioPresent() {
+  return !!(window.audioContext || window.webkitAudioContext);
+}
 function getAudioTop() {
   if (!audioTop) {
     var ac = new (window.audioContext || window.webkitAudioContext),
@@ -2849,6 +2852,10 @@ function durationToTime(duration) {
   return n / d;
 }
 function playABC(elem, args) {
+  if (!isAudioPresent()) {
+    if (elem) { $(elem).dequeue(); }
+    return;
+  }
   var atop = getAudioTop(),
       start_time = atop.ac.currentTime, end_time = start_time,
       firstvoice = 0, argindex, voice, freqmult, beatsecs,
