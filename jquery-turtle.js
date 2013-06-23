@@ -42,7 +42,7 @@ sixteen colored polygons.
         lt 360 / sides
       pen 'none'
       fd 40
-    move 40, -160
+    slide 40, -160
 </pre>
 
 [Try an interactive demo (CoffeeScript syntax) here.](
@@ -61,13 +61,13 @@ the default turtle, if used):
   $(x).bk(50)       // Back.
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
-  $(x).move(x, y)   // Move right by x while moving forward by y.
-  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion on page.
-  $(x).turnto(bearing || position)      // Absolute direction adjustment.
+  $(x).slide(x, y)  // Move right by x while moving forward by y.
+  $(x).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
+  $(x).turnto(bearing || position)        // Absolute direction adjustment.
   $(x).play("ccgg") // Plays notes using ABC notation.
 
   // Methods below happen in an instant, but line up in the animation queue.
-  $(x).home()       // Moves to the center of the document, with bearing 0.
+  $(x).home()       // Jumps to the center of the document, with bearing 0.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).fill('pink') // Fills a shape previously outlined using pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
@@ -83,7 +83,8 @@ the default turtle, if used):
                     // and the callback fn can insert into the animation queue.
 
   // Methods below this line do not queue for animation.
-  $(x).center()     // Page coordinate of the turtle's transform-origin.
+  $(x).getxy()      // Local (center-y-up [x, y]) coordinates of the turtle.
+  $(x).pagexy()     // Page (topleft-y-down {pageX:x, pageY:y}) coordinates.
   $(x).bearing([p]) // The turtles absolute direction (or direction towards p).
   $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
@@ -800,6 +801,18 @@ function computePositionAsLocalOffset(elem, start) {
   if (!inverseParent) { return; }
   return [(ts.tx - localStart[0]) / ts.sx,
           (localStart[1] - ts.ty) / ts.sy];
+}
+
+function convertLocalXyToPageCoordinaes(elem, localxy) {
+  var totalParentTransform = totalTransform2x2(elem.parentElement),
+      ts = readTurtleTransform(elem, true),
+      pageOffset = matrixVectorProduct(
+          totalParentTransform, [localxy[0] * ts.sx, -localxy[1] * ts.sy]),
+      center = $(window).pagexy(),
+      result = {pageX: center.pageX + pageOffset[0],
+                pageY: center.pageY + pageOffset[1] };
+  see(result);
+  return result;
 }
 
 // Uses getBoundingClientRect to figure out current position in page
@@ -1754,7 +1767,7 @@ function withinOrNot(obj, within, distance, x, y) {
   }
   var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
     isPageCoordinate(x) ? x :
-    $(x).center(),
+    $(x).pagexy(),
     d2 = distance * distance;
   return obj.filter(function() {
     var gbcr = getPageGbcr(this);
@@ -1860,12 +1873,12 @@ var turtlefn = {
     if ($.isNumeric(position) && $.isNumeric(limit) && !y) {
       localx = parseFloat(position);
       localy = parseFloat(limit);
-      position = $(document).center();
+      position = $(document).pagexy();
       limit = null;
     } else if ($.isArray(position) && !limit & !y) {
       localx = position[0];
       localy = position[1];
-      position = $(document).center();
+      position = $(document).pagexy();
       limit = null;
     }
     if ($.isNumeric(y) && $.isNumeric(limit)) {
@@ -1875,7 +1888,7 @@ var turtlefn = {
     }
     return this.direct(function(j, elem) {
       var pos = position;
-      if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
+      if (pos && !isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
       if (!pos || !isPageCoordinate(pos)) return this;
       if ($.isWindow(elem)) {
         scrollWindowToDocumentPosition(pos, limit);
@@ -1893,8 +1906,14 @@ var turtlefn = {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       var dir = bearing;
       if (!$.isNumeric(bearing)) {
-        var pos = bearing, cur = $(elem).center();
-        if (pos && !isPageCoordinate(pos)) { pos = $(pos).center(); }
+        var pos = bearing, cur = $(elem).pagexy();
+        if (pos) {
+          if ($.isArray(pos)) {
+            pos = convertLocalXyToPageCoordinaes(elem, pos);
+          } else if (!isPageCoordinate(pos)) {
+            pos = $(pos).pagexy();
+          }
+        }
         if (!pos || !isPageCoordinate(pos)) return;
         dir = radiansToDegrees(
             Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
@@ -1909,7 +1928,7 @@ var turtlefn = {
       this.css({turtlePenDown: 'up' });
       this.css({
         turtlePosition:
-          computeTargetAsTurtlePosition(elem, $(document).center(), null, 0, 0),
+          computeTargetAsTurtlePosition(elem, $(document).pagexy(), null, 0, 0),
         turtleRotation: 0});
       this.css({turtlePenDown: down });
     });
@@ -1942,7 +1961,7 @@ var turtlefn = {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
-      var c = this.center(),
+      var c = this.pagexy(),
           ts = readTurtleTransform(elem, true);
       // Scale by sx.  (TODO: consider parent transforms.)
       fillDot(c, diameter * ts.sx, ps);
@@ -1986,7 +2005,7 @@ var turtlefn = {
       }).addClass('turtle');
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
-            out.get(0), this.center(), null, 0, 0)
+            out.get(0), this.pagexy(), null, 0, 0)
       });
       if ($.isFunction(fn)) {
         out.direct(fn);
@@ -2007,21 +2026,21 @@ var turtlefn = {
       }
     });
   },
-  center: function() {
+  pagexy: function() {
     if (!this.length) return;
     return getCenterInPageCoordinates(this[0]);
   },
   getxy: function() {
     if (!this.length) return;
-    return computePositionAsLocalOffset(this[0], $(document).center());
+    return computePositionAsLocalOffset(this[0], $(document).pagexy());
   },
   bearing: function(pos, y) {
     if (!this.length) return;
     var elem = this[0], dir, cur;
     if (pos !== undefined) {
-      cur = $(elem).center();
+      cur = $(elem).pagexy();
       if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
-      else if (!isPageCoordinate(pos)) { pos = $(pos).center(); }
+      else if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
       return radiansToDegrees(
           Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
     }
@@ -2030,9 +2049,9 @@ var turtlefn = {
   },
   distance: function(pos, y) {
     if (!this.length) return;
-    var elem = this[0], dx, dy, cur = $(elem).center();
+    var elem = this[0], dx, dy, cur = $(elem).pagexy();
     if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
-    else if (!isPageCoordinate(pos)) { pos = $(pos).center(); }
+    else if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
     dx = pos.pageX - cur.pageX;
     dy = pos.pageY - cur.pageY;
     return Math.sqrt(dx * dx + dy * dy);

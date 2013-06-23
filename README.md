@@ -39,7 +39,7 @@ sixteen colored polygons.
         lt 360 / sides
       pen 'none'
       fd 40
-    move 40, -160
+    slide 40, -160
 </pre>
 
 [Try an interactive demo (CoffeeScript syntax) here.](
@@ -58,13 +58,13 @@ the default turtle, if used):
   $(x).bk(50)       // Back.
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
-  $(x).move(x, y)   // Move right by x while moving forward by y.
-  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion on page.
-  $(x).turnto(bearing || position)      // Absolute direction adjustment.
+  $(x).slide(x, y)  // Move right by x while moving forward by y.
+  $(x).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
+  $(x).turnto(bearing || position)        // Absolute direction adjustment.
   $(x).play("ccgg") // Plays notes using ABC notation.
 
   // Methods below happen in an instant, but line up in the animation queue.
-  $(x).home()       // Moves to the center of the document, with bearing 0.
+  $(x).home()       // Jumps to the center of the document, with bearing 0.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
   $(x).fill('pink') // Fills a shape previously outlined using pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
@@ -80,7 +80,8 @@ the default turtle, if used):
                     // and the callback fn can insert into the animation queue.
 
   // Methods below this line do not queue for animation.
-  $(x).center()     // Page coordinate of the turtle's transform-origin.
+  $(x).getxy()      // Local (center-y-up [x, y]) coordinates of the turtle.
+  $(x).pagexy()     // Page (topleft-y-down {pageX:x, pageY:y}) coordinates.
   $(x).bearing([p]) // The turtles absolute direction (or direction towards p).
   $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
