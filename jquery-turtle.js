@@ -1526,6 +1526,8 @@ function eraseBox(elem, style) {
 
 function applyImg(sel, img) {
   if (sel[0].tagName == 'IMG') {
+    sel[0].src = '';
+    sel[0].style.backgroundImage = '';
     sel[0].src = img.url;
     sel.css(img.css);
   } else {
@@ -2408,10 +2410,66 @@ function onDOMNodeRemoved(e) {
 }
 
 function isCSSColor(color) {
-  if (!/^[a-z]+$/i.exec(color)) { return false; }
+  if (!/^[a-z]+$|^(?:rgb|hsl)a?\([^)]*\)$|^\#[a-f0-9]{3}(?:[a-f0-9]{3})?$/i
+      .exec(color)) {
+    return false;
+  }
   var d = document.createElement('div'), unset = d.style.color;
   d.style.color = color;
   return (unset != d.style.color);
+}
+
+
+function createTurtleShellOfColor(color) {
+  var c = document.createElement('canvas');
+  c.width = 40;
+  c.height = 48;
+  var ctx = c.getContext('2d'),
+      cx = 20,
+      cy = 26;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 16, 0, 2 * Math.PI, false);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.beginPath();
+  // Half of a symmetric turtle shell pattern.
+  var pattern = [
+    [[5, -14], [3, -11]],
+    [[3, -11], [7, -8], [4, -4]],
+    [[4, -4], [7, 0], [4, 4]],
+    [[4, 4], [7, 8], [3, 11]],
+    [[7, -8], [11, -9], null],
+    [[7, 0], [14, 0], null],
+    [[8, 8], [10, 10], null],
+    [[3, 11], [1, 14], null]
+  ];
+  for (var j = 0; j < pattern.length; j++) {
+    var path = pattern[j], connect = true;
+    ctx.moveTo(cx + path[0][0], cy + path[0][1]);
+    for (var k = 1; k < path.length; k++) {
+      if (path[k] !== null) {
+        ctx.lineTo(cx + path[k][0], cy + path[k][1]);
+      }
+    }
+    for (var k = path.length - 1; k >= 0; k--) {
+      if (path[k] === null) {
+        k--;
+        ctx.moveTo(cx - path[k][0], cy + path[k][1]);
+      } else {
+        ctx.lineTo(cx - path[k][0], cy + path[k][1]);
+      }
+    }
+  }
+  ctx.lineWidth = 1
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 16, 0, 2 * Math.PI, false);
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.stroke();
+  return c.toDataURL();
 }
 
 function createPointerOfColor(color) {
@@ -2460,6 +2518,7 @@ function hatch(count, spec) {
 }
 
 function nameToImg(name) {
+  /*
   if (name == 'turtle') return {
     url: turtleGIFUrl,
     css: {
@@ -2470,6 +2529,21 @@ function nameToImg(name) {
       opacity: 0.5
     }
   };
+  */
+  if (name == 'turtle') { name = 'transparent'; }
+  if (isCSSColor(name)) return {
+    url: createTurtleShellOfColor(name),
+    css: {
+      width: 20,
+      height: 24,
+      turtleHull: "-8 -5 -8 6 0 -13 8 6 8 -5 0 9",
+      transformOrigin: '10px 13px',
+      opacity: 0.5,
+      background: 'url(' + turtleGIFUrl + ')',
+      backgroundSize: 'contain'
+    }
+  };
+  /*
   if (isCSSColor(name)) return {
     url: createPointerOfColor(name),
     css: {
@@ -2480,6 +2554,7 @@ function nameToImg(name) {
       opacity: 0.8
     }
   };
+  */
   var openicon =
     /^openicon:\/?\/?([^@\/][^@]*)(?:@(?:(\d+):)?(\d+))?$/.exec(name);
   if (openicon) {
