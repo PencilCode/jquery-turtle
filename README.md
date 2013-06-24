@@ -66,12 +66,12 @@ the default turtle, if used):
   // Methods below happen in an instant, but line up in the animation queue.
   $(x).home()       // Jumps to the center of the document, with bearing 0.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
-  $(x).fill('pink') // Fills a shape previously outlined using pen('path').
+  $(x).fill('gold') // Fills a shape previously outlined using pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
-  $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
+  $(x).label('A')   // Prints an HTML label at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).erase()      // Erases the canvas under the turtle collision hull.
-  $(x).img('blue')  // Switches the turtle to a blue picture.  Use any url.
+  $(x).wear('blue') // Switches to a blue shell.  Use any image or color.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its main axis.
