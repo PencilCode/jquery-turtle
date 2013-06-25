@@ -2239,7 +2239,7 @@ $.fn.extend(turtlefn);
 // * Sets up a global "hatch" function to make a new turtle.
 //////////////////////////////////////////////////////////////////////////
 
-var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPIDAAFsOACSRTCuSP///wAAAAAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFZAADACwAAAAAKAAwAAAC0ZyPqcvtByJ49EWBRaw8gZxNXfeB4ciVpoZWQLAGYuu8cBbI9JP3frCz/HQjmWSm+PhYI5WA6HFiNiQndBC5xagureboXWGMx2My/BSr09vz+g1/Ig2vuH01p9fv9zwEfUcGVsNn4mdRCHJImDjVIsW32ADZ99joiEJpJ8mgGce54AkHmnTJ1GRK6pFqean6x9oEaCcoARQq6opr+uaXG4uwJ2erJpjTtnoCAcmlV5Z3gelxc5Wp2Cn9qPWCffpYNpkdhOg9zvi6U4ee3mzu3lAAACH5BAVkAAQALAAAAAAoADAAAAPFOLrc/jDKBSqYeJLNd/5N14GkKJKfOaKYyrGtS8BTYN84ran6bkaWSqAkewACgqTgkpGdKEhlhREEOK8cpSDAVBwF2LCIS41qz+h0mkxVu99adhtOP3O7jHtQ7ETxeX5/T0SCL4GFHoeILIiGhIuKhYyNM5GCk42YkI+SKAB1a3gNehaUjg6foKBTRqqqrA2prnWiXmZKAY24tQNVFiFFFFq8ID+oUsQpp3NJyU3LC1y7OitGVdTQPRDV2hOfct0Sv+HkDQkAOw==";
+var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPEDAAFsOACSRTCuSAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQJZAADACwAAAAAKAAwAAACzpyPqcvtByJ49EWBRaw8gZxNXfeB4ciVpoZWqim2zhfUNivP9h7EOQPg9VqSDVDocwUyQ8UFlrS8mobIciXoRRtBULGLBWm/EudVHA6fxVFw+v2mQtbwundhteuz2yp9z/cVMAPIhvIC2EdYiKHIxdhIBIkzgrjnCDSJiacpCbnp1HkoWklKYqo0KUfhxjhWBmQ5ibFaJTsbGYob1nb2+kdbVLNS++Lz5JVEBguhEmQW/GOcSUl09sxZffj1qP2zCPo9QBMuXVMubSS+/lAAACH5BAVkAAMALAEAAQAmAC4AAALNnI9pwKAP4wKiCiZzpLY6DR5c54XhSH5mhnbqugnBTF8wS+fBez+AvuvhdDxEA3NqXYqDnyXIcpIqu5fU8zlqr9OntgPlPrtk2TQcKKvXMpWSDYcu0vB6NVE90uskOY6fsvIGxxQDaFEIMciW6HOIKPhYYrK41qhQqXaZkFm2aSRpQxn6KUIaKVnatHfoZ6TF2sokFopY1PmIZFrryRkrk0dLpef1usXDMKXb5CIk5TqwY+s8idncw1EoPYxdjanVLSqk4aTqPGOOvaxRAAA7"
 
 var eventfn = { click:1, mouseup:1, mousedown:1, mousemove:1,
     keydown:1, keypress:1, keyup:1 };
