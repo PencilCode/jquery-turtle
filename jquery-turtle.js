@@ -2239,7 +2239,7 @@ $.fn.extend(turtlefn);
 // * Sets up a global "hatch" function to make a new turtle.
 //////////////////////////////////////////////////////////////////////////
 
-var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAvAPIHAAFsOACSRQ2ZRQySQzCuSBygRQ+DPv///yH5BAlkAAcAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAKAAvAAAD/ni63P4wygVqnVjWQnoBWdgAXdmBYkiaJZpiK0u4ryafNUwYw0AUHFruARgEjkiBcOgAAJ+FwXJSMcwglqwlFcMxskZkIbDNAKwmlOUoQB4JyDK1a7AMxm4k3K3NNlkVRwVteQF4bnVnJR9/J0VihQKHeU4mjCMzhYN5m5EfgE2BeQJ7eoUBkm10RKeGeKQEhGKHfaynpIMCkrF6kxcRRbJuk3o/HcJkGndAsqSnHW/Iv7aoHEDQhaVAeXXA2YvIpYaFUwdnz4S4gxy6b+RYBs+ci0+wUJdNrcSubri6AgMAlhPVT1w0NwbjeBvmoWCehAG6YWFzTBcvNsT2RSxnfM5atlkO3y28BQcWw30cFQBoBYseM5NxtBBZqUkWB4Pbjji5OYVgEmIXHVYqYYBIpmHIOhWqAwoTASlJkKGSSqbLjCUxqjjzRK7PNAqWqrQKYPCrjRYqaWqKKaILPnNrIm40C8OAgQ8cZTIx42Wvjrd+gUkMrIEu4cMLEgAAIfkECWQABwAsAAAAACgALwCCAm04AJJFDZlFDJJDL65IHKBGDIM+////A/54utz+MMoFgKkzy1qIL4AmNoBneuEolqeZqhnbEi+8zagdE8YwEIVOTfewBI5IwZDoAASfBSUzUqlalwcnCgup9pCBQqDKqJy4pAoYTECSzefmtSIQr492N9wld6nDAndhglo5TWcAgXh3dYIXQkuFNHdRa5WMIBiHHwCCbWyKYHUCF10Wf5R2Ah6heHloCqhrqwK1dUBIuHobA61Il2wnvrAAA0+hq4JBRwS1YJpFSR1BHp5JvqUQBncnwMzSd1yyuYG1QHUdzoNr4p3coh0f1KtAUO3KqaLntrXigslrmrERNIZKq3h5AgDMRRCNO3q2BB5pBCbhri7T3rlC9naJ3QaCCtusSpjRYxorBXzMagHFXMcxkajRcGcpVDyFv14V6WYEXkBfIZVAoxCPU82jggY4wWIB0TVGQGEakjMnZFKLUvms6EXwJUwZPFRU8aRIU1OtI6p+HQIW1oQ5RZykdPvWg4EpaYHQxZtlKV8NZP4KZpAAADs=";
+var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPIDAAFsOACSRTCuSP///wAAAAAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFZAADACwAAAAAKAAwAAAC0ZyPqcvtByJ49EWBRaw8gZxNXfeB4ciVpoZWQLAGYuu8cBbI9JP3frCz/HQjmWSm+PhYI5WA6HFiNiQndBC5xagureboXWGMx2My/BSr09vz+g1/Ig2vuH01p9fv9zwEfUcGVsNn4mdRCHJImDjVIsW32ADZ99joiEJpJ8mgGce54AkHmnTJ1GRK6pFqean6x9oEaCcoARQq6opr+uaXG4uwJ2erJpjTtnoCAcmlV5Z3gelxc5Wp2Cn9qPWCffpYNpkdhOg9zvi6U4ee3mzu3lAAACH5BAVkAAQALAAAAAAoADAAAAPFOLrc/jDKBSqYeJLNd/5N14GkKJKfOaKYyrGtS8BTYN84ran6bkaWSqAkewACgqTgkpGdKEhlhREEOK8cpSDAVBwF2LCIS41qz+h0mkxVu99adhtOP3O7jHtQ7ETxeX5/T0SCL4GFHoeILIiGhIuKhYyNM5GCk42YkI+SKAB1a3gNehaUjg6foKBTRqqqrA2prnWiXmZKAY24tQNVFiFFFFq8ID+oUsQpp3NJyU3LC1y7OitGVdTQPRDV2hOfct0Sv+HkDQkAOw==";
 
 var eventfn = { click:1, mouseup:1, mousedown:1, mousemove:1,
     keydown:1, keypress:1, keyup:1 };
@@ -2461,13 +2461,13 @@ function createTurtleShellOfColor(color) {
       }
     }
   }
-  ctx.lineWidth = 1
+  ctx.lineWidth = 1.25
   ctx.strokeStyle = 'rgba(255,255,255,0.75)';
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(cx, cy, 16, 0, 2 * Math.PI, false);
+  ctx.arc(cx, cy, 15.5, 0, 2 * Math.PI, false);
   ctx.closePath();
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
   ctx.stroke();
   return c.toDataURL();
 }
@@ -2518,7 +2518,7 @@ function hatch(count, spec) {
 }
 
 function nameToImg(name) {
-  if (name == 'turtle') { name = 'seagreen'; }
+  if (name == 'turtle') { name = 'mediumseagreen'; }
   if (isCSSColor(name)) return {
     url: createTurtleShellOfColor(name),
     css: {
