@@ -73,7 +73,6 @@ the default turtle, if used):
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).label('A')   // Prints an HTML label at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
-  $(x).erase()      // Erases the canvas under the turtle collision hull.
   $(x).wear('blue') // Switches to a blue shell.  Use any image or color.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
@@ -1230,6 +1229,7 @@ function getTurtleClipSurface() {
     return drawing.surface;
   }
   var surface = document.createElement('samp');
+  $(surface).attr('id', '_turtlefield');
   $(surface).css({
     position: 'absolute',
     display: 'inline-block',
@@ -1314,6 +1314,12 @@ function parsePenStyle(text, defaultProp) {
   text = text.trim();
   if (!text || text === 'none') { return null; }
   if (text === 'path') { return { savePath: true }; }
+  var eraseMode = false;
+  if (/^erase\b/.test(text)) {
+    text = text.replace(
+        /^erase\b/, 'white globalCompositeOperation destination-out');
+    eraseMode = true;
+  }
   var words = text.split(/\s+/),
       mapping = {
         strokeStyle: identity,
@@ -1322,8 +1328,10 @@ function parsePenStyle(text, defaultProp) {
         lineJoin: identity,
         miterLimit: parseFloat,
         fillStyle: identity,
+        globalCompositeOperation: identity
       },
       result = {}, j, end = words.length;
+  if (eraseMode) { result.eraseMode = true; }
   for (j = words.length - 1; j >= 0; --j) {
     if (mapping.hasOwnProperty(words[j])) {
       var key = words[j],
@@ -1407,14 +1415,15 @@ function isPointNearby(a, b) {
 
 function applyPenStyle(ctx, ps, scale) {
   scale = scale || 1;
+  var extraWidth = ps.eraseMode ? 1 : 0;
   if (!ps || !('strokeStyle' in ps)) { ctx.strokeStyle = 'black'; }
-  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62 * scale; }
+  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62 * scale + extraWidth; }
   if (!ps || !('lineCap' in ps)) { ctx.lineCap = 'round'; }
   if (ps) {
     for (var a in ps) {
-      if (a === 'savePath') { continue; }
+      if (a === 'savePath' || a === 'eraseMode') { continue; }
       if (scale && a === 'lineWidth') {
-        ctx[a] = scale * ps[a];
+        ctx[a] = scale * ps[a] + extraWidth;
       } else {
         ctx[a] = ps[a];
       }
@@ -1496,6 +1505,11 @@ function fillDot(position, diameter, style) {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
+}
+
+function clearField() {
+  eraseBox(document, {fillStyle: 'transparent'});
+  $('body').contents().not('samp#_testpanel,samp#_turtlefield').remove();
 }
 
 function eraseBox(elem, style) {
@@ -1971,15 +1985,6 @@ var turtlefn = {
       watchImageToFixOriginOnLoad(elem);
     });
   },
-  erase: function(style) {
-    if (!style) { style = 'transparent'; }
-    var ps = parsePenStyle(style, 'fillStyle');
-    return this.direct(function(j, elem) {
-      eraseBox(elem, ps);
-      // Once drawing begins, origin must be stable.
-      watchImageToFixOriginOnLoad(elem);
-    });
-  },
   play: function(notes) {
     var args = arguments;
     return this.queue(function() {
@@ -2248,7 +2253,7 @@ var global_turtle = null;
 var global_turtle_methods = [];
 var attaching_ids = false;
 var dollar_turtle_methods = {
-  erase: function() { directIfGlobal(function() { $(document).erase() }); },
+  clear: function() { directIfGlobal(function() { clearField() }); },
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
@@ -2714,7 +2719,7 @@ function turtleevents(prefix) {
 // Simplify $('body').append(html).
 function output(html, defaulttag) {
   if (html === undefined || html === null) {
-    return $('<img>').img('turtle').appendTo('body');
+    return $('<img>').wear('turtle').css({background: 'none'}).appendTo('body');
   }
   var wrapped = false, result = null;
   html = '' + html;
