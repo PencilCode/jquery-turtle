@@ -70,7 +70,6 @@ the default turtle, if used):
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).label('A')   // Prints an HTML label at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
-  $(x).erase()      // Erases the canvas under the turtle collision hull.
   $(x).wear('blue') // Switches to a blue shell.  Use any image or color.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
@@ -146,6 +145,7 @@ $.turtle() are as follows:
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
+  clear()               // Clears the canvas and all text in the document body.
   defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0..n-1].

@@ -148,6 +148,7 @@ $.turtle() are as follows:
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
+  clear()               // Clears the canvas and all text in the document body.
   defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0..n-1].
@@ -1210,7 +1211,7 @@ function normalizeRotation(x) {
 
 //////////////////////////////////////////////////////////////////////////
 // TURTLE DRAWING SUPPORT
-// If pen, erase, or dot are used, then a full-page canvas is created
+// If pen, fill, or dot are used, then a full-page canvas is created
 // and used for drawing.
 //////////////////////////////////////////////////////////////////////////
 
@@ -2719,6 +2720,7 @@ function turtleevents(prefix) {
 // Simplify $('body').append(html).
 function output(html, defaulttag) {
   if (html === undefined || html === null) {
+    // Print a turtle shell when no arguments.
     return $('<img>').wear('turtle').css({background: 'none'}).appendTo('body');
   }
   var wrapped = false, result = null;
