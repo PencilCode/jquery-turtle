@@ -103,16 +103,24 @@ but you may soon discover the desire to set speed higher.
 
 Setting the turtle speed to Infinity will make movement synchronous,
 which makes the synchronous distance, direction, and hit-testing useful
-for realtime game-making.  To play music without stalling turtle
+for realtime game-making.  (To play music notes without stalling turtle
 movement, use the global function playnow() instead of the turtle
-method play().
+method play().)
 
-The absolute motion methods moveto and turnto accept any object
-that has pageX and pageY properties (or an center() method that will
-return such an object), including, usefully, mouse events.
-Moveto and turnto operate in absolute page coordinates and work
-properly even when the turtle is nested within further CSS
-transformed elements.
+The turnto method can turn to an absolute bearing (if called with a single
+numeric argument) or towards an absolute position on the screen.  The
+methods moveto and turnto accept either page or local coordinates.
+
+Local coordinates are specified as bare numeric x, y argument lists
+or [x, y] pairs as returned from getxy(), and they are rightward,
+upward offsets from the center of the page.
+
+Page coordinates are specified by any object with numeric
+{pageX: , pageY: } properties, or an object with a pagexy() method
+that will return such an object.  That includes, usefullly,
+mouse events and turtle or jquery objects.  Page coordinates are
+rightward, downward offsets from the top-left corner of the page
+to the center (or transform-origin) of the given object.
 
 The hit-testing functions touches() and encloses() will test for
 collisions using the convex hulls of the objects in question.
@@ -124,9 +132,10 @@ Turtle Teaching Environment
 ---------------------------
 
 A default turtle together with an interactive console are created by
-calling eval($.turtle()).  This call will expose a the default turtle
-methods as global functions.  It will also set up a number of other global
-symbols to provide beginners with a simplified programming environment.
+calling eval($.turtle()).  That call exposes all the turtle methods
+such as (fd, rt, getxy, etc) as global functions operating on the default
+turtle.  It will also set up a number of other global symbols to provide
+beginners with a simplified programming environment.
 
 In detail, after eval($.turtle()):
   * An &lt;img id="turtle"&gt; is created if #turtle doesn't already exist.
@@ -159,13 +168,13 @@ $.turtle() are as follows:
   random('color')       // Returns a random hsl(*, 100%, 50%) color.
   random('gray')        // Returns a random hsl(0, 0, *) gray.
   remove()              // Removes default turtle and its globals (fd, etc).
-  hatch([n,], [img])    // Creates and returns n turtles with the given img.
+  hatch([n,] [img])     // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
   print(html)           // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
-  playnow('CEG')        // Plays musical notes now, without queueing.
+  playnow('[DFG][EGc]') // Plays musical notes now, without queueing.
 </pre>
 
 Here is another CoffeeScript example that demonstrates some of
@@ -1885,24 +1894,25 @@ var turtlefn = {
           displacedPosition(elem, y, x)}, animTime(elem));
     });
   },
-  moveto: function(position, limit, y) {
-    var localx = 0, localy = 0;
-    if ($.isNumeric(position) && $.isNumeric(limit) && !y) {
+  moveto: function(position, y) {
+    var localx = 0, localy = 0, limit = null;
+    if ($.isNumeric(position) && $.isNumeric(y)) {
+      // moveto x, y: use local coordinates.
       localx = parseFloat(position);
-      localy = parseFloat(limit);
+      localy = parseFloat(y);
       position = $(document).pagexy();
       limit = null;
-    } else if ($.isArray(position) && !limit & !y) {
+    } else if ($.isArray(position)) {
+      // moveto [x, y], limit: use local coordinates (limit optional).
       localx = position[0];
       localy = position[1];
       position = $(document).pagexy();
-      limit = null;
+      limit = y;
+    } else if ($.isNumeric(y)) {
+      // moveto obj, limit: limited motion in the direction of obj.
+      limit = y;
     }
-    if ($.isNumeric(y) && $.isNumeric(limit)) {
-      localx = limit;
-      localy = y;
-      limit = null;
-    }
+    // Otherwise moveto {pos}, limit: absolute motion with optional limit.
     return this.direct(function(j, elem) {
       var pos = position;
       if (pos && !isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
@@ -1918,16 +1928,24 @@ var turtlefn = {
           animTime(elem));
     });
   },
-  turnto: function(bearing, limit) {
+  turnto: function(bearing, y) {
+    if ($.isNumeric(y) && $.isNumeric(bearing)) {
+      // turnto x, y: convert to turnto [x, y].
+      bearing = [bearing, y];
+      y = null;
+    }
     return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
-      var dir = bearing;
+      // turnto bearing: just use the given absolute.
+      var dir = bearing, limit = null;
       if (!$.isNumeric(bearing)) {
         var pos = bearing, cur = $(elem).pagexy();
         if (pos) {
           if ($.isArray(pos)) {
+            // turnto [x, y], limit: turn towards local coordinate x, y].
             pos = convertLocalXyToPageCoordinaes(elem, pos);
           } else if (!isPageCoordinate(pos)) {
+            // turnto obj, limit: turn towards page coordinate.
             pos = $(pos).pagexy();
           }
         }
@@ -2245,7 +2263,7 @@ $.fn.extend(turtlefn);
 // * Sets up a global "hatch" function to make a new turtle.
 //////////////////////////////////////////////////////////////////////////
 
-var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPEDAAFsOACSRTCuSAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQJZAADACwAAAAAKAAwAAACzpyPqcvtByJ49EWBRaw8gZxNXfeB4ciVpoZWqim2zhfUNivP9h7EOQPg9VqSDVDocwUyQ8UFlrS8mobIciXoRRtBULGLBWm/EudVHA6fxVFw+v2mQtbwundhteuz2yp9z/cVMAPIhvIC2EdYiKHIxdhIBIkzgrjnCDSJiacpCbnp1HkoWklKYqo0KUfhxjhWBmQ5ibFaJTsbGYob1nb2+kdbVLNS++Lz5JVEBguhEmQW/GOcSUl09sxZffj1qP2zCPo9QBMuXVMubSS+/lAAACH5BAVkAAMALAEAAQAmAC4AAALNnI9pwKAP4wKiCiZzpLY6DR5c54XhSH5mhnbqugnBTF8wS+fBez+AvuvhdDxEA3NqXYqDnyXIcpIqu5fU8zlqr9OntgPlPrtk2TQcKKvXMpWSDYcu0vB6NVE90uskOY6fsvIGxxQDaFEIMciW6HOIKPhYYrK41qhQqXaZkFm2aSRpQxn6KUIaKVnatHfoZ6TF2sokFopY1PmIZFrryRkrk0dLpef1usXDMKXb5CIk5TqwY+s8idncw1EoPYxdjanVLSqk4aTqPGOOvaxRAAA7"
+var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPEDAAFsOACSRTCuSAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQJZAADACwAAAAAKAAwAAACzpyPqcvtByJ49EWBRaw8gZxNXfeB4ciVpoZWqim2zhfUNivP9h7EOQPg9VqSDVDocwUyQ8UFlrS8mobIciXoRRtBULGLBWm/EudVHA6fxVFw+v2mQtbwundhteuz2yp9z/cVMAPIhvIC2EdYiKHIxdhIBIkzgrjnCDSJiacpCbnp1HkoWklKYqo0KUfhxjhWBmQ5ibFaJTsbGYob1nb2+kdbVLNS++Lz5JVEBguhEmQW/GOcSUl09sxZffj1qP2zCPo9QBMuXVMubSS+/lAAACH5BAVkAAMALAEAAQAmAC4AAALNnI9pwKAP4wKiCiZzpLY6DR5c54XhSH5mhnbqugnBTF8wS+fBez+AvuvhdDxEA3NqXYqDnyXIcpIqu5fU8zlqr9OntgPlPrtk2TQcKKvXMpWSDYcu0vB6NVE90uskOY6fsvIGxxQDaFEIMciW6HOIKPhYYrK41qhQqXaZkFm2aSRpQxn6KUIaKVnatHfoZ6TF2sokFopY1PmIZFrryRkrk0dLpef1usXDMKXb5CIk5TqwY+s8idncw1EoPYxdjanVLSqk4aTqPGOOvaxRAAA7";
 
 var eventfn = { click:1, mouseup:1, mousedown:1, mousemove:1,
     keydown:1, keypress:1, keyup:1 };

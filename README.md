@@ -100,16 +100,24 @@ but you may soon discover the desire to set speed higher.
 
 Setting the turtle speed to Infinity will make movement synchronous,
 which makes the synchronous distance, direction, and hit-testing useful
-for realtime game-making.  To play music without stalling turtle
+for realtime game-making.  (To play music notes without stalling turtle
 movement, use the global function playnow() instead of the turtle
-method play().
+method play().)
 
-The absolute motion methods moveto and turnto accept any object
-that has pageX and pageY properties (or an center() method that will
-return such an object), including, usefully, mouse events.
-Moveto and turnto operate in absolute page coordinates and work
-properly even when the turtle is nested within further CSS
-transformed elements.
+The turnto method can turn to an absolute bearing (if called with a single
+numeric argument) or towards an absolute position on the screen.  The
+methods moveto and turnto accept either page or local coordinates.
+
+Local coordinates are specified as bare numeric x, y argument lists
+or [x, y] pairs as returned from getxy(), and they are rightward,
+upward offsets from the center of the page.
+
+Page coordinates are specified by any object with numeric
+{pageX: , pageY: } properties, or an object with a pagexy() method
+that will return such an object.  That includes, usefullly,
+mouse events and turtle or jquery objects.  Page coordinates are
+rightward, downward offsets from the top-left corner of the page
+to the center (or transform-origin) of the given object.
 
 The hit-testing functions touches() and encloses() will test for
 collisions using the convex hulls of the objects in question.
@@ -121,9 +129,10 @@ Turtle Teaching Environment
 ---------------------------
 
 A default turtle together with an interactive console are created by
-calling eval($.turtle()).  This call will expose a the default turtle
-methods as global functions.  It will also set up a number of other global
-symbols to provide beginners with a simplified programming environment.
+calling eval($.turtle()).  That call exposes all the turtle methods
+such as (fd, rt, getxy, etc) as global functions operating on the default
+turtle.  It will also set up a number of other global symbols to provide
+beginners with a simplified programming environment.
 
 In detail, after eval($.turtle()):
   * An &lt;img id="turtle"&gt; is created if #turtle doesn't already exist.
@@ -156,13 +165,13 @@ $.turtle() are as follows:
   random('color')       // Returns a random hsl(*, 100%, 50%) color.
   random('gray')        // Returns a random hsl(0, 0, *) gray.
   remove()              // Removes default turtle and its globals (fd, etc).
-  hatch([n,], [img])    // Creates and returns n turtles with the given img.
+  hatch([n,] [img])     // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
   print(html)           // Appends html into the document body.
   input([label,] fn)    // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(w, h)           // Outputs a table with h rows and w columns.
-  playnow('CEG')        // Plays musical notes now, without queueing.
+  playnow('[DFG][EGc]') // Plays musical notes now, without queueing.
 </pre>
 
 Here is another CoffeeScript example that demonstrates some of
