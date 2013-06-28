@@ -101,26 +101,26 @@ participate in the animation queue.  The default turtle speed is
 a leisurely one move per second (as appropriate for the creature),
 but you may soon discover the desire to set speed higher.
 
-Setting the turtle speed to Infinity will make movement synchronous,
+Setting the turtle speed to Infinity will make its movement synchronous,
 which makes the synchronous distance, direction, and hit-testing useful
 for realtime game-making.  (To play music notes without stalling turtle
 movement, use the global function playnow() instead of the turtle
 method play().)
 
-The turnto method can turn to an absolute bearing (if called with a single
-numeric argument) or towards an absolute position on the screen.  The
-methods moveto and turnto accept either page or local coordinates.
+The turnto method can turn to an absolute bearing (if called with a
+single numeric argument) or towards an absolute position on the
+screen.  The methods moveto and turnto accept either page or
+graphing coordinates.
 
-Local coordinates are specified as bare numeric x, y argument lists
-or [x, y] pairs as returned from getxy(), and they are rightward,
-upward offsets from the center of the page.
+Graphing coordinates are measured upwards and rightwards from the
+center of the page, and they are specified as bare numeric x, y
+arguments or [x, y] pairs as returned from getxy().
 
-Page coordinates are specified by any object with numeric
-{pageX: , pageY: } properties, or an object with a pagexy() method
-that will return such an object.  That includes, usefullly,
-mouse events and turtle or jquery objects.  Page coordinates are
-rightward, downward offsets from the top-left corner of the page
-to the center (or transform-origin) of the given object.
+Page coordinates are specified by an object with pageX and pageY
+properties, or with a pagexy() method that will return such an object.
+That includes, usefullly, mouse events and turtle objects.  Page
+coordinates are measured downward from the top-left corner of the
+page to the center (or transform-origin) of the given object.
 
 The hit-testing functions touches() and encloses() will test for
 collisions using the convex hulls of the objects in question.
@@ -2443,7 +2443,6 @@ function isCSSColor(color) {
   return (unset != d.style.color);
 }
 
-
 function createTurtleShellOfColor(color) {
   var c = document.createElement('canvas');
   c.width = 40;
@@ -2463,10 +2462,10 @@ function createTurtleShellOfColor(color) {
     [[3, -11], [7, -8], [4, -4]],
     [[4, -4], [7, 0], [4, 4]],
     [[4, 4], [7, 8], [3, 11]],
-    [[7, -8], [11, -9], null],
-    [[7, 0], [14, 0], null],
-    [[8, 8], [10, 10], null],
-    [[3, 11], [1, 14], null]
+    [[7, -8], [12, -9], null],
+    [[7, 0], [15, 0], null],
+    [[7, 8], [12, 9], null],
+    [[3, 11], [1, 15], null]
   ];
   for (var j = 0; j < pattern.length; j++) {
     var path = pattern[j], connect = true;
@@ -2485,7 +2484,7 @@ function createTurtleShellOfColor(color) {
       }
     }
   }
-  ctx.lineWidth = 1.25
+  ctx.lineWidth = 1.1;
   ctx.strokeStyle = 'rgba(255,255,255,0.75)';
   ctx.stroke();
   ctx.beginPath();
@@ -2858,12 +2857,24 @@ function isAudioPresent() {
 }
 function getAudioTop() {
   if (!audioTop) {
-    var ac = new (window.audioContext || window.webkitAudioContext),
-        dcn = ac.createDynamicsCompressor();
+    var ac = new (window.AudioContext || window.webkitAudioContext),
+        dcn = ac.createDynamicsCompressor(),
+        firstTime = null;
     dcn.connect(ac.destination);
     audioTop = {
       ac: ac,
-      out: dcn
+      out: dcn,
+      // Partial workaround for http://crbug.com/254942:
+      // add little extra pauses before scheduling envelopes.
+      // A quarter second or so seems to be needed at initial startup,
+      // then 1/64 second before scheduling each envelope afterwards.
+      nextStartTime: function() {
+        if (firstTime === null) {
+          firstTime = ac.currentTime;
+        }
+        return Math.max(firstTime + 0.25,
+                        ac.currentTime + 0.015625);
+      }
     }
   }
   return audioTop;
@@ -2952,10 +2963,10 @@ function playABC(elem, args) {
     return;
   }
   var atop = getAudioTop(),
-      start_time = atop.ac.currentTime, end_time = start_time,
       firstvoice = 0, argindex, voice, freqmult, beatsecs,
       volume = 0.5, tempo = 120, transpose = 0, type = ['square'],
       venv = {a: 0.01, d: 0.2, s: 0.1, r: 0.1}, envelope = [venv],
+      start_time = null, end_time = atop.ac.currentTime,
       notes, vtype, time, fingers, strength, i, g, t,
       atime, slast, rtime, stime, dt, opts;
   if ($.isPlainObject(args[0])) {
@@ -2979,12 +2990,11 @@ function playABC(elem, args) {
   beatsecs = 60 / tempo;
   if (!$.isArray(type)) { type = [type]; }
   if (!$.isArray(volume)) { volume = [volume]; }
-  if (!$.isArray(transpose)) { transpose= [transpose]; }
+  if (!$.isArray(transpose)) { transpose = [transpose]; }
   for (argindex = firstvoice; argindex < args.length; argindex++) {
     voice = argindex - firstvoice;
     notes = parseABCNotes(args[argindex]);
     vtype = type[voice % type.length] || 'square';
-    time = start_time;
     fingers = 0;
     for (i = 0; i < notes.length; i++) {
       fingers = Math.max(fingers, notes[i].frequency.length);
@@ -2994,6 +3004,10 @@ function playABC(elem, args) {
     strength = volume[voice % volume.length] / Math.sqrt(fingers);
     venv = envelope[voice % envelope.length];
     freqmult = Math.pow(2, transpose[voice % transpose.length] / 12);
+    if (start_time === null) {
+      start_time = atop.nextStartTime();
+    }
+    time = start_time;
     for (i = 0; i < notes.length; i++) {
       t = notes[i].time;
       if (notes[i].frequency.length > 0) {
