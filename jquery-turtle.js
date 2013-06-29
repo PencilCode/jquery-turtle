@@ -740,7 +740,7 @@ function readPageGbcr() {
       left: 0,
       right: this.width || 0,
       width: this.width || 0,
-      height: this.height || 0,
+      height: this.height || 0
     }
   }
   return {
@@ -2282,7 +2282,7 @@ var dollar_turtle_methods = {
   hatch: hatch,
   input: input,
   button: button,
-  table: table,
+  table: table
 };
 
 $.turtle = function turtle(id, options) {
@@ -2515,7 +2515,7 @@ var entityMap = {
   "&": "&amp;",
   "<": "&lt;",
   ">": "&gt;",
-  '"': '&quot;',
+  '"': '&quot;'
 };
 
 function escapeHtml(string) {
@@ -3176,7 +3176,7 @@ function noteoldvalue(name) {
   return {
     name: name,
     has: window.hasOwnProperty(name),
-    value: window[name],
+    value: window[name]
   };
 }
 
