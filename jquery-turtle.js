@@ -3165,7 +3165,9 @@ function exportsee() {
   see.eval = seeeval;
   see.barecs = barecs;
   see.here = 'eval(' + seepkg + '.init())';
-  see.clear = clear;
+  see.clear = seeclear;
+  see.hide = seehide;
+  see.show = seeshow;
   see.js = seejs;
   see.cs = '(function(){return eval(' + seepkg + '.barecs(arguments[0]));})';
   see.version = version;
@@ -3682,15 +3684,13 @@ var addedpanel = false;
 var inittesttimer = null;
 var abbreviate = [{}.undefined];
 
-function show(flag) {
-  if (!addedpanel) { return; }
-  if (arguments.length === 0 || flag) {
-    $('#_testpanel').show();
-  } else {
-    $('#_testpanel').hide();
-  }
+function seehide() {
+  $('#_testpanel').hide();
 }
-function clear() {
+function seeshow() {
+  $('#_testpanel').show();
+}
+function seeclear() {
   if (!addedpanel) { return; }
   $('#_testlog').find('._log').not('#_testpaneltitle').remove();
 }
@@ -3758,6 +3758,7 @@ function tryinitpanel() {
         $('#_testlog').prepend(formattitle(paneltitle));
       }
     }
+    $('#_testpanel').show();
   } else {
     if (!window.document.getElementById('_testlog') && window.document.body) {
       initlogcss();
@@ -3767,7 +3768,7 @@ function tryinitpanel() {
         state.height = Math.min(wheight(), Math.max(10, wheight() - 50));
       }
       $('body').prepend(
-        '<samp id="_testpanel" style="overflow:hidden;' +
+        '<samp id="_testpanel" style="overflow:hidden;z-index:99;' +
             'position:fixed;bottom:0;left:0;width:100%;height:' + state.height +
             'px;background:rgba(240,240,240,0.8);' +
             'font:10pt monospace;' +
