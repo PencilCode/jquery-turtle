@@ -61,7 +61,7 @@ the default turtle, if used):
   $(x).slide(x, y)  // Move right by x while moving forward by y.
   $(x).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
   $(x).turnto(bearing || position)        // Absolute direction adjustment.
-  $(x).play("ccgg") // Plays notes using ABC notation.
+  $(x).play("ccgg") // Plays notes using ABC notation and waits until done.
 
   // Methods below happen in an instant, but line up in the animation queue.
   $(x).home()       // Jumps to the center of the document, with bearing 0.
@@ -89,7 +89,7 @@ the default turtle, if used):
   $(x).encloses(y)  // Containment collision test.
   $(x).within(d, t) // Filters to items with centers within d of t.center().
   $(x).notwithin()  // The negation of within.
-  $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
+  $(x).cell(y, x)   // Selects the yth row and xth column cell in a table.
 </pre>
 
 When the speed of a turtle is nonzero, the first seven movement
@@ -98,26 +98,26 @@ participate in the animation queue.  The default turtle speed is
 a leisurely one move per second (as appropriate for the creature),
 but you may soon discover the desire to set speed higher.
 
-Setting the turtle speed to Infinity will make movement synchronous,
+Setting the turtle speed to Infinity will make its movement synchronous,
 which makes the synchronous distance, direction, and hit-testing useful
 for realtime game-making.  (To play music notes without stalling turtle
-movement, use the global function playnow() instead of the turtle
+movement, use the global function sound() instead of the turtle
 method play().)
 
-The turnto method can turn to an absolute bearing (if called with a single
-numeric argument) or towards an absolute position on the screen.  The
-methods moveto and turnto accept either page or local coordinates.
+The turnto method can turn to an absolute bearing (if called with a
+single numeric argument) or towards an absolute position on the
+screen.  The methods moveto and turnto accept either page or
+graphing coordinates.
 
-Local coordinates are specified as bare numeric x, y argument lists
-or [x, y] pairs as returned from getxy(), and they are rightward,
-upward offsets from the center of the page.
+Graphing coordinates are measured upwards and rightwards from the
+center of the page, and they are specified as bare numeric x, y
+arguments or [x, y] pairs as returned from getxy().
 
-Page coordinates are specified by any object with numeric
-{pageX: , pageY: } properties, or an object with a pagexy() method
-that will return such an object.  That includes, usefullly,
-mouse events and turtle or jquery objects.  Page coordinates are
-rightward, downward offsets from the top-left corner of the page
-to the center (or transform-origin) of the given object.
+Page coordinates are specified by an object with pageX and pageY
+properties, or with a pagexy() method that will return such an object.
+That includes, usefullly, mouse events and turtle objects.  Page
+coordinates are measured downward from the top-left corner of the
+page to the center (or transform-origin) of the given object.
 
 The hit-testing functions touches() and encloses() will test for
 collisions using the convex hulls of the objects in question.
@@ -167,11 +167,11 @@ $.turtle() are as follows:
   remove()              // Removes default turtle and its globals (fd, etc).
   hatch([n,] [img])     // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  print(html)           // Appends html into the document body.
-  input([label,] fn)    // Makes a one-time input field, calls fn after entry.
+  write(html)           // Appends html into the document body.
+  ask([label,] fn)      // Makes a one-time input field, calls fn after entry.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
-  table(w, h)           // Outputs a table with h rows and w columns.
-  playnow('[DFG][EGc]') // Plays musical notes now, without queueing.
+  table(m, n)           // Outputs a table with m rows and n columns.
+  sound('[DFG][EGc]')   // Plays musical notes now, without queueing.
 </pre>
 
 Here is another CoffeeScript example that demonstrates some of
@@ -181,7 +181,7 @@ the functions:
   eval $.turtle()  # Create the default turtle and global functions.
 
   defaultspeed Infinity
-  print "Catch blue before red gets you."
+  write "Catch blue before red gets you."
   bk 100
   r = hatch 'red'
   b = hatch 'blue'
@@ -193,13 +193,13 @@ the functions:
     b.turnto bearing b
     b.fd 3
     if b.touches(turtle)
-      print "You win!"
+      write "You win!"
       tick off
     else if r.touches(turtle)
-      print "Red got you!"
+      write "Red got you!"
       tick off
     else if not b.touches(document)
-      print "Blue got away!"
+      write "Blue got away!"
       tick off
 </pre>
 
