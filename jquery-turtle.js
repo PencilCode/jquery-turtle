@@ -1536,9 +1536,13 @@ function fillDot(position, diameter, style) {
   ctx.restore();
 }
 
-function clearField() {
-  eraseBox(document, {fillStyle: 'transparent'});
-  $('body').contents().not('samp#_testpanel,samp#_turtlefield').remove();
+function clearField(arg) {
+  if (!arg || /\bcanvas\b/.test(arg)) {
+    eraseBox(document, {fillStyle: 'transparent'});
+  }
+  if (!arg || /\btext\b/.test(arg)) {
+    $('body').contents().not('samp#_testpanel,samp#_turtlefield').remove();
+  }
 }
 
 function eraseBox(elem, style) {
@@ -2307,7 +2311,7 @@ var global_turtle = null;
 var global_turtle_methods = [];
 var attaching_ids = false;
 var dollar_turtle_methods = {
-  clear: function() { directIfGlobal(function() { clearField() }); },
+  clear: function(arg) { directIfGlobal(function() { clearField(arg) }); },
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
