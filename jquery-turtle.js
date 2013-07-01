@@ -90,7 +90,7 @@ the default turtle, if used):
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).within(d, t) // Filters to items with centers within d of t.center().
+  $(x).within(d, t) // Filters to items with centers within d of t.pagexy().
   $(x).notwithin()  // The negation of within.
   $(x).cell(y, x)   // Selects the yth row and xth column cell in a table.
 </pre>
@@ -812,7 +812,7 @@ function computePositionAsLocalOffset(elem, start) {
           (localStart[1] - ts.ty) / ts.sy];
 }
 
-function convertLocalXyToPageCoordinaes(elem, localxy) {
+function convertLocalXyToPageCoordinates(elem, localxy) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       ts = readTurtleTransform(elem, true),
       pageOffset = matrixVectorProduct(
@@ -820,7 +820,6 @@ function convertLocalXyToPageCoordinaes(elem, localxy) {
       center = $(window).pagexy(),
       result = {pageX: center.pageX + pageOffset[0],
                 pageY: center.pageY + pageOffset[1] };
-  see(result);
   return result;
 }
 
@@ -1239,14 +1238,15 @@ function getTurtleClipSurface() {
     return drawing.surface;
   }
   var surface = document.createElement('samp');
-  $(surface).attr('id', '_turtlefield');
-  $(surface).css({
-    position: 'absolute',
-    display: 'inline-block',
-    top: 0, left: 0, width: '100%', height: '100%',
-    'z-index': -1,
-    overflow: 'hidden'
-  });
+  $(surface)
+    .attr('id', '_turtlefield')
+    .css({
+      position: 'absolute',
+      display: 'inline-block',
+      top: 0, left: 0, width: '100%', height: '100%',
+      'z-index': -1,
+      overflow: 'hidden'
+    });
   drawing.surface = surface;
   attachClipSurface();
   return surface;
@@ -1255,6 +1255,25 @@ function getTurtleClipSurface() {
 function attachClipSurface() {
   if (document.body) {
     $(drawing.surface).prependTo('body');
+    // Attach an event handler to forward mouse events from the body
+    // to turtles in the turtle field layer.
+    $('body').on('click.turtle ' +
+      'mouseup.turtle mousedown.turtle mousemove.turtle', function(e) {
+      if (e.target === this && !e.isTrigger) {
+        // Only forward events directly on the body that (geometrically)
+        // touch a turtle directly within the turtlefield.
+        var sel = $('#_turtlefield > .turtle').within('touch', e).eq(0);
+        if (sel.length === 1) {
+          // Erase portions of the event that are wrong for the turtle.
+          e.target = null;
+          e.relatedTarget = null;
+          e.fromElement = null;
+          e.toElement = null;
+          sel.trigger(e);
+          return false;
+        }
+      }
+    });
   } else {
     $(document).ready(attachClipSurface);
   }
@@ -1759,7 +1778,7 @@ function watchImageToFixOriginOnLoad(elem) {
 }
 
 function withinOrNot(obj, within, distance, x, y) {
-  var sel, gbcr;
+  var sel, gbcr, pos, d2;
   if (x === undefined && y === undefined) {
     sel = $(distance);
     gbcr = getPageGbcr(sel[0]);
@@ -1775,33 +1794,45 @@ function withinOrNot(obj, within, distance, x, y) {
       });
     }
   }
+  if ($.isNumeric(x) && $.isNumeric(y)) {
+    pos = [x, y];
+  } else {
+    pos = x;
+  }
+  if ($.isArray(pos)) {
+    // turnto [x, y], limit: turn towards local coordinate x, y].
+    pos = convertLocalXyToPageCoordinates(obj[0] || document.body, pos);
+  }
   if (distance === 'touch') {
-    sel = $(x);
-    gbcr = getPageGbcr(sel[0]);
-    if (polyMatchesGbcr(getCornersInPageCoordinates(sel[0]), gbcr)) {
+    if (isPageCoordinate(pos)) {
       return obj.filter(function() {
-        var thisgbcr = getPageGbcr(this);
-        // !isDisjoint test assumes gbcr is tight.
-        return within === (!isDisjointGbcr(gbcr, thisgbcr) &&
-          (gbcrEncloses(gbcr, thisgbcr) || sel.touches(this)));
+        return within === $(this).encloses(pos);
       });
     } else {
-      return obj.filter(function() {
-        return within === sel.touches(this);
-      });
+      sel = $(pos);
+      gbcr = getPageGbcr(sel[0]);
+      if (polyMatchesGbcr(getCornersInPageCoordinates(sel[0]), gbcr)) {
+        return obj.filter(function() {
+          var thisgbcr = getPageGbcr(this);
+          // !isDisjoint test assumes gbcr is tight.
+          return within === (!isDisjointGbcr(gbcr, thisgbcr) &&
+            (gbcrEncloses(gbcr, thisgbcr) || sel.touches(this)));
+        });
+      } else {
+        return obj.filter(function() {
+          return within === sel.touches(this);
+        });
+      }
     }
   }
-  var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
-    isPageCoordinate(x) ? x :
-    $(x).pagexy(),
-    d2 = distance * distance;
+  d2 = distance * distance;
   return obj.filter(function() {
     var gbcr = getPageGbcr(this);
-    if (isGbcrOutside(ctr, distance, d2, gbcr)) { return !within; }
-    if (isGbcrInside(ctr, d2, gbcr)) { return within; }
-    var thisctr = getCenterInPageCoordinates(this),
-        dx = ctr.pageX - thisctr.pageX,
-        dy = ctr.pageY - thisctr.pageY;
+    if (isGbcrOutside(pos, distance, d2, gbcr)) { return !within; }
+    if (isGbcrInside(pos, d2, gbcr)) { return within; }
+    var thispos = getCenterInPageCoordinates(this),
+        dx = pos.pageX - thispos.pageX,
+        dy = pos.pageY - thispos.pageY;
     return within === (dx * dx + dy * dy <= d2);
   });
 }
@@ -1943,7 +1974,7 @@ var turtlefn = {
         if (pos) {
           if ($.isArray(pos)) {
             // turnto [x, y], limit: turn towards local coordinate x, y].
-            pos = convertLocalXyToPageCoordinaes(elem, pos);
+            pos = convertLocalXyToPageCoordinates(elem, pos);
           } else if (!isPageCoordinate(pos)) {
             // turnto obj, limit: turn towards page coordinate.
             pos = $(pos).pagexy();
@@ -2170,7 +2201,11 @@ var turtlefn = {
   touches: function(arg, y) {
     if (this.hidden() || !this.length) { return false; }
     if ($.isNumeric(arg) && $.isNumeric(y)) {
-      arg = [{ pageX: arg, pageY: y }];
+      arg = [arg, y];
+    }
+    if ($.isArray(arg) && arg.length == 2 &&
+        $.isNumeric(arg[0]) && $.isNumeric(arg[1])) {
+      arg = convertLocalXyToPageCoordinates(this[0] || document.body, arg);
     }
     if (!arg) return false;
     if (typeof arg === 'string') { arg = $(arg); }
@@ -2313,10 +2348,6 @@ $.turtle = function turtle(id, options) {
   if (!options.hasOwnProperty('events') || options.events) {
     turtleevents(options.eventprefix);
   }
-  // Set up window-scoped event handler methods too.
-  if (!options.hasOwnProperty('handlers') || options.handlers) {
-    globalizeMethods($(window), eventfn);
-  }
   // Set up global objects by id.
   if (!options.hasOwnProperty('ids') || options.ids) {
     turtleids(options.idprefix);
@@ -2357,7 +2388,7 @@ $.turtle = function turtle(id, options) {
     var extraturtlefn = {
       show:1, hide:1, css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
       animate:1, delay:1, stop:1, finish:1, toggle:1, remove:1 };
-    var globalfn = $.extend({}, turtlefn, extraturtlefn);
+    var globalfn = $.extend({}, turtlefn, eventfn, extraturtlefn);
     global_turtle_methods.push.apply(global_turtle_methods,
        globalizeMethods(selector, globalfn));
     global_turtle = selector[0];
@@ -2747,12 +2778,17 @@ function output(html, defaulttag) {
     // to trust a surrounding tag but found multiple bits.
     if (html.charAt(0) != '<' || html.charAt(html.length - 1) != '>' ||
         (result !== null && result.length != 1)) {
-      html = '<' + defaulttag + '>' + html + '</' + defaulttag + '>';
+      html = '<' + defaulttag + ' style="display:inline-block">' +
+          html + '</' + defaulttag + '>';
       wrapped = true;
     }
     result = $(html);
   }
-  return result.appendTo('body');
+  result.appendTo('body');
+  if (wrapped && defaulttag == 'div') {
+    result.after('<br>');
+  }
+  return result;
 }
 
 // Simplify $('body'>.append('<button>' + label + '</button>').click(fn).
