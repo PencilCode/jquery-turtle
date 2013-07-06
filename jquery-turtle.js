@@ -180,6 +180,7 @@ $.turtle() are as follows:
   write(html)           // Appends html into the document body.
   read([label,] fn)     // Makes a one-time input field, calls fn after entry.
   readnum([label,] fn)  // Like read, but restricted to numeric input.
+  readstr([label,] fn)  // Like read, but never converts input to a number.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(m, n)           // Outputs a table with m rows and n columns.
   sound('[DFG][EGc]')   // Plays musical notes now, without queueing.
@@ -2084,6 +2085,9 @@ var turtlefn = {
   },
   pen: function(penstyle) {
     return this.direct(function(j, elem) {
+      if (penstyle === undefined) {
+        penstyle = 'black';
+      }
       if (penstyle === false || penstyle === true ||
           penstyle == 'down' || penstyle == 'up') {
         this.css('turtlePenDown', penstyle);
@@ -2444,8 +2448,9 @@ var dollar_turtle_methods = {
     directIfGlobal(function() { defaultspeed(mps); }); },
   sound: function() { playABC(null, arguments); },
   write: function(html) { return output(html, 'div'); },
-  read: function(a, b) { return input(a, b, false); },
-  readnum: function(a, b) { return input(a, b, true); },
+  read: function(a, b) { return input(a, b, 0); },
+  readnum: function(a, b) { return input(a, b, 1); },
+  readstr: function(a, b) { return input(a, b, -1); },
   random: random,
   hatch: function(count, spec) {
     if (global_turtle) return $(global_turtle).hatch(count, spec);
@@ -2972,7 +2977,8 @@ function input(name, callback, numeric) {
     lastseen = val;
     textbox.remove();
     label.append(val);
-    if (numeric || ($.isNumeric(val) && ('' + parseFloat(val) == val)) {
+    if (numeric > 0 || (
+      numeric >= 0 && $.isNumeric(val) && ('' + parseFloat(val) == val))) {
       val = parseFloat(val);
     }
     if (callback) { callback.call(thisval, val); }
@@ -2992,7 +2998,7 @@ function input(name, callback, numeric) {
       if (!validate()) { return false; }
       newval();
     }
-    if (numeric && (e.which >= 32 && e.which <= 127) &&
+    if (numeric > 0 && (e.which >= 32 && e.which <= 127) &&
         (e.which < '0'.charCodeAt(0) || e.which > '9'.charCodeAt(0))) {
       return false;
     }
