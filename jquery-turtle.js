@@ -392,6 +392,10 @@ function subtractVector(v, s) {
   return [v[0] - s[0], v[1] - s[1]];
 }
 
+function scaleVector(v, s) {
+  return [v[0] * s, v[1] * s];
+}
+
 function translatedMVP(m, v, origin) {
   return addVector(matrixVectorProduct(m, subtractVector(v, origin)), origin);
 }
@@ -783,17 +787,19 @@ function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
       subtractVector([target.pageX, target.pageY], origin));
   if (localx || localy) {
     var ts = readTurtleTransform(elem, true),
-        sx = ts ? ts.sx : 1,
         sy = ts ? ts.sy : 1;
-    localTarget[0] += localx * sx;
+    localTarget[0] += localx * sy;
     localTarget[1] -= localy * sy;
   }
   return cssNum(localTarget[0]) + ' ' + cssNum(localTarget[1]);
 }
 
-// Compute the start position and the turtle location in local turtle
-// coordinates; return the local offset from the start position.
-function computePositionAsLocalOffset(elem, start) {
+// Compute the home position and the turtle location in local turtle
+// coordinates; return the local offset from the home position as
+// an array of len 2 within an array of len 1.  If others are included,
+// the [x, y] coordinates of the other absolute page positions are
+// appended to the result: [[x,y], [x0, y0], [x1, y1], etc]
+function computePositionAsLocalOffset(elem, home, others) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
       hidden = ($.css(elem, 'display') === 'none'),
@@ -805,19 +811,28 @@ function computePositionAsLocalOffset(elem, start) {
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
       origin = addVector([gbcr.left, gbcr.top], middle),
       ts = readTurtleTransform(elem, true),
-      localStart = inverseParent && matrixVectorProduct(inverseParent,
-          subtractVector([start.pageX, start.pageY], origin));
+      localHome = inverseParent && matrixVectorProduct(inverseParent,
+          subtractVector([home.pageX, home.pageY], origin)),
+      isy = ts && 1 / ts.sy,
+      result, j, t;
   if (!inverseParent) { return; }
-  return [(ts.tx - localStart[0]) / ts.sx,
-          (localStart[1] - ts.ty) / ts.sy];
+  result = [[(ts.tx - localHome[0]) * isy, (localHome[1] - ts.ty) * isy]];
+  if (others) {
+    for (j = 0; j < others.length; ++j) {
+      result.push(scaleVector(
+          subtractVector(matrixVectorProduct(inverseParent, subtractVector(
+              [others[j].pageX, others[j].pageY], origin)), localHome), isy));
+    }
+  }
+  return result;
 }
 
 function convertLocalXyToPageCoordinates(elem, localxy) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       ts = readTurtleTransform(elem, true),
       pageOffset = matrixVectorProduct(
-          totalParentTransform, [localxy[0] * ts.sx, -localxy[1] * ts.sy]),
-      center = $(window).pagexy(),
+          totalParentTransform, [localxy[0] * ts.sy, -localxy[1] * ts.sy]),
+      center = $(document).pagexy(),
       result = {pageX: center.pageX + pageOffset[0],
                 pageY: center.pageY + pageOffset[1] };
   return result;
@@ -903,6 +918,7 @@ function getCornersInPageCoordinates(elem, untransformed) {
   });
 }
 
+/*
 function computeDirectionAsTurtleRotation(elem, target, limit) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
@@ -922,6 +938,7 @@ function computeDirectionAsTurtleRotation(elem, target, limit) {
       tr = Math.atan2(lp[0], lp[1]);
   return radiansToDegrees(tr);
 }
+*/
 
 function getDirectionOnPage(elem) {
   var ts = readTurtleTransform(elem, true),
@@ -1488,6 +1505,9 @@ function drawAndClearPath(path, style, scale) {
   path[0].splice(0, path[0].length - 1);
 }
 
+function flushPenArc(elem) {
+}
+
 function flushPenState(elem) {
   var state = getTurtleData(elem);
   if (!state.style || (!state.down && !state.style.savePath)) {
@@ -1533,6 +1553,9 @@ function fillDot(position, diameter, style) {
   ctx.arc(position.pageX, position.pageY, diameter / 2, 0, 2*Math.PI, false);
   ctx.closePath();
   ctx.fill();
+  if (style.strokeStyle) {
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -1591,7 +1614,7 @@ function doQuickMove(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
       r = ts && convertToRadians(ts.rot),
       scaledDistance = ts && (distance * ts.sy),
-      scaledSideways = ts && ((sideways || 0) * ts.sx),
+      scaledSideways = ts && ((sideways || 0) * ts.sy),
       dy = -Math.cos(r) * scaledDistance,
       dx = Math.sin(r) * scaledDistance;
   if (!ts) { return; }
@@ -1605,11 +1628,34 @@ function doQuickMove(elem, distance, sideways) {
   flushPenState(elem);
 }
 
+function doArcMove(elem, radius, degrees) {
+  var ts = readTurtleTransform(elem, true),
+      r = ts && convertToRadians(ts.rot),
+      nr = ts && convertToRadians(ts.rot + degrees),
+      scaledRadius = ts && (radius * ts.sy),
+      dcy = Math.sin(r) * scaledRadius,
+      dcx = Math.cos(r) * scaledRadius,
+      dny = -Math.sin(nr) * scaledRadius,
+      dnx = -Math.cos(nr) * scaledRadius,
+      start = getCenterInPageCoordinates(elem),
+      center, end;
+  if (!ts) { return; }
+  ts.tx += dcx;
+  ts.ty += dcy;
+  elem.style[transform] = writeTurtleTransform(ts);
+  center = getCenterInPageCoordinates(elem);
+  ts.tx += dnx;
+  ts.ty += dny;
+  elem.style[transform] = writeTurtleTransform(ts);
+  end = getCenterInPageCoordinates(elem);
+  flushPenArc(elem, start, center, end);
+}
+
 function displacedPosition(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
       r = ts && convertToRadians(ts.rot),
       scaledDistance = ts && (distance * ts.sy),
-      scaledSideways = ts && ((sideways || 0) * ts.sx),
+      scaledSideways = ts && ((sideways || 0) * ts.sy),
       dy = -Math.cos(r) * scaledDistance,
       dx = Math.sin(r) * scaledDistance;
   if (!ts) { return; }
@@ -1804,7 +1850,7 @@ function withinOrNot(obj, within, distance, x, y) {
     pos = x;
   }
   if ($.isArray(pos)) {
-    // turnto [x, y], limit: turn towards local coordinate x, y].
+    // [x, y]: local coordinates.
     pos = convertLocalXyToPageCoordinates(obj[0] || document.body, pos);
   }
   if (distance === 'touch') {
@@ -1972,24 +2018,35 @@ var turtlefn = {
     return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       // turnto bearing: just use the given absolute.
-      var dir = bearing, limit = null;
-      if (!$.isNumeric(bearing)) {
-        var pos = bearing, cur = $(elem).pagexy();
-        if (pos) {
-          if ($.isArray(pos)) {
-            // turnto [x, y], limit: turn towards local coordinate x, y].
-            pos = convertLocalXyToPageCoordinates(elem, pos);
-          } else if (!isPageCoordinate(pos)) {
-            // turnto obj, limit: turn towards page coordinate.
-            pos = $(pos).pagexy();
-          }
-        }
-        if (!pos || !isPageCoordinate(pos)) return;
-        dir = radiansToDegrees(
-            Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
+      var limit = null, ts, r,
+          targetpos = null, nlocalxy = null;
+      if ($.isNumeric(bearing)) {
+        r = convertToRadians(bearing);
+        targetpos = getCenterInPageCoordinates(elem);
+        targetpos.pageX += Math.sin(r) * 1024;
+        targetpos.pageY -= Math.cos(r) * 1024;
+        limit = y;
+      } else if ($.isArray(bearing)) {
+        nlocalxy = computePositionAsLocalOffset(elem, $(document).pagexy())[0];
+        nlocalxy[0] -= bearing[0];
+        nlocalxy[1] -= bearing[1];
+      } else if (isPageCoordinate(bearing)) {
+        targetpos = bearing;
+      } else if ('pagexy' in bearing) {
+        targetpos = bearing.pagexy();
+      } else {
+        return;
       }
-      this.animate({turtleRotation:
-          computeDirectionAsTurtleRotation(elem, dir, limit)}, animTime(elem));
+      if (!nlocalxy) {
+        nlocalxy = computePositionAsLocalOffset(elem, targetpos)[0];
+      }
+      dir = radiansToDegrees(Math.atan2(-nlocalxy[0], -nlocalxy[1]));
+      if (!(limit === null)) {
+        ts = readTurtleTransform(elem, true);
+        r = convertToRadians(ts.rot);
+        dir = limitRotation(ts.rot, dir, limit);
+      }
+      this.animate({turtleRotation: dir}, animTime(elem));
     });
   },
   home: function() {
@@ -2032,12 +2089,31 @@ var turtlefn = {
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
       var c = this.pagexy(),
-          ts = readTurtleTransform(elem, true);
+          ts = readTurtleTransform(elem, true),
+          extraDiam = (ps.eraseMode ? 2 : 0);
       // Scale by sx.  (TODO: consider parent transforms.)
-      fillDot(c, diameter * ts.sx, ps);
+      fillDot(c, diameter * ts.sx + extraDiam, ps);
       // Once drawing begins, origin must be stable.
       watchImageToFixOriginOnLoad(elem);
     });
+  },
+  wait: function(seconds) {
+    return this.delay(seconds * 1000);
+  },
+  st: function() {
+    return this.direct(function() { this.show(); });
+  },
+  ht: function() {
+    return this.direct(function() { this.hide(); });
+  },
+  pu: function() {
+    return this.pen(false);
+  },
+  pd: function() {
+    return this.pen(true);
+  },
+  pe: function() {
+    return this.pen('erase');
   },
   play: function(notes) {
     var args = arguments;
@@ -2093,7 +2169,7 @@ var turtlefn = {
   },
   getxy: function() {
     if (!this.length) return;
-    return computePositionAsLocalOffset(this[0], $(document).pagexy());
+    return computePositionAsLocalOffset(this[0], $(document).pagexy())[0];
   },
   bearing: function(pos, y) {
     if (!this.length) return;
@@ -2390,8 +2466,8 @@ $.turtle = function turtle(id, options) {
   if (selector && selector.length === 1 &&
       (!options.hasOwnProperty('global') || options.global)) {
     var extraturtlefn = {
-      show:1, hide:1, css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
-      animate:1, delay:1, stop:1, finish:1, toggle:1, remove:1 };
+      css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
+      animate:1, stop:1, finish:1, toggle:1, remove:1 };
     var globalfn = $.extend({}, turtlefn, eventfn, extraturtlefn);
     global_turtle_methods.push.apply(global_turtle_methods,
        globalizeMethods(selector, globalfn));
