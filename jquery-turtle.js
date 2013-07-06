@@ -93,6 +93,7 @@ the default turtle, if used):
   $(x).within(d, t) // Filters to items with centers within d of t.pagexy().
   $(x).notwithin()  // The negation of within.
   $(x).cell(y, x)   // Selects the yth row and xth column cell in a table.
+  $(x).hatch([n,] [img]) // Creates and returns n turtles with the given img.
 </pre>
 
 When the speed of a turtle is nonzero, the first seven movement
@@ -106,6 +107,12 @@ which makes the synchronous distance, direction, and hit-testing useful
 for realtime game-making.  (To play music notes without stalling turtle
 movement, use the global function sound() instead of the turtle
 method play().)
+
+The direct method can be used to queue logic (including synchronous
+tests or actions) by running a function in the animation queue.  Unlike
+jquery queue(), direct arranges things so that if further animations
+are queued by the callback function, they are inserted (in natural
+recursive functional execution order) instead of being appended.
 
 The turnto method can turn to an absolute bearing (if called with a
 single numeric argument) or towards an absolute position on the
@@ -157,6 +164,7 @@ $.turtle() are as follows:
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
+  hatch([n,] [img])     // Creates and returns n turtles with the given img.
   clear()               // Clears the canvas and all text in the document body.
   defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
@@ -168,7 +176,6 @@ $.turtle() are as follows:
   random('color')       // Returns a random hsl(*, 100%, 50%) color.
   random('gray')        // Returns a random hsl(0, 0, *) gray.
   remove()              // Removes default turtle and its globals (fd, etc).
-  hatch([n,] [img])     // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
   write(html)           // Appends html into the document body.
   ask([label,] fn)      // Makes a one-time input field, calls fn after entry.
@@ -794,6 +801,14 @@ function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
   return cssNum(localTarget[0]) + ' ' + cssNum(localTarget[1]);
 }
 
+function homeContainer(elem) {
+  var container = elem.offsetParent;
+  if (!container || container == drawing.surface) {
+    return document;
+  }
+  return container;
+}
+
 // Compute the home position and the turtle location in local turtle
 // coordinates; return the local offset from the home position as
 // an array of len 2 within an array of len 1.  If others are included,
@@ -832,7 +847,7 @@ function convertLocalXyToPageCoordinates(elem, localxy) {
       ts = readTurtleTransform(elem, true),
       pageOffset = matrixVectorProduct(
           totalParentTransform, [localxy[0] * ts.sy, -localxy[1] * ts.sy]),
-      center = $(document).pagexy(),
+      center = $(homeContainer(elem)).pagexy(),
       result = {pageX: center.pageX + pageOffset[0],
                 pageY: center.pageY + pageOffset[1] };
   return result;
@@ -847,7 +862,7 @@ function getCenterInPageCoordinates(elem) {
   if ($.isWindow(elem)) {
     return getRoundedCenterLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
-  } else if (elem.nodeType === 9) {
+  } else if (elem.nodeType === 9 || elem == document.body) {
     return getRoundedCenterLTWH(0, 0, dw(), dh());
   }
   var tr = getElementTranslation(elem),
@@ -1416,7 +1431,7 @@ function getTurtleData(elem) {
   var state = $.data(elem, 'turtleData');
   if (!state) {
     state = $.data(elem, 'turtleData', {
-      style: {},
+      style: null,
       path: [[]],
       down: true,
       speed: 'turtle'
@@ -1981,13 +1996,13 @@ var turtlefn = {
       // moveto x, y: use local coordinates.
       localx = parseFloat(position);
       localy = parseFloat(y);
-      position = $(document).pagexy();
+      position = null;
       limit = null;
     } else if ($.isArray(position)) {
       // moveto [x, y], limit: use local coordinates (limit optional).
       localx = position[0];
       localy = position[1];
-      position = $(document).pagexy();
+      position = null;
       limit = y;
     } else if ($.isNumeric(y)) {
       // moveto obj, limit: limited motion in the direction of obj.
@@ -1997,7 +2012,10 @@ var turtlefn = {
     return this.direct(function(j, elem) {
       var pos = position;
       if (pos && !isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
-      if (!pos || !isPageCoordinate(pos)) return this;
+      if (!pos && localx || localy) {
+        pos = $(homeContainer(elem)).pagexy();
+      }
+      if (!pos || !isPageCoordinate(pos)) return;
       if ($.isWindow(elem)) {
         scrollWindowToDocumentPosition(pos, limit);
         return;
@@ -2027,7 +2045,8 @@ var turtlefn = {
         targetpos.pageY -= Math.cos(r) * 1024;
         limit = y;
       } else if ($.isArray(bearing)) {
-        nlocalxy = computePositionAsLocalOffset(elem, $(document).pagexy())[0];
+        nlocalxy = computePositionAsLocalOffset(
+            elem, $(homeContainer(elem)).pagexy())[0];
         nlocalxy[0] -= bearing[0];
         nlocalxy[1] -= bearing[1];
       } else if (isPageCoordinate(bearing)) {
@@ -2049,13 +2068,15 @@ var turtlefn = {
       this.animate({turtleRotation: dir}, animTime(elem));
     });
   },
-  home: function() {
+  home: function(container) {
     return this.direct(function(j, elem) {
-      var down = this.css('turtlePenDown');
+      var down = this.css('turtlePenDown'),
+          hc = container || homeContainer(elem);
       this.css({turtlePenDown: 'up' });
       this.css({
         turtlePosition:
-          computeTargetAsTurtlePosition(elem, $(document).pagexy(), null, 0, 0),
+          computeTargetAsTurtlePosition(
+              elem, $(hc).pagexy(), null, 0, 0),
         turtleRotation: 0});
       this.css({turtlePenDown: down });
     });
@@ -2163,13 +2184,42 @@ var turtlefn = {
       }
     });
   },
+  hatch: function(count, spec) {
+    if (!this.length) return;
+    if (spec === undefined && !$.isNumeric(count)) {
+      spec = count;
+      count = 1;
+    }
+    // Determine the container in which to hatch the turtle.
+    var container = this[0], clone = null;
+    if ($.isWindow(container) || container.nodeType === 9) {
+      container = getTurtleClipSurface();
+    } else if (/^(?:br|img|input|hr)$/i.test(container.tagName)) {
+      container = container.parentElement;
+      clone = this[0];
+    }
+    // Create the turtle(s)
+    if (count === 1) {
+      // Pass through identical jquery instance in the 1 case.
+      return hatchone(
+          typeof spec === 'function' ? spec(0) : spec, container, clone);
+    } else {
+      var k = 0, result = [];
+      for (; k < count; ++k) {
+        result.push(hatchone(
+            typeof spec === 'function' ? spec(k) : spec, container, clone)[0]);
+      }
+      return $(result);
+    }
+  },
   pagexy: function() {
     if (!this.length) return;
     return getCenterInPageCoordinates(this[0]);
   },
   getxy: function() {
     if (!this.length) return;
-    return computePositionAsLocalOffset(this[0], $(document).pagexy())[0];
+    return computePositionAsLocalOffset(
+        this[0], $(homeContainer(this[0])).pagexy())[0];
   },
   bearing: function(pos, y) {
     if (!this.length) return;
@@ -2395,7 +2445,10 @@ var dollar_turtle_methods = {
   write: function(html) { return output(html, 'div'); },
   ask: input,
   random: random,
-  hatch: hatch,
+  hatch: function(count, spec) {
+    if (global_turtle) return $(global_turtle).hatch(count, spec);
+    else return $(document).hatch(count, spec);
+  },
   button: button,
   table: table
 };
@@ -2458,7 +2511,7 @@ $.turtle = function turtle(id, options) {
   if (id) {
     selector = $('#' + id);
     if (!selector.length) {
-      selector = hatch(id);
+      selector = dollar_turtle_methods.hatch(id);
     }
   }
   if (selector && !selector.length) { selector = null; }
@@ -2633,24 +2686,6 @@ function escapeHtml(string) {
   return String(string).replace(/[&<>"]/g, function(s) {return entityMap[s];});
 }
 
-// Turtle creation function.
-function hatch(count, spec) {
-  if (spec === undefined && !$.isNumeric(count)) {
-    spec = count;
-    count = 1;
-  }
-  if (count === 1) {
-    // Pass through identical jquery instance in the 1 case.
-    return hatchone(typeof spec === 'function' ? spec(0) : spec);
-  } else {
-    var j = 0, result = [];
-    for (; j < count; ++j) {
-      result.push(hatchone(typeof spec === 'function' ? spec(j) : spec)[0]);
-    }
-    return $(result);
-  }
-}
-
 function nameToImg(name) {
   if (name == 'turtle') { name = 'mediumseagreen'; }
   if (isCSSColor(name)) return {
@@ -2710,7 +2745,8 @@ function nameToImg(name) {
   return null;
 }
 
-function hatchone(name) {
+function hatchone(name, container, clonepos) {
+  // see(name, container, clonepos);
   var isID = name && /^[a-zA-Z]\w*$/.exec(name),
       isTag = name && /^<.*>$/.exec(name),
       img = nameToImg(name) ||
@@ -2729,12 +2765,29 @@ function hatchone(name) {
   } else {
     result = $('<div>' + escapeHtml(name) + '</div>');
   }
+  // Position the turtle inside the container.
   result.css({
-    'position': 'absolute',
-    'display': 'inline-block',
-    'top': 0,
-    'left': 0
-  }).appendTo(getTurtleClipSurface()).home();
+    position: 'absolute',
+    display: 'inline-block',
+    top: 0,
+    left: 0
+  });
+  if (!container || container.nodeType == 9 || $.isWindow(container)) {
+    container = getTurtleClipSurface();
+  }
+  result.appendTo(container);
+
+  // Move it to the starting pos.
+  if (clonepos) {
+    var t = $.style(clonepos, 'transform');
+    if (t) {
+      result.css({transform: $.style(clonepos, 'transform')});
+    } else {
+      result.home(clonepos);
+    }
+  } else {
+    result.home(container);
+  }
 
   // Every hatched turtle has class="turtle".
   result.addClass('turtle');
