@@ -178,7 +178,8 @@ $.turtle() are as follows:
   remove()              // Removes default turtle and its globals (fd, etc).
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
   write(html)           // Appends html into the document body.
-  ask([label,] fn)      // Makes a one-time input field, calls fn after entry.
+  read([label,] fn)     // Makes a one-time input field, calls fn after entry.
+  readnum([label,] fn)  // Like read, but restricted to numeric input.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
   table(m, n)           // Outputs a table with m rows and n columns.
   sound('[DFG][EGc]')   // Plays musical notes now, without queueing.
@@ -2443,7 +2444,8 @@ var dollar_turtle_methods = {
     directIfGlobal(function() { defaultspeed(mps); }); },
   sound: function() { playABC(null, arguments); },
   write: function(html) { return output(html, 'div'); },
-  ask: input,
+  read: function(a, b) { return input(a, b, false); },
+  readnum: function(a, b) { return input(a, b, true); },
   random: random,
   hatch: function(count, spec) {
     if (global_turtle) return $(global_turtle).hatch(count, spec);
@@ -2943,8 +2945,8 @@ function button(name, callback) {
 
 
 // Simplify $('body').append('<input>' + label) and onchange hookup.
-function input(name, callback) {
-  if ($.isFunction(name) && callback === undefined) {
+function input(name, callback, numeric) {
+  if ($.isFunction(name) && !callback) {
     callback = name;
     name = null;
   }
@@ -2963,22 +2965,40 @@ function input(name, callback) {
     }
   }
   function newval() {
+    if (!validate()) { return false; }
     var val = textbox.val();
     if (debounce && lastseen == val) { return; }
     dodebounce();
     lastseen = val;
     textbox.remove();
     label.append(val);
-    if ($.isNumeric(val)) {
+    if (numeric || ($.isNumeric(val) && ('' + parseFloat(val) == val)) {
       val = parseFloat(val);
     }
     if (callback) { callback.call(thisval, val); }
   }
+  function validate() {
+    if (!numeric) return true;
+    var val = textbox.val(),
+        nval = val.replace(/[^0-9\.]/g, '');
+    if (val != nval || !$.isNumeric(nval)) {
+      textbox.val(nval);
+      return false;
+    }
+    return true;
+  }
   function key(e) {
-    if (e.which == 13) { newval(); }
+    if (e.which == 13) {
+      if (!validate()) { return false; }
+      newval();
+    }
+    if (numeric && (e.which >= 32 && e.which <= 127) &&
+        (e.which < '0'.charCodeAt(0) || e.which > '9'.charCodeAt(0))) {
+      return false;
+    }
   }
   dodebounce();
-  textbox.on('keydown', key);
+  textbox.on('keypress keydown', key);
   textbox.on('change', newval);
   $('body').append(label);
   textbox.focus();
