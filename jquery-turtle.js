@@ -165,7 +165,9 @@ $.turtle() are as follows:
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
   hatch([n,] [img])     // Creates and returns n turtles with the given img.
-  clear()               // Clears the canvas and all text in the document body.
+  cs()                  // Clears the screen, both the canvas and the body text.
+  cg()                  // Clears the graphics canvas without clearing the text.
+  ct()                  // Clears the text without clearing the canvas.
   defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
   random(n)             // Returns a random number [0..n-1].
@@ -2442,7 +2444,9 @@ var global_turtle = null;
 var global_turtle_methods = [];
 var attaching_ids = false;
 var dollar_turtle_methods = {
-  clear: function(arg) { directIfGlobal(function() { clearField(arg) }); },
+  cs: function() { /* Use parentheses to call a function */ directIfGlobal(function() { clearField() }); },
+  cg: function() { /* Use parentheses to call a function */ directIfGlobal(function() { clearField('canvas') }); },
+  ct: function() { /* Use parentheses to call a function */ directIfGlobal(function() { clearField('text') }); },
   tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
   defaultspeed: function(mps) {
     directIfGlobal(function() { defaultspeed(mps); }); },
@@ -2569,7 +2573,8 @@ function globalizeMethods(thisobj, fnames) {
       replaced.push(fname);
       window[fname] = (function() {
         var method = thisobj[fname], target = thisobj;
-        return (function() { return method.apply(target, arguments); });
+        return (function() { /* Use parentheses to call a function */
+            return method.apply(target, arguments); });
       })();
     }
   }
