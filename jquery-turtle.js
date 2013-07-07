@@ -62,6 +62,8 @@ the default turtle, if used):
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
   $(x).slide(x, y)  // Move right by x while moving forward by y.
+  $(x).rarc(100,60) // Turn right 60 degrees tracing an arc of radius 100.
+  $(x).larc(50,360) // Left 360 degrees tracing a full circle of radius 50.
   $(x).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
   $(x).turnto(bearing || position)        // Absolute direction adjustment.
   $(x).play("ccgg") // Plays notes using ABC notation and waits until done.
@@ -69,10 +71,15 @@ the default turtle, if used):
   // Methods below happen in an instant, but line up in the animation queue.
   $(x).home()       // Jumps to the center of the document, with bearing 0.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
+  $(x).pu()         // Pen up - temporarily disables the pen (also pen(false)).
+  $(x).pd()         // Pen down - starts a new pen path.
+  $(x).pe()         // Uses the pen 'erase' style.
   $(x).fill('gold') // Fills a shape previously outlined using pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
   $(x).label('A')   // Prints an HTML label at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
+  $(x).ht()         // Hides the turtle.
+  $(x).st()         // Shows the turtle.
   $(x).wear('blue') // Switches to a blue shell.  Use any image or color.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
@@ -97,16 +104,41 @@ the default turtle, if used):
 </pre>
 
 When the speed of a turtle is nonzero, the first seven movement
-functions animate at that speed, and the remaining mutators also
-participate in the animation queue.  The default turtle speed is
-a leisurely one move per second (as appropriate for the creature),
-but you may soon discover the desire to set speed higher.
+functions animate at that speed (in moves per second), and the
+remaining mutators also participate in the animation queue.  The
+default turtle speed is a leisurely one move per second (as
+appropriate for the creature), but you may soon discover the
+desire to set speed higher.
 
 Setting the turtle speed to Infinity will make its movement synchronous,
 which makes the synchronous distance, direction, and hit-testing useful
-for realtime game-making.  (To play music notes without stalling turtle
-movement, use the global function sound() instead of the turtle
-method play().)
+for realtime game-making.
+
+The turtle pen respects canvas styling: any valid strokeStyle is
+accepted; and also using a space-separated syntax, lineWidth, lineCap,
+lineJoin, miterLimit, and fillStyle can be specified, e.g.,
+pen('red lineWidth 5 lineCap square').  The same syntax applies for
+styling dot and fill (except that the default interpretation for the
+first value is fillStyle instead of strokeStyle).
+
+The fill method is used by tracing an invisible path using the
+pen('path') style, and then calling the fill method.  Disconnected
+paths can be created using pu() and pd().
+
+The play method plays a sequence of notes specified using a subset of
+standard ABC notation.  Capital C denotes middle C, and lowercase c is
+an octave higher.  Pitches and durations can be altered with commas,
+apostrophes, carets, underscores, digits, and slashes as in the
+standard.  Enclosing letters in square brackets represents a chord,
+and z represents a rest.  The default tempo is 120, but can be changed
+by passing a options object as the first parameter setting tempo, e.g.,
+{ tempo: 200 }.  Other options include volume: 0.5, type: 'sine' or
+'square' or 'sawtooth' or 'triangle', and envelope: which defines
+an ADSR envelope e.g., { a: 0.01, d: 0.2, s: 0.1, r: 0.1 }.
+
+The turtle's motion will pause while it is playing notes.  To play
+notes without stalling turtle movement, use the global function sound()
+instead of the turtle method play().
 
 The direct method can be used to queue logic (including synchronous
 tests or actions) by running a function in the animation queue.  Unlike
@@ -229,22 +261,33 @@ with animation support on all motion:
 <pre>
   $(x).css('turtleSpeed', '10');         // default speed in moves per second.
   $(x).css('turtlePosition', '30 40');   // position in local coordinates.
-  $(x).css('turtlePositionX', '30');     // x component.
-  $(x).css('turtlePositionY', '40');     // y component.
-  $(x).css('turtleRotation', '90');      // rotation in degrees.
+  $(x).css('turtlePositionX', '30px');   // x component.
+  $(x).css('turtlePositionY', '40px');   // y component.
+  $(x).css('turtleRotation', '90deg');   // rotation in degrees.
   $(x).css('turtleScale', '2');          // double the size of any element.
   $(x).css('turtleScaleX', '2');         // x stretch after twist.
   $(x).css('turtleScaleY', '2');         // y stretch after twist.
-  $(x).css('turtleTwist', '45');         // turn before stretching.
-  $(x).css('turtleForward', '50');       // position in direction of rotation.
+  $(x).css('turtleTwist', '45deg');      // turn before stretching.
+  $(x).css('turtleForward', '50px');     // position in direction of rotation.
+  $(x).css('turtleTurningRadius, '50px');// arc turning radius for rotation.
   $(x).css('turtlePenStyle', 'red');     // or 'red lineWidth 2px' etc.
   $(x).css('turtlePenDown', 'up');       // default 'down' to draw with pen.
   $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>
 
 Arbitrary 2d transforms are supported, including transforms of elements
-nested within other elements that have css transforms. Transforms are
-automatically decomposed to turtle components when necessary.
+nested within other elements that have css transforms. For example, arc
+paths of a turtle within a skewed div will transform to the proper elliptical
+arc.  Note that while turtle motion is transformed, lines and dots are not:
+for example, dots are always circular.  To get transformed circles, trace
+out an arc.
+
+Transforms on the turtle itself are used to infer the turtle position,
+direction, and rendering of the sprite.  ScaleY stretches the turtle
+sprite in the direction of movement also stretches distances for
+motion in all directions.  ScaleX stretches the turtle sprite perpendicular
+to the direction of motion and also stretches line and dot widths for
+drawing.
 
 A canvas is supported for drawing, but only created when the pen is
 used; pen styles include canvas style properties such as lineWidth
@@ -815,10 +858,11 @@ function homeContainer(elem) {
 
 // Compute the home position and the turtle location in local turtle
 // coordinates; return the local offset from the home position as
-// an array of len 2 within an array of len 1.  If others are included,
-// the [x, y] coordinates of the other absolute page positions are
-// appended to the result: [[x,y], [x0, y0], [x1, y1], etc]
-function computePositionAsLocalOffset(elem, home, others) {
+// an array of len 2.
+function computePositionAsLocalOffset(elem, home) {
+  if (!home) {
+    home = $(homeContainer(elem)).pagexy();
+  }
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
       hidden = ($.css(elem, 'display') === 'none'),
@@ -832,28 +876,23 @@ function computePositionAsLocalOffset(elem, home, others) {
       ts = readTurtleTransform(elem, true),
       localHome = inverseParent && matrixVectorProduct(inverseParent,
           subtractVector([home.pageX, home.pageY], origin)),
-      isy = ts && 1 / ts.sy,
-      result, j, t;
+      isy = ts && 1 / ts.sy;
   if (!inverseParent) { return; }
-  result = [[(ts.tx - localHome[0]) * isy, (localHome[1] - ts.ty) * isy]];
-  if (others) {
-    for (j = 0; j < others.length; ++j) {
-      result.push(scaleVector(
-          subtractVector(matrixVectorProduct(inverseParent, subtractVector(
-              [others[j].pageX, others[j].pageY], origin)), localHome), isy));
-    }
-  }
-  return result;
+  return [(ts.tx - localHome[0]) * isy, (localHome[1] - ts.ty) * isy];
 }
 
 function convertLocalXyToPageCoordinates(elem, localxy) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       ts = readTurtleTransform(elem, true),
-      pageOffset = matrixVectorProduct(
-          totalParentTransform, [localxy[0] * ts.sy, -localxy[1] * ts.sy]),
       center = $(homeContainer(elem)).pagexy(),
-      result = {pageX: center.pageX + pageOffset[0],
-                pageY: center.pageY + pageOffset[1] };
+      result = [],
+      pageOffset, j;
+  for (j = 0; j < localxy.length; j++) {
+    pageOffset = matrixVectorProduct(
+        totalParentTransform, [localxy[j][0] * ts.sy, -localxy[j][1] * ts.sy]);
+    result.push({ pageX: center.pageX + pageOffset[0],
+                  pageY: center.pageY + pageOffset[1] });
+  }
   return result;
 }
 
@@ -961,7 +1000,7 @@ function computeDirectionAsTurtleRotation(elem, target, limit) {
 
 function getDirectionOnPage(elem) {
   var ts = readTurtleTransform(elem, true),
-      r = convertToRadians(ts.rot),
+      r = convertToRadians(normalizeRotation(ts.rot)),
       ux = Math.sin(r), uy = Math.cos(r),
       totalParentTransform = totalTransform2x2(elem.parentElement),
       up = matrixVectorProduct(totalParentTransform, [ux, uy]);
@@ -1253,6 +1292,13 @@ function normalizeRotation(x) {
   return x;
 }
 
+function normalizeRotationDelta(x) {
+  if (Math.abs(x) >= 720) {
+    x = x % 360 + (x > 0 ? 360 : -360);
+  }
+  return x;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // TURTLE DRAWING SUPPORT
 // If pen, fill, or dot are used, then a full-page canvas is created
@@ -1438,10 +1484,38 @@ function getTurtleData(elem) {
       style: null,
       path: [[]],
       down: true,
-      speed: 'turtle'
+      speed: 'turtle',
+      turningRadius: 0
     });
   }
   return state;
+}
+
+function getTurningRadius(elem) {
+  var state = $.data(elem, 'turtleData');
+  if (!state) { return 0; }
+  return state.turningRadius;
+}
+
+function makeTurningRadiusHook() {
+  return {
+    get: function(elem, computed, extra) {
+      return cssNum(getTurningRadius(elem)) + 'px';
+    },
+    set: function(elem, value) {
+      var radius = parseFloat(value);
+      if (isNaN(radius)) return;
+      getTurtleData(elem).turningRadius = radius;
+      elem.style.turtleTurningRadius = '' + cssNum(radius) + 'px';
+      if (radius === 0) {
+        var ts = readTurtleTransform(elem, false);
+        if (ts && (ts.rot > 180 || ts.rot <= -180)) {
+          ts.rot = normalizeRotation(ts.rot);
+          elem.style[transform] = writeTurtleTransform(ts);
+        }
+      }
+    }
+  };
 }
 
 function makePenStyleHook() {
@@ -1498,7 +1572,7 @@ function applyPenStyle(ctx, ps, scale) {
 
 function drawAndClearPath(path, style, scale) {
   var ctx = getTurtleDrawingCtx(),
-      isClosed,
+      isClosed, skipLast,
       j = path.length,
       segment;
   ctx.save();
@@ -1510,9 +1584,17 @@ function drawAndClearPath(path, style, scale) {
       segment = path[j];
       isClosed = segment.length > 2 && isPointNearby(
           segment[0], segment[segment.length - 1]);
+      skipLast = isClosed && (!('pageX2' in segment[segment.length - 1]));
       ctx.moveTo(segment[0].pageX, segment[0].pageY);
-      for (var k = 1; k < segment.length - (isClosed ? 1 : 0); ++k) {
-        ctx.lineTo(segment[k].pageX, segment[k].pageY);
+      for (var k = 1; k < segment.length - (skipLast ? 1 : 0); ++k) {
+        if ('pageX2' in segment[k]) {
+          ctx.bezierCurveTo(
+             segment[k].pageX1, segment[k].pageY1,
+             segment[k].pageX2, segment[k].pageY2,
+             segment[k].pageX, segment[k].pageY);
+        } else {
+          ctx.lineTo(segment[k].pageX, segment[k].pageY);
+        }
       }
       if (isClosed) { ctx.closePath(); }
     }
@@ -1524,7 +1606,38 @@ function drawAndClearPath(path, style, scale) {
   path[0].splice(0, path[0].length - 1);
 }
 
-function flushPenArc(elem) {
+function approxBezierUnitArc(a1, a2) {
+  var a = (a2 - a1) / 2,
+      x4 = Math.cos(a),
+      y4 = Math.sin(a),
+      x1 = x4,
+      y1 = -y4,
+      q2 = 1 + x1 * x4 + y1 * y4,
+      k2 = 4/3 * (Math.sqrt(2 * q2) - q2) / (x1 * y4 - y1 * x4),
+      x2 = x1 - k2 * y1,
+      y2 = y1 + k2 * x1,
+      x3 = x2,
+      y3 = -y2,
+      ar = a + a1,
+      car = Math.cos(ar),
+      sar = Math.sin(ar);
+  return [
+     [x2 * car - y2 * sar, x2 * sar + y2 * car],
+     [x3 * car - y3 * sar, x3 * sar + y3 * car],
+     [Math.cos(a2), Math.sin(a2)]
+  ];
+}
+
+function addBezierToPath(path, start, triples) {
+  if (!path.length || !isPointNearby(start, path[path.length - 1])) {
+    path.push(start);
+  }
+  for (var j = 0; j < triples.length; ++j) {
+    path.push({
+        pageX1: triples[j][0].pageX, pageY1: triples[j][0].pageY,
+        pageX2: triples[j][1].pageX, pageY2: triples[j][1].pageY,
+        pageX: triples[j][2].pageX, pageY: triples[j][2].pageY });
+  }
 }
 
 function flushPenState(elem) {
@@ -1647,29 +1760,6 @@ function doQuickMove(elem, distance, sideways) {
   flushPenState(elem);
 }
 
-function doArcMove(elem, radius, degrees) {
-  var ts = readTurtleTransform(elem, true),
-      r = ts && convertToRadians(ts.rot),
-      nr = ts && convertToRadians(ts.rot + degrees),
-      scaledRadius = ts && (radius * ts.sy),
-      dcy = Math.sin(r) * scaledRadius,
-      dcx = Math.cos(r) * scaledRadius,
-      dny = -Math.sin(nr) * scaledRadius,
-      dnx = -Math.cos(nr) * scaledRadius,
-      start = getCenterInPageCoordinates(elem),
-      center, end;
-  if (!ts) { return; }
-  ts.tx += dcx;
-  ts.ty += dcy;
-  elem.style[transform] = writeTurtleTransform(ts);
-  center = getCenterInPageCoordinates(elem);
-  ts.tx += dnx;
-  ts.ty += dny;
-  elem.style[transform] = writeTurtleTransform(ts);
-  end = getCenterInPageCoordinates(elem);
-  flushPenArc(elem, start, center, end);
-}
-
 function displacedPosition(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
       r = ts && convertToRadians(ts.rot),
@@ -1721,7 +1811,7 @@ function makeTurtleForwardHook() {
         var r = convertToRadians(ts.rot),
             c = Math.cos(r),
             s = Math.sin(r);
-        return (ts.tx * s - ts.ty * c) / ts.sy + 'px';
+        return cssNum((ts.tx * s - ts.ty * c) / ts.sy) + 'px';
       }
     },
     set: function(elem, value) {
@@ -1749,20 +1839,80 @@ function makeTurtleHook(prop, normalize, unit, displace) {
     },
     set: function(elem, value) {
       var ts = readTurtleTransform(elem, true) ||
-          {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0};
-      ts[prop] = normalize(value);
+          {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0},
+          opt = { displace: displace };
+      ts[prop] = normalize(value, elem, ts, opt);
       elem.style[transform] = writeTurtleTransform(ts);
-      if (displace) {
+      if (opt.displace) {
         flushPenState(elem);
       }
     }
   };
 }
 
+function maybeArcRotation(end, elem, ts, opt) {
+  end = parseFloat(end);
+  var state = $.data(elem, 'turtleData'),
+      tradius = state ? state.turningRadius : 0;
+  if (tradius == 0) { return normalizeRotation(end); }
+  var r0 = ts.rot, r1, r1r, a1r, a2r, j, r, pts, triples,
+      delta = normalizeRotationDelta(end - r0),
+      radius = delta > 0 ? tradius : -tradius,
+      splits = 1,
+      splita = delta,
+      absang = Math.abs(delta),
+      tracing = (state && state.style && state.down),
+      r0r = convertToRadians(ts.rot),
+      dc = [Math.cos(r0r) * radius, Math.sin(r0r) * radius],
+      path, totalParentTransform, start, relative, points;
+  if (tracing) {
+    if (!state) {
+      state = getTurtleData(elem);
+    }
+    if (absang > 45) {
+      splits = Math.ceil(absang / 45);
+      splita = delta / splits;
+    }
+    path = state.path[0];
+    totalParentTransform = totalTransform2x2(elem.parentElement);
+    start = getCenterInPageCoordinates(elem);
+    relative = [];
+    while (--splits >= 0) {
+      r1 = splits === 0 ? end : r0 + splita;
+      a1r = convertToRadians(r0 + 180);
+      a2r = convertToRadians(r1 + 180);
+      relative.push.apply(relative, approxBezierUnitArc(a1r, a2r));
+      r0 = r1;
+    }
+    points = [];
+    r = matrixVectorProduct(totalParentTransform, dc);
+    for (j = 0; j < relative.length; j++) {
+      // Multiply each coordinate by radius and add to dc; then
+      // apply parent distortions to get relative offsets to the
+      // turtle's original position.
+      r = matrixVectorProduct(totalParentTransform,
+          addVector(scaleVector(relative[j], radius), dc));
+      points.push({
+        pageX: r[0] + start.pageX,
+        pageY: r[1] + start.pageY});
+    }
+    triples = [];
+    for (j = 0; j < points.length; j += 3) {
+      triples.push(points.slice(j, j + 3));
+    }
+    addBezierToPath(path, start, triples);
+  }
+  r1r = convertToRadians(end)
+  ts.tx += dc[0] - Math.cos(r1r) * radius;
+  ts.ty += dc[1] - Math.sin(r1r) * radius;
+  opt.displace = true;
+  return end;
+}
+
 function makeRotationStep(prop) {
   return function(fx) {
     if (!fx.delta) {
-      fx.delta = normalizeRotation(fx.end - fx.start);
+      fx.delta = normalizeRotationDelta(fx.end - fx.start);
       fx.start = fx.end - fx.delta;
     }
     $.cssHooks[prop].set(fx.elem, fx.start + fx.delta * fx.pos);
@@ -1870,7 +2020,7 @@ function withinOrNot(obj, within, distance, x, y) {
   }
   if ($.isArray(pos)) {
     // [x, y]: local coordinates.
-    pos = convertLocalXyToPageCoordinates(obj[0] || document.body, pos);
+    pos = convertLocalXyToPageCoordinates(obj[0] || document.body, [pos])[0];
   }
   if (distance === 'touch') {
     if (isPageCoordinate(pos)) {
@@ -1917,10 +2067,11 @@ $.extend(true, $, {
     turtlePenDown: makePenDownHook(),
     turtleSpeed: makeTurtleSpeedHook(),
     turtleForward: makeTurtleForwardHook(),
+    turtleTurningRadius: makeTurningRadiusHook(),
     turtlePosition: makeTurtleXYHook('turtlePosition', 'tx', 'ty', true),
     turtlePositionX: makeTurtleHook('tx', identity, 'px', true),
     turtlePositionY: makeTurtleHook('ty', identity, 'px', true),
-    turtleRotation: makeTurtleHook('rot', normalizeRotation, 'deg', false),
+    turtleRotation: makeTurtleHook('rot', maybeArcRotation, 'deg', false),
     turtleScale: makeTurtleXYHook('turtleScale', 'sx', 'sy', false),
     turtleScaleX: makeTurtleHook('sx', identity, '', false),
     turtleScaleY: makeTurtleHook('sy', identity, '', false),
@@ -1928,6 +2079,7 @@ $.extend(true, $, {
     turtleHull: makeHullHook()
   },
   cssNumber: {
+    turtleRotation: true,
     turtleSpeed: true,
     turtleScale: true,
     turtleScaleX: true,
@@ -1953,12 +2105,14 @@ $.extend(true, $.fx, {
 var turtlefn = {
   rt: function(amount) {
     return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '+=' + amount}, animTime(elem));
+      this.animate({turtleRotation: '+=' + cssNum(amount || 0) + 'deg'},
+          animTime(elem));
     });
   },
   lt: function(amount) {
     return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '-=' + amount}, animTime(elem));
+      this.animate({turtleRotation: '-=' + cssNum(amount || 0) + 'deg'},
+          animTime(elem));
     });
   },
   fd: function(amount) {
@@ -1980,7 +2134,8 @@ var turtlefn = {
       return this;
     }
     return this.direct(function(j, elem) {
-      this.animate({turtleForward: '+=' + amount}, animTime(elem));
+      this.animate({turtleForward: '+=' + cssNum(amount || 0) + 'px'},
+          animTime(elem));
     });
   },
   bk: function(amount) {
@@ -1992,6 +2147,34 @@ var turtlefn = {
     return this.direct(function(j, elem) {
       this.animate({turtlePosition:
           displacedPosition(elem, y, x)}, animTime(elem));
+    });
+  },
+  rarc: function(radius, amount) {
+    if (!radius || !amount) {
+      return this.rt(amount);
+    }
+    return this.direct(function(j, elem) {
+      var oldRadius = this.css('turtleTurningRadius');
+      this.css({turtleTurningRadius: (amount < 0) ? -radius : radius});
+      this.animate({turtleRotation: '+=' + cssNum(amount) + 'deg'},
+          animTime(elem));
+      this.direct(function() {
+        this.css({turtleTurningRadius: oldRadius});
+      });
+    });
+  },
+  larc: function(radius, amount) {
+    if (!radius || !amount) {
+      return this.lt(amount);
+    }
+    return this.direct(function(j, elem) {
+      var oldRadius = this.css('turtleTurningRadius');
+      this.css({turtleTurningRadius: (amount < 0) ? -radius : radius});
+      this.animate({turtleRotation: '-=' + cssNum(amount) + 'deg'},
+          animTime(elem));
+      this.direct(function() {
+        this.css({turtleTurningRadius: oldRadius});
+      });
     });
   },
   moveto: function(position, y) {
@@ -2049,8 +2232,7 @@ var turtlefn = {
         targetpos.pageY -= Math.cos(r) * 1024;
         limit = y;
       } else if ($.isArray(bearing)) {
-        nlocalxy = computePositionAsLocalOffset(
-            elem, $(homeContainer(elem)).pagexy())[0];
+        nlocalxy = computePositionAsLocalOffset(elem);
         nlocalxy[0] -= bearing[0];
         nlocalxy[1] -= bearing[1];
       } else if (isPageCoordinate(bearing)) {
@@ -2061,7 +2243,7 @@ var turtlefn = {
         return;
       }
       if (!nlocalxy) {
-        nlocalxy = computePositionAsLocalOffset(elem, targetpos)[0];
+        nlocalxy = computePositionAsLocalOffset(elem, targetpos);
       }
       dir = radiansToDegrees(Math.atan2(-nlocalxy[0], -nlocalxy[1]));
       if (!(limit === null)) {
@@ -2075,14 +2257,15 @@ var turtlefn = {
   home: function(container) {
     return this.direct(function(j, elem) {
       var down = this.css('turtlePenDown'),
+          radius = this.css('turtleTurningRadius'),
           hc = container || homeContainer(elem);
-      this.css({turtlePenDown: 'up' });
+      this.css({turtlePenDown: 'up', turtleTurningRadius: 0 });
       this.css({
         turtlePosition:
           computeTargetAsTurtlePosition(
               elem, $(hc).pagexy(), null, 0, 0),
         turtleRotation: 0});
-      this.css({turtlePenDown: down });
+      this.css({turtlePenDown: down, turtleTurningRadius: radius });
     });
   },
   pen: function(penstyle) {
@@ -2225,8 +2408,7 @@ var turtlefn = {
   },
   getxy: function() {
     if (!this.length) return;
-    return computePositionAsLocalOffset(
-        this[0], $(homeContainer(this[0])).pagexy())[0];
+    return computePositionAsLocalOffset(this[0]);
   },
   bearing: function(pos, y) {
     if (!this.length) return;
@@ -2342,7 +2524,7 @@ var turtlefn = {
     }
     if ($.isArray(arg) && arg.length == 2 &&
         $.isNumeric(arg[0]) && $.isNumeric(arg[1])) {
-      arg = convertLocalXyToPageCoordinates(this[0] || document.body, arg);
+      arg = convertLocalXyToPageCoordinates(this[0] || document.body, [arg])[0];
     }
     if (!arg) return false;
     if (typeof arg === 'string') { arg = $(arg); }
@@ -2758,7 +2940,6 @@ function nameToImg(name) {
 }
 
 function hatchone(name, container, clonepos) {
-  // see(name, container, clonepos);
   var isID = name && /^[a-zA-Z]\w*$/.exec(name),
       isTag = name && /^<.*>$/.exec(name),
       img = nameToImg(name) ||
