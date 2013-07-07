@@ -1672,7 +1672,7 @@ function endAndFillPenPath(elem, style) {
   var ts = readTurtleTransform(elem, true),
       state = getTurtleData(elem);
   drawAndClearPath(state.path, style);
-  if (state.style.savePath) {
+  if (state.style && state.style.savePath) {
     $.style(elem, 'turtlePenStyle', 'none');
   }
 }
