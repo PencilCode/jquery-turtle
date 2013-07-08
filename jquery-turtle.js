@@ -1709,6 +1709,13 @@ function clearField(arg) {
   if (!arg || /\bcanvas\b/.test(arg)) {
     eraseBox(document, {fillStyle: 'transparent'});
   }
+  if (!arg || /\bturtles\b/.test(arg)) {
+    var sel = $('#_turtlefield .turtle');
+    if (global_turtle) {
+      sel = sel.not(global_turtle);
+    }
+    sel.remove();
+  }
   if (!arg || /\btext\b/.test(arg)) {
     $('body').contents().not('samp#_testpanel,samp#_turtlefield').remove();
   }
@@ -2896,7 +2903,7 @@ var dollar_turtle_methods = {
   cg: wraphelp(
   ["<u>cg()</u> Clear graphics. Does not alter body text: " +
       "<mark>cg()</mark>"],
-  function cg() { directIfGlobal(function() { clearField('canvas') }); }),
+  function cg() { directIfGlobal(function() {clearField('canvas turtles') });}),
   ct: wraphelp(
   ["<u>ct()</u> Clear text. Does not alter graphics canvas: " +
       "<mark>ct()</mark>"],
