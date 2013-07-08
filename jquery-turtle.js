@@ -2173,6 +2173,10 @@ function wraphelp(text, fn) {
   return fn;
 }
 
+function helpwrite(text) {
+  see.html('<aside style="line-height:133%;word-break:normal;' +
+           'white-space:normal">' + text + '</aside>');
+}
 function globalhelp(obj) {
   var helptable = $.extend({}, dollar_turtle_methods, turtlefn),
       helplist, j;
@@ -2184,11 +2188,9 @@ function globalhelp(obj) {
   if (obj && $.isArray(obj.helptext) && obj.helptext.length) {
     for (j = 0; j < obj.helptext.length; ++j) {
       var text = obj.helptext[j];
-      text = text.replace(/<(u|mark)>/g,
+      helpwrite(text.replace(/<(u|mark)>/g,
           '<$1 style="border:1px solid black;text-decoration:none;' +
-          'word-break:keep-all;white-space:nowrap">');
-      see.html('<aside style="line-height:133%;word-break:normal;' +
-          'white-space:normal">' + text + '</aside>');
+          'word-break:keep-all;white-space:nowrap">'));
     }
     return;
   }
@@ -2199,8 +2201,7 @@ function globalhelp(obj) {
     }
   }
   helplist.sort();
-  see.html("help available for:");
-  see.html(helplist.join(" "));
+  helpwrite("help available for: " + helplist.join(" "));
 }
 globalhelp.helptext = [];
 
@@ -2473,31 +2474,31 @@ var turtlefn = {
   }),
   wait: wraphelp(
   ["<u>wait(seconds)</u> Waits some seconds before proceeding. " +
-      "<mark>fd 100; wait 2.5; bk 100<mark>"],
+      "<mark>fd 100; wait 2.5; bk 100</mark>"],
   function wait(seconds) {
     return this.delay(seconds * 1000);
   }),
   st: wraphelp(
   ["<u>st()</u> Show turtle. The reverse of " +
-      "<u>ht()</u>. <mark>st()<mark>"],
+      "<u>ht()</u>. <mark>st()</mark>"],
   function st() {
     return this.direct(function() { this.show(); });
   }),
   ht: wraphelp(
   ["<u>ht()</u> Hide turtle. The turtle can be shown again with " +
-      "<u>st()</u>. <mark>ht()<mark>"],
+      "<u>st()</u>. <mark>ht()</mark>"],
   function ht() {
     return this.direct(function() { this.hide(); });
   }),
   pu: wraphelp(
   ["<u>pu()</u> Pen up. Tracing can be resumed with " +
-      "<u>pd()</u>. <mark>pu()<mark>"],
+      "<u>pd()</u>. <mark>pu()</mark>"],
   function pu() {
     return this.pen(false);
   }),
   pd: wraphelp(
   ["<u>pd()</u> Pen down. Resumes tracing a path that was paused with " +
-      "<u>pu()</u>. <mark>pd()<mark>"],
+      "<u>pu()</u>. <mark>pd()</mark>"],
   function pd() {
     return this.pen(true);
   }),
