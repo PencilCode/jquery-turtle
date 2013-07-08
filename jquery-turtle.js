@@ -4,7 +4,7 @@
 jQuery-turtle
 =============
 
-version 2.0.5
+version 2.0.6
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -42,7 +42,7 @@ sixteen colored polygons.
         lt 360 / sides
       pen 'none'
       fd 40
-    move 40, -160
+    slide 40, -160
 </pre>
 
 [Try an interactive demo (CoffeeScript syntax) here.](
@@ -61,20 +61,26 @@ the default turtle, if used):
   $(x).bk(50)       // Back.
   $(x).rt(90)       // Right turn.
   $(x).lt(45)       // Left turn.
-  $(x).move(x, y)   // Move right by x while moving forward by y.
-  $(x).moveto({pageX: 40, pageY: 140})  // Absolute motion on page.
-  $(x).turnto(bearing || position)      // Absolute direction adjustment.
-  $(x).play("ccgg") // Plays notes using ABC notation.
+  $(x).slide(x, y)  // Move right by x while moving forward by y.
+  $(x).rarc(100,60) // Turn right 60 degrees tracing an arc of radius 100.
+  $(x).larc(50,360) // Left 360 degrees tracing a full circle of radius 50.
+  $(x).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
+  $(x).turnto(bearing || position)        // Absolute direction adjustment.
+  $(x).play("ccgg") // Plays notes using ABC notation and waits until done.
 
   // Methods below happen in an instant, but line up in the animation queue.
-  $(x).home()       // Moves to the origin of the document, with bearing 0.
+  $(x).home()       // Jumps to the center of the document, with bearing 0.
   $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
-  $(x).fill('pink') // Fills a shape previously outlined using pen('path').
+  $(x).pu()         // Pen up - temporarily disables the pen (also pen(false)).
+  $(x).pd()         // Pen down - starts a new pen path.
+  $(x).pe()         // Uses the pen 'erase' style.
+  $(x).fill('gold') // Fills a shape previously outlined using pen('path').
   $(x).dot(12)      // Draws a circular dot of diameter 12.
-  $(x).mark('A')    // Prints an HTML inline-block at the turtle location.
+  $(x).label('A')   // Prints an HTML label at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
-  $(x).erase()      // Erases the canvas under the turtle collision hull.
-  $(x).img('blue')  // Switches the turtle to a blue picture.  Use any url.
+  $(x).ht()         // Hides the turtle.
+  $(x).st()         // Shows the turtle.
+  $(x).wear('blue') // Switches to a blue shell.  Use any image or color.
   $(x).scale(1.5)   // Scales turtle size and motion by 150%.
   $(x).twist(180)   // Changes which direction is considered "forward".
   $(x).mirror(true) // Flips the turtle across its main axis.
@@ -83,36 +89,77 @@ the default turtle, if used):
                     // and the callback fn can insert into the animation queue.
 
   // Methods below this line do not queue for animation.
-  $(x).origin()     // Page coordinate of the turtle's transform-origin.
+  $(x).getxy()      // Local (center-y-up [x, y]) coordinates of the turtle.
+  $(x).pagexy()     // Page (topleft-y-down {pageX:x, pageY:y}) coordinates.
   $(x).bearing([p]) // The turtles absolute direction (or direction towards p).
   $(x).distance(p)  // Distance to p in page coordinates.
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
   $(x).encloses(y)  // Containment collision test.
-  $(x).within(d, t) // Filters to items with origins within d of t.origin().
+  $(x).within(d, t) // Filters to items with centers within d of t.pagexy().
   $(x).notwithin()  // The negation of within.
-  $(x).cell(x, y)   // Selects the yth row and xth column cell in a table.
+  $(x).cell(y, x)   // Selects the yth row and xth column cell in a table.
+  $(x).hatch([n,] [img]) // Creates and returns n turtles with the given img.
 </pre>
 
 When the speed of a turtle is nonzero, the first seven movement
-functions animate at that speed, and the remaining mutators also
-participate in the animation queue.  The default turtle speed is
-a leisurely one move per second (as appropriate for the creature),
-but you may soon discover the desire to set speed higher.
+functions animate at that speed (in moves per second), and the
+remaining mutators also participate in the animation queue.  The
+default turtle speed is a leisurely one move per second (as
+appropriate for the creature), but you may soon discover the
+desire to set speed higher.
 
-Setting the turtle speed to Infinity will make movement synchronous,
+Setting the turtle speed to Infinity will make its movement synchronous,
 which makes the synchronous distance, direction, and hit-testing useful
-for realtime game-making.  To play music without stalling turtle
-movement, use the global function playnow() instead of the turtle
-method play().
+for realtime game-making.
 
-The absolute motion methods moveto and turnto accept any object
-that has pageX and pageY properties (or an origin() method that will
-return such an object), including, usefully, mouse events.
-Moveto and turnto operate in absolute page coordinates and work
-properly even when the turtle is nested within further CSS
-transformed elements.
+The turtle pen respects canvas styling: any valid strokeStyle is
+accepted; and also using a space-separated syntax, lineWidth, lineCap,
+lineJoin, miterLimit, and fillStyle can be specified, e.g.,
+pen('red lineWidth 5 lineCap square').  The same syntax applies for
+styling dot and fill (except that the default interpretation for the
+first value is fillStyle instead of strokeStyle).
+
+The fill method is used by tracing an invisible path using the
+pen('path') style, and then calling the fill method.  Disconnected
+paths can be created using pu() and pd().
+
+The play method plays a sequence of notes specified using a subset of
+standard ABC notation.  Capital C denotes middle C, and lowercase c is
+an octave higher.  Pitches and durations can be altered with commas,
+apostrophes, carets, underscores, digits, and slashes as in the
+standard.  Enclosing letters in square brackets represents a chord,
+and z represents a rest.  The default tempo is 120, but can be changed
+by passing a options object as the first parameter setting tempo, e.g.,
+{ tempo: 200 }.  Other options include volume: 0.5, type: 'sine' or
+'square' or 'sawtooth' or 'triangle', and envelope: which defines
+an ADSR envelope e.g., { a: 0.01, d: 0.2, s: 0.1, r: 0.1 }.
+
+The turtle's motion will pause while it is playing notes.  To play
+notes without stalling turtle movement, use the global function sound()
+instead of the turtle method play().
+
+The direct method can be used to queue logic (including synchronous
+tests or actions) by running a function in the animation queue.  Unlike
+jquery queue(), direct arranges things so that if further animations
+are queued by the callback function, they are inserted (in natural
+recursive functional execution order) instead of being appended.
+
+The turnto method can turn to an absolute bearing (if called with a
+single numeric argument) or towards an absolute position on the
+screen.  The methods moveto and turnto accept either page or
+graphing coordinates.
+
+Graphing coordinates are measured upwards and rightwards from the
+center of the page, and they are specified as bare numeric x, y
+arguments or [x, y] pairs as returned from getxy().
+
+Page coordinates are specified by an object with pageX and pageY
+properties, or with a pagexy() method that will return such an object.
+That includes, usefullly, mouse events and turtle objects.  Page
+coordinates are measured downward from the top-left corner of the
+page to the center (or transform-origin) of the given object.
 
 The hit-testing functions touches() and encloses() will test for
 collisions using the convex hulls of the objects in question.
@@ -124,9 +171,10 @@ Turtle Teaching Environment
 ---------------------------
 
 A default turtle together with an interactive console are created by
-calling eval($.turtle()).  This call will expose a the default turtle
-methods as global functions.  It will also set up a number of other global
-symbols to provide beginners with a simplified programming environment.
+calling eval($.turtle()).  That call exposes all the turtle methods
+such as (fd, rt, getxy, etc) as global functions operating on the default
+turtle.  It will also set up a number of other global symbols to provide
+beginners with a simplified programming environment.
 
 In detail, after eval($.turtle()):
   * An &lt;img id="turtle"&gt; is created if #turtle doesn't already exist.
@@ -148,9 +196,13 @@ $.turtle() are as follows:
   keydown               // The last keydown event.
   keyup                 // The last keyup event.
   keypress              // The last keypress event.
+  hatch([n,] [img])     // Creates and returns n turtles with the given img.
+  cs()                  // Clears the screen, both the canvas and the body text.
+  cg()                  // Clears the graphics canvas without clearing the text.
+  ct()                  // Clears the text without clearing the canvas.
   defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
   tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
-  random(n)             // Returns a random number [0...n-1].
+  random(n)             // Returns a random number [0..n-1].
   random(list)          // Returns a random element of the list.
   random('normal')      // Returns a gaussian random (mean 0 stdev 1).
   random('uniform')     // Returns a uniform random [0...1).
@@ -158,13 +210,14 @@ $.turtle() are as follows:
   random('color')       // Returns a random hsl(*, 100%, 50%) color.
   random('gray')        // Returns a random hsl(0, 0, *) gray.
   remove()              // Removes default turtle and its globals (fd, etc).
-  hatch([n,], [img])    // Creates and returns n turtles with the given img.
   see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  print(html)           // Appends html into the document body.
-  input([label,] fn)    // Makes a one-time input field, calls fn after entry.
+  write(html)           // Appends html into the document body.
+  read([label,] fn)     // Makes a one-time input field, calls fn after entry.
+  readnum([label,] fn)  // Like read, but restricted to numeric input.
+  readstr([label,] fn)  // Like read, but never converts input to a number.
   button([label,] fn)   // Makes a clickable button, calls fn when clicked.
-  table(w, h)           // Outputs a table with h rows and w columns.
-  playnow('CEG')        // Plays musical notes now, without queueing.
+  table(m, n)           // Outputs a table with m rows and n columns.
+  sound('[DFG][EGc]')   // Plays musical notes now, without queueing.
 </pre>
 
 Here is another CoffeeScript example that demonstrates some of
@@ -174,7 +227,7 @@ the functions:
   eval $.turtle()  # Create the default turtle and global functions.
 
   defaultspeed Infinity
-  print "Catch blue before red gets you."
+  write "Catch blue before red gets you."
   bk 100
   r = hatch 'red'
   b = hatch 'blue'
@@ -186,13 +239,13 @@ the functions:
     b.turnto bearing b
     b.fd 3
     if b.touches(turtle)
-      print "You win!"
+      write "You win!"
       tick off
     else if r.touches(turtle)
-      print "Red got you!"
+      write "Red got you!"
       tick off
     else if not b.touches(document)
-      print "Blue got away!"
+      write "Blue got away!"
       tick off
 </pre>
 
@@ -208,22 +261,33 @@ with animation support on all motion:
 <pre>
   $(x).css('turtleSpeed', '10');         // default speed in moves per second.
   $(x).css('turtlePosition', '30 40');   // position in local coordinates.
-  $(x).css('turtlePositionX', '30');     // x component.
-  $(x).css('turtlePositionY', '40');     // y component.
-  $(x).css('turtleRotation', '90');      // rotation in degrees.
+  $(x).css('turtlePositionX', '30px');   // x component.
+  $(x).css('turtlePositionY', '40px');   // y component.
+  $(x).css('turtleRotation', '90deg');   // rotation in degrees.
   $(x).css('turtleScale', '2');          // double the size of any element.
   $(x).css('turtleScaleX', '2');         // x stretch after twist.
   $(x).css('turtleScaleY', '2');         // y stretch after twist.
-  $(x).css('turtleTwist', '45');         // turn before stretching.
-  $(x).css('turtleForward', '50');       // position in direction of rotation.
+  $(x).css('turtleTwist', '45deg');      // turn before stretching.
+  $(x).css('turtleForward', '50px');     // position in direction of rotation.
+  $(x).css('turtleTurningRadius, '50px');// arc turning radius for rotation.
   $(x).css('turtlePenStyle', 'red');     // or 'red lineWidth 2px' etc.
   $(x).css('turtlePenDown', 'up');       // default 'down' to draw with pen.
   $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>
 
 Arbitrary 2d transforms are supported, including transforms of elements
-nested within other elements that have css transforms. Transforms are
-automatically decomposed to turtle components when necessary.
+nested within other elements that have css transforms. For example, arc
+paths of a turtle within a skewed div will transform to the proper elliptical
+arc.  Note that while turtle motion is transformed, lines and dots are not:
+for example, dots are always circular.  To get transformed circles, trace
+out an arc.
+
+Transforms on the turtle itself are used to infer the turtle position,
+direction, and rendering of the sprite.  ScaleY stretches the turtle
+sprite in the direction of movement also stretches distances for
+motion in all directions.  ScaleX stretches the turtle sprite perpendicular
+to the direction of motion and also stretches line and dot widths for
+drawing.
 
 A canvas is supported for drawing, but only created when the pen is
 used; pen styles include canvas style properties such as lineWidth
@@ -382,6 +446,10 @@ function subtractVector(v, s) {
   return [v[0] - s[0], v[1] - s[1]];
 }
 
+function scaleVector(v, s) {
+  return [v[0] * s, v[1] * s];
+}
+
 function translatedMVP(m, v, origin) {
   return addVector(matrixVectorProduct(m, subtractVector(v, origin)), origin);
 }
@@ -439,6 +507,30 @@ function decomposeSVD(m) {
   return [theta, sv1, sv2, phi];
 }
 
+// Returns approximate three bezier curve control points for a unit circle
+// arc from angle a1 to a2 (not including the beginning point).
+function approxBezierUnitArc(a1, a2) {
+  var a = (a2 - a1) / 2,
+      x4 = Math.cos(a),
+      y4 = Math.sin(a),
+      x1 = x4,
+      y1 = -y4,
+      q2 = 1 + x1 * x4 + y1 * y4,
+      k2 = 4/3 * (Math.sqrt(2 * q2) - q2) / (x1 * y4 - y1 * x4),
+      x2 = x1 - k2 * y1,
+      y2 = y1 + k2 * x1,
+      x3 = x2,
+      y3 = -y2,
+      ar = a + a1,
+      car = Math.cos(ar),
+      sar = Math.sin(ar);
+  return [
+     [x2 * car - y2 * sar, x2 * sar + y2 * car],
+     [x3 * car - y3 * sar, x3 * sar + y3 * car],
+     [Math.cos(a2), Math.sin(a2)]
+  ];
+}
+
 //////////////////////////////////////////////////////////////////////////
 // CSS TRANSFORMS
 // Basic manipulation of 2d CSS transforms.
@@ -474,9 +566,14 @@ function readTransformMatrix(elem) {
 function readTransformOrigin(elem, wh) {
   var gcs = (window.getComputedStyle ?  window.getComputedStyle(elem) : null),
       origin = (gcs && gcs[transformOrigin] || $.css(elem, 'transformOrigin'));
-  return origin && origin.indexOf('%') < 0 ?
-      $.map(origin.split(' '), parseFloat) :
-      [wh[0] / 2, wh[1] / 2];
+  if (origin && origin.indexOf('%') < 0) {
+    return $.map(origin.split(' '), parseFloat);
+  }
+  if (wh) {
+    return [wh[0] / 2, wh[1] / 2];
+  }
+  var sel = $(elem);
+  return [sel.width() / 2, sel.height() / 2];
 }
 
 // Composes all the 2x2 transforms up to the top.
@@ -730,7 +827,7 @@ function readPageGbcr() {
       left: 0,
       right: this.width || 0,
       width: this.width || 0,
-      height: this.height || 0,
+      height: this.height || 0
     }
   }
   return {
@@ -773,11 +870,59 @@ function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
       subtractVector([target.pageX, target.pageY], origin));
   if (localx || localy) {
     var ts = readTurtleTransform(elem, true),
-        r = (ts || 0) && convertToRadians(ts.rot);
-    localTarget[0] += Math.cos(r) * localx + Math.sin(r) * localy;
-    localTarget[1] += Math.sin(r) * localx - Math.cos(r) * localy;
+        sy = ts ? ts.sy : 1;
+    localTarget[0] += localx * sy;
+    localTarget[1] -= localy * sy;
   }
   return cssNum(localTarget[0]) + ' ' + cssNum(localTarget[1]);
+}
+
+function homeContainer(elem) {
+  var container = elem.offsetParent;
+  if (!container || container == drawing.surface) {
+    return document;
+  }
+  return container;
+}
+
+// Compute the home position and the turtle location in local turtle
+// coordinates; return the local offset from the home position as
+// an array of len 2.
+function computePositionAsLocalOffset(elem, home) {
+  if (!home) {
+    home = $(homeContainer(elem)).pagexy();
+  }
+  var totalParentTransform = totalTransform2x2(elem.parentElement),
+      inverseParent = inverse2x2(totalParentTransform),
+      hidden = ($.css(elem, 'display') === 'none'),
+      swapout = hidden ?
+        { position: "absolute", visibility: "hidden", display: "block" } : {},
+      substTransform = swapout[transform] = (inverseParent ? 'matrix(' +
+          $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
+      gbcr = cleanSwap(elem, swapout, readPageGbcr),
+      middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
+      origin = addVector([gbcr.left, gbcr.top], middle),
+      ts = readTurtleTransform(elem, true),
+      localHome = inverseParent && matrixVectorProduct(inverseParent,
+          subtractVector([home.pageX, home.pageY], origin)),
+      isy = ts && 1 / ts.sy;
+  if (!inverseParent) { return; }
+  return [(ts.tx - localHome[0]) * isy, (localHome[1] - ts.ty) * isy];
+}
+
+function convertLocalXyToPageCoordinates(elem, localxy) {
+  var totalParentTransform = totalTransform2x2(elem.parentElement),
+      ts = readTurtleTransform(elem, true),
+      center = $(homeContainer(elem)).pagexy(),
+      result = [],
+      pageOffset, j;
+  for (j = 0; j < localxy.length; j++) {
+    pageOffset = matrixVectorProduct(
+        totalParentTransform, [localxy[j][0] * ts.sy, -localxy[j][1] * ts.sy]);
+    result.push({ pageX: center.pageX + pageOffset[0],
+                  pageY: center.pageY + pageOffset[1] });
+  }
+  return result;
 }
 
 // Uses getBoundingClientRect to figure out current position in page
@@ -789,7 +934,7 @@ function getCenterInPageCoordinates(elem) {
   if ($.isWindow(elem)) {
     return getRoundedCenterLTWH(
         $(window).scrollLeft(), $(window).scrollTop(), ww(), wh());
-  } else if (elem.nodeType === 9) {
+  } else if (elem.nodeType === 9 || elem == document.body) {
     return getRoundedCenterLTWH(0, 0, dw(), dh());
   }
   var tr = getElementTranslation(elem),
@@ -860,6 +1005,7 @@ function getCornersInPageCoordinates(elem, untransformed) {
   });
 }
 
+/*
 function computeDirectionAsTurtleRotation(elem, target, limit) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
@@ -879,10 +1025,11 @@ function computeDirectionAsTurtleRotation(elem, target, limit) {
       tr = Math.atan2(lp[0], lp[1]);
   return radiansToDegrees(tr);
 }
+*/
 
 function getDirectionOnPage(elem) {
   var ts = readTurtleTransform(elem, true),
-      r = convertToRadians(ts.rot),
+      r = convertToRadians(normalizeRotation(ts.rot)),
       ux = Math.sin(r), uy = Math.cos(r),
       totalParentTransform = totalTransform2x2(elem.parentElement),
       up = matrixVectorProduct(totalParentTransform, [ux, uy]);
@@ -1174,9 +1321,16 @@ function normalizeRotation(x) {
   return x;
 }
 
+function normalizeRotationDelta(x) {
+  if (Math.abs(x) >= 720) {
+    x = x % 360 + (x > 0 ? 360 : -360);
+  }
+  return x;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // TURTLE DRAWING SUPPORT
-// If pen, erase, or dot are used, then a full-page canvas is created
+// If pen, fill, or dot are used, then a full-page canvas is created
 // and used for drawing.
 //////////////////////////////////////////////////////////////////////////
 
@@ -1195,13 +1349,16 @@ function getTurtleClipSurface() {
     return drawing.surface;
   }
   var surface = document.createElement('samp');
-  $(surface).css({
-    position: 'absolute',
-    display: 'inline-block',
-    top: 0, left: 0, width: '100%', height: '100%',
-    'z-index': -1,
-    overflow: 'hidden'
-  });
+  $(surface)
+    .attr('id', '_turtlefield')
+    .css({
+      position: 'absolute',
+      display: 'inline-block',
+      top: 0, left: 0, width: '100%', height: '100%',
+      zIndex: -1,
+      fontFamily: 'inherit',
+      overflow: 'hidden'
+    });
   drawing.surface = surface;
   attachClipSurface();
   return surface;
@@ -1210,6 +1367,25 @@ function getTurtleClipSurface() {
 function attachClipSurface() {
   if (document.body) {
     $(drawing.surface).prependTo('body');
+    // Attach an event handler to forward mouse events from the body
+    // to turtles in the turtle field layer.
+    $('body').on('click.turtle ' +
+      'mouseup.turtle mousedown.turtle mousemove.turtle', function(e) {
+      if (e.target === this && !e.isTrigger) {
+        // Only forward events directly on the body that (geometrically)
+        // touch a turtle directly within the turtlefield.
+        var sel = $('#_turtlefield > .turtle').within('touch', e).eq(0);
+        if (sel.length === 1) {
+          // Erase portions of the event that are wrong for the turtle.
+          e.target = null;
+          e.relatedTarget = null;
+          e.fromElement = null;
+          e.toElement = null;
+          sel.trigger(e);
+          return false;
+        }
+      }
+    });
   } else {
     $(document).ready(attachClipSurface);
   }
@@ -1222,7 +1398,7 @@ function getTurtleDrawingCtx() {
   var surface = getTurtleClipSurface();
   drawing.canvas = document.createElement('canvas');
   $(drawing.canvas).css({'z-index': -1});
-  surface.appendChild(drawing.canvas);
+  surface.insertBefore(drawing.canvas, surface.firstChild);
   drawing.ctx = drawing.canvas.getContext('2d');
   resizecanvas();
   pollbodysize(resizecanvas);
@@ -1279,6 +1455,12 @@ function parsePenStyle(text, defaultProp) {
   text = text.trim();
   if (!text || text === 'none') { return null; }
   if (text === 'path') { return { savePath: true }; }
+  var eraseMode = false;
+  if (/^erase\b/.test(text)) {
+    text = text.replace(
+        /^erase\b/, 'white globalCompositeOperation destination-out');
+    eraseMode = true;
+  }
   var words = text.split(/\s+/),
       mapping = {
         strokeStyle: identity,
@@ -1287,8 +1469,10 @@ function parsePenStyle(text, defaultProp) {
         lineJoin: identity,
         miterLimit: parseFloat,
         fillStyle: identity,
+        globalCompositeOperation: identity
       },
       result = {}, j, end = words.length;
+  if (eraseMode) { result.eraseMode = true; }
   for (j = words.length - 1; j >= 0; --j) {
     if (mapping.hasOwnProperty(words[j])) {
       var key = words[j],
@@ -1327,13 +1511,46 @@ function getTurtleData(elem) {
   var state = $.data(elem, 'turtleData');
   if (!state) {
     state = $.data(elem, 'turtleData', {
-      style: {},
+      style: null,
       path: [[]],
       down: true,
-      speed: 'turtle'
+      speed: 'turtle',
+      turningRadius: 0,
+      // Below: support for image loading without messing up origin.
+      lastSeenOrigin: null,
+      lastSeenOriginTime: null,
+      lastSeenOriginTimer: null,
+      lastSeenOriginEvent: null
     });
   }
   return state;
+}
+
+function getTurningRadius(elem) {
+  var state = $.data(elem, 'turtleData');
+  if (!state) { return 0; }
+  return state.turningRadius;
+}
+
+function makeTurningRadiusHook() {
+  return {
+    get: function(elem, computed, extra) {
+      return cssNum(getTurningRadius(elem)) + 'px';
+    },
+    set: function(elem, value) {
+      var radius = parseFloat(value);
+      if (isNaN(radius)) return;
+      getTurtleData(elem).turningRadius = radius;
+      elem.style.turtleTurningRadius = '' + cssNum(radius) + 'px';
+      if (radius === 0) {
+        var ts = readTurtleTransform(elem, false);
+        if (ts && (ts.rot > 180 || ts.rot <= -180)) {
+          ts.rot = normalizeRotation(ts.rot);
+          elem.style[transform] = writeTurtleTransform(ts);
+        }
+      }
+    }
+  };
 }
 
 function makePenStyleHook() {
@@ -1372,14 +1589,15 @@ function isPointNearby(a, b) {
 
 function applyPenStyle(ctx, ps, scale) {
   scale = scale || 1;
+  var extraWidth = ps.eraseMode ? 1 : 0;
   if (!ps || !('strokeStyle' in ps)) { ctx.strokeStyle = 'black'; }
-  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62 * scale; }
+  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62 * scale + extraWidth; }
   if (!ps || !('lineCap' in ps)) { ctx.lineCap = 'round'; }
   if (ps) {
     for (var a in ps) {
-      if (a === 'savePath') { continue; }
+      if (a === 'savePath' || a === 'eraseMode') { continue; }
       if (scale && a === 'lineWidth') {
-        ctx[a] = scale * ps[a];
+        ctx[a] = scale * ps[a] + extraWidth;
       } else {
         ctx[a] = ps[a];
       }
@@ -1389,7 +1607,7 @@ function applyPenStyle(ctx, ps, scale) {
 
 function drawAndClearPath(path, style, scale) {
   var ctx = getTurtleDrawingCtx(),
-      isClosed,
+      isClosed, skipLast,
       j = path.length,
       segment;
   ctx.save();
@@ -1401,9 +1619,17 @@ function drawAndClearPath(path, style, scale) {
       segment = path[j];
       isClosed = segment.length > 2 && isPointNearby(
           segment[0], segment[segment.length - 1]);
+      skipLast = isClosed && (!('pageX2' in segment[segment.length - 1]));
       ctx.moveTo(segment[0].pageX, segment[0].pageY);
-      for (var k = 1; k < segment.length - (isClosed ? 1 : 0); ++k) {
-        ctx.lineTo(segment[k].pageX, segment[k].pageY);
+      for (var k = 1; k < segment.length - (skipLast ? 1 : 0); ++k) {
+        if ('pageX2' in segment[k]) {
+          ctx.bezierCurveTo(
+             segment[k].pageX1, segment[k].pageY1,
+             segment[k].pageX2, segment[k].pageY2,
+             segment[k].pageX, segment[k].pageY);
+        } else {
+          ctx.lineTo(segment[k].pageX, segment[k].pageY);
+        }
       }
       if (isClosed) { ctx.closePath(); }
     }
@@ -1413,6 +1639,18 @@ function drawAndClearPath(path, style, scale) {
   ctx.restore();
   path.length = 1;
   path[0].splice(0, path[0].length - 1);
+}
+
+function addBezierToPath(path, start, triples) {
+  if (!path.length || !isPointNearby(start, path[path.length - 1])) {
+    path.push(start);
+  }
+  for (var j = 0; j < triples.length; ++j) {
+    path.push({
+        pageX1: triples[j][0].pageX, pageY1: triples[j][0].pageY,
+        pageX2: triples[j][1].pageX, pageY2: triples[j][1].pageY,
+        pageX: triples[j][2].pageX, pageY: triples[j][2].pageY });
+  }
 }
 
 function flushPenState(elem) {
@@ -1429,6 +1667,7 @@ function flushPenState(elem) {
     }
     return;
   }
+  if (state.lastSeenOrigin) { fixOriginIfWatching(elem); }
   var center = getCenterInPageCoordinates(elem);
   // Once the pen is down, the origin needs to be stable when the image
   // loads.
@@ -1447,7 +1686,7 @@ function endAndFillPenPath(elem, style) {
   var ts = readTurtleTransform(elem, true),
       state = getTurtleData(elem);
   drawAndClearPath(state.path, style);
-  if (state.style.savePath) {
+  if (state.style && state.style.savePath) {
     $.style(elem, 'turtlePenStyle', 'none');
   }
 }
@@ -1460,7 +1699,19 @@ function fillDot(position, diameter, style) {
   ctx.arc(position.pageX, position.pageY, diameter / 2, 0, 2*Math.PI, false);
   ctx.closePath();
   ctx.fill();
+  if (style.strokeStyle) {
+    ctx.stroke();
+  }
   ctx.restore();
+}
+
+function clearField(arg) {
+  if (!arg || /\bcanvas\b/.test(arg)) {
+    eraseBox(document, {fillStyle: 'transparent'});
+  }
+  if (!arg || /\btext\b/.test(arg)) {
+    $('body').contents().not('samp#_testpanel,samp#_turtlefield').remove();
+  }
 }
 
 function eraseBox(elem, style) {
@@ -1491,15 +1742,24 @@ function eraseBox(elem, style) {
 
 function applyImg(sel, img) {
   if (sel[0].tagName == 'IMG') {
+    sel[0].src = '';
     sel[0].src = img.url;
+    sel.css({
+      backgroundImage: 'none',
+      height: 'auto',
+      width: 'auto'
+    });
     sel.css(img.css);
   } else {
-    sel.css({
+    var props = {
       backgroundImage: 'url(' + img.url + ')',
       backgroundRepeat: 'no-repeat',
       backgroundPosition: 'center',
-      backgroundSize: img.css.width + 'px ' + img.css.height + 'px'
-    });
+    };
+    if (img.css.width && img.css.height) {
+      props.backgroundSize = img.css.width + 'px ' + img.css.height + 'px';
+    }
+    sel.css(props);
   }
 }
 
@@ -1507,7 +1767,7 @@ function doQuickMove(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
       r = ts && convertToRadians(ts.rot),
       scaledDistance = ts && (distance * ts.sy),
-      scaledSideways = ts && ((sideways || 0) * ts.sx),
+      scaledSideways = ts && ((sideways || 0) * ts.sy),
       dy = -Math.cos(r) * scaledDistance,
       dx = Math.sin(r) * scaledDistance;
   if (!ts) { return; }
@@ -1525,7 +1785,7 @@ function displacedPosition(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
       r = ts && convertToRadians(ts.rot),
       scaledDistance = ts && (distance * ts.sy),
-      scaledSideways = ts && ((sideways || 0) * ts.sx),
+      scaledSideways = ts && ((sideways || 0) * ts.sy),
       dy = -Math.cos(r) * scaledDistance,
       dx = Math.sin(r) * scaledDistance;
   if (!ts) { return; }
@@ -1567,24 +1827,32 @@ function animTime(elem) {
 function makeTurtleForwardHook() {
   return {
     get: function(elem, computed, extra) {
-      var ts = readTurtleTransform(elem, computed);
+      // TODO: after reading turtleForward, we need to also
+      // adjust it if ts.tx/ty change due to an origin change,
+      // so that images don't stutter if they resize during an fd.
+      // OR - offset by origin, so that changes in its value are
+      // not a factor.
+      var ts = readTurtleTransform(elem, computed),
+          middle = readTransformOrigin(elem);
       if (ts) {
         var r = convertToRadians(ts.rot),
             c = Math.cos(r),
             s = Math.sin(r);
-        return (ts.tx * s - ts.ty * c) / ts.sy + 'px';
+        return cssNum(((ts.tx + middle[0]) * s - (ts.ty + middle[1]) * c)
+            / ts.sy) + 'px';
       }
     },
     set: function(elem, value) {
       var ts = readTurtleTransform(elem, true) ||
               {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0},
+          middle = readTransformOrigin(elem),
           v = parseFloat(value) * ts.sy,
           r = convertToRadians(ts.rot),
           c = Math.cos(r),
           s = Math.sin(r),
-          p = ts.tx * c + ts.ty * s;
-      ts.tx = p * c + v * s;
-      ts.ty = p * s - v * c;
+          p = (ts.tx + middle[0]) * c + (ts.ty + middle[1]) * s;
+      ts.tx = p * c + v * s - middle[0];
+      ts.ty = p * s - v * c - middle[1];
       elem.style[transform] = writeTurtleTransform(ts);
       flushPenState(elem);
     }
@@ -1595,25 +1863,87 @@ function makeTurtleForwardHook() {
 function makeTurtleHook(prop, normalize, unit, displace) {
   return {
     get: function(elem, computed, extra) {
+      if (displace) fixOriginIfWatching(elem);
       var ts = readTurtleTransform(elem, computed);
       if (ts) { return ts[prop] + unit; }
     },
     set: function(elem, value) {
+      if (displace) fixOriginIfWatching(elem);
       var ts = readTurtleTransform(elem, true) ||
-          {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0};
-      ts[prop] = normalize(value);
+          {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0},
+          opt = { displace: displace };
+      ts[prop] = normalize(value, elem, ts, opt);
       elem.style[transform] = writeTurtleTransform(ts);
-      if (displace) {
+      if (opt.displace) {
         flushPenState(elem);
       }
     }
   };
 }
 
+function maybeArcRotation(end, elem, ts, opt) {
+  end = parseFloat(end);
+  var state = $.data(elem, 'turtleData'),
+      tradius = state ? state.turningRadius : 0;
+  if (tradius == 0) { return normalizeRotation(end); }
+  var r0 = ts.rot, r1, r1r, a1r, a2r, j, r, pts, triples,
+      delta = normalizeRotationDelta(end - r0),
+      radius = (delta > 0 ? tradius : -tradius) * ts.sy,
+      splits = 1,
+      splita = delta,
+      absang = Math.abs(delta),
+      tracing = (state && state.style && state.down),
+      r0r = convertToRadians(ts.rot),
+      dc = [Math.cos(r0r) * radius, Math.sin(r0r) * radius],
+      path, totalParentTransform, start, relative, points;
+  if (tracing) {
+    if (!state) {
+      state = getTurtleData(elem);
+    }
+    if (absang > 45) {
+      splits = Math.ceil(absang / 45);
+      splita = delta / splits;
+    }
+    path = state.path[0];
+    totalParentTransform = totalTransform2x2(elem.parentElement);
+    start = getCenterInPageCoordinates(elem);
+    relative = [];
+    while (--splits >= 0) {
+      r1 = splits === 0 ? end : r0 + splita;
+      a1r = convertToRadians(r0 + 180);
+      a2r = convertToRadians(r1 + 180);
+      relative.push.apply(relative, approxBezierUnitArc(a1r, a2r));
+      r0 = r1;
+    }
+    points = [];
+    r = matrixVectorProduct(totalParentTransform, dc);
+    for (j = 0; j < relative.length; j++) {
+      // Multiply each coordinate by radius and add to dc; then
+      // apply parent distortions to get relative offsets to the
+      // turtle's original position.
+      r = matrixVectorProduct(totalParentTransform,
+          addVector(scaleVector(relative[j], radius), dc));
+      points.push({
+        pageX: r[0] + start.pageX,
+        pageY: r[1] + start.pageY});
+    }
+    triples = [];
+    for (j = 0; j < points.length; j += 3) {
+      triples.push(points.slice(j, j + 3));
+    }
+    addBezierToPath(path, start, triples);
+  }
+  r1r = convertToRadians(end)
+  ts.tx += dc[0] - Math.cos(r1r) * radius;
+  ts.ty += dc[1] - Math.sin(r1r) * radius;
+  opt.displace = true;
+  return end;
+}
+
 function makeRotationStep(prop) {
   return function(fx) {
     if (!fx.delta) {
-      fx.delta = normalizeRotation(fx.end - fx.start);
+      fx.delta = normalizeRotationDelta(fx.end - fx.start);
       fx.start = fx.end - fx.delta;
     }
     $.cssHooks[prop].set(fx.elem, fx.start + fx.delta * fx.pos);
@@ -1649,6 +1979,7 @@ var XY = ['X', 'Y'];
 function makeTurtleXYHook(publicname, propx, propy, displace) {
   return {
     get: function(elem, computed, extra) {
+      fixOriginIfWatching(elem);
       var ts = readTurtleTransform(elem, computed);
       if (ts) {
         if (displace || ts[propx] != ts[propy]) {
@@ -1660,6 +1991,7 @@ function makeTurtleXYHook(publicname, propx, propy, displace) {
       }
     },
     set: function(elem, value, extra) {
+      fixOriginIfWatching(elem);
       var ts = readTurtleTransform(elem, true) ||
               {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0};
       var parts = (typeof(value) == 'string' ? value.split(/\s+/) : [value]);
@@ -1676,29 +2008,69 @@ function makeTurtleXYHook(publicname, propx, propy, displace) {
   };
 }
 
-function watchImageToFixOriginOnLoad(elem) {
-  if (!elem || elem.tagName !== 'IMG' && elem.complete ||
-      $.data(elem, 'turtleFixingOrigin')) {
-    return;
+function fixOriginIfWatching(elem) {
+  // A function to reposition an image turtle each time its origin
+  // changes from the last seen origin, to keep the origin in the
+  // same location on the page.
+  var state = $.data(elem, 'turtleData');
+  if (state && state.lastSeenOrigin) {
+    var oldOrigin = state.lastSeenOrigin,
+        newOrigin = readTransformOrigin(elem),
+        now = (new Date).getTime();
+    if (state.lastSeenOriginEvent && elem.complete) {
+      $.event.remove(elem, 'load.turtle', state.lastSeenOriginEvent);
+      state.lastSeenOriginEvent = null;
+      state.lastSeenOriginTime = now;
+    }
+    if (newOrigin[0] != oldOrigin[0] || newOrigin[1] != oldOrigin[1]) {
+      var ts = readTurtleTransform(elem, true);
+      ts.tx += oldOrigin[0] - newOrigin[0];
+      ts.ty += oldOrigin[1] - newOrigin[1];
+      state.lastSeenOrigin = newOrigin;
+      state.lastSeenOriginTime = now;
+      elem.style[transform] = writeTurtleTransform(ts);
+    } else if (elem.tagName == 'IMG' && !elem.complete) {
+      state.lastSeenOriginTime = now;
+      if (!state.lastSeenOriginEvent) {
+        state.lastSeenOriginEvent = (function() { fixOriginIfWatching(elem); });
+        $.event.add(elem, 'load.turtle', state.lastSeenOriginEvent);
+      }
+    } else if (!state.lastSeenOriginTime) {
+      state.lastSeenOriginTime = now;
+    } else if (!state.lastSeenOriginEvent &&
+        now - state.lastSeenOriginTime > 1000) {
+      // Watch for an additional second after anything interesting;
+      // then clear the watcher.
+      clearInterval(state.lastSeenOriginTimer);
+      state.lastSeenOriginTimer = null;
+      state.lastSeenOriginTime = null;
+      state.lastSeenOrigin = null;
+    }
   }
-  $.data(elem, 'turtleFixingOrigin', true);
-  var oldOrigin = readTransformOrigin(elem,
-          [$(elem).width(), $(elem).height()]),
-      fixOrigin = function() {
-    var newOrigin = readTransformOrigin(elem,
-            [$(elem).width(), $(elem).height()]),
-        ts = readTurtleTransform(elem, true);
-    $.removeData(elem, 'turtleFixingOrigin');
-    ts.tx += oldOrigin[0] - newOrigin[0];
-    ts.ty += oldOrigin[1] - newOrigin[1];
-    elem.style[transform] = writeTurtleTransform(ts);
-    jQuery.event.remove(elem, 'load', fixOrigin);
-  };
-  jQuery.event.add(elem, 'load', fixOrigin);
 }
 
+function watchImageToFixOriginOnLoad(elem) {
+  if (!elem || elem.tagName !== 'IMG' ||
+      $(elem).css('position') != 'absolute') {
+    return;
+  }
+  var state = getTurtleData(elem),
+      now = (new Date).getTime();
+  if (state.lastSeenOrigin) {
+    // Already tracking: let it continue.
+    fixOriginIfWatching(elem);
+    return;
+  }
+  state.lastSeenOrigin = readTransformOrigin(elem);
+  state.lastSeenOriginTimer = setInterval(function() {
+    fixOriginIfWatching(elem);
+  }, 200);
+  fixOriginIfWatching(elem);
+}
+
+
 function withinOrNot(obj, within, distance, x, y) {
-  var sel, gbcr;
+  var sel, gbcr, pos, d2;
   if (x === undefined && y === undefined) {
     sel = $(distance);
     gbcr = getPageGbcr(sel[0]);
@@ -1714,33 +2086,46 @@ function withinOrNot(obj, within, distance, x, y) {
       });
     }
   }
+  if ($.isNumeric(x) && $.isNumeric(y)) {
+    pos = [x, y];
+  } else {
+    pos = x;
+  }
+  if ($.isArray(pos)) {
+    // [x, y]: local coordinates.
+    pos = convertLocalXyToPageCoordinates(obj[0] || document.body, [pos])[0];
+  }
   if (distance === 'touch') {
-    sel = $(x);
-    gbcr = getPageGbcr(sel[0]);
-    if (polyMatchesGbcr(getCornersInPageCoordinates(sel[0]), gbcr)) {
+    if (isPageCoordinate(pos)) {
       return obj.filter(function() {
-        var thisgbcr = getPageGbcr(this);
-        // !isDisjoint test assumes gbcr is tight.
-        return within === (!isDisjointGbcr(gbcr, thisgbcr) &&
-          (gbcrEncloses(gbcr, thisgbcr) || sel.touches(this)));
+        return within === $(this).encloses(pos);
       });
     } else {
-      return obj.filter(function() {
-        return within === sel.touches(this);
-      });
+      sel = $(pos);
+      gbcr = getPageGbcr(sel[0]);
+      if (polyMatchesGbcr(getCornersInPageCoordinates(sel[0]), gbcr)) {
+        return obj.filter(function() {
+          var thisgbcr = getPageGbcr(this);
+          // !isDisjoint test assumes gbcr is tight.
+          return within === (!isDisjointGbcr(gbcr, thisgbcr) &&
+            (gbcrEncloses(gbcr, thisgbcr) || sel.touches(this)));
+        });
+      } else {
+        return obj.filter(function() {
+          return within === sel.touches(this);
+        });
+      }
     }
   }
-  var ctr = $.isNumeric(x) && $.isNumeric(y) ? { pageX: x, pageY: y } :
-    isPageCoordinate(x) ? x :
-    $(x).origin(),
-    d2 = distance * distance;
+  d2 = distance * distance;
   return obj.filter(function() {
     var gbcr = getPageGbcr(this);
-    if (isGbcrOutside(ctr, distance, d2, gbcr)) { return !within; }
-    if (isGbcrInside(ctr, d2, gbcr)) { return within; }
-    var thisctr = getCenterInPageCoordinates(this),
-        dx = ctr.pageX - thisctr.pageX,
-        dy = ctr.pageY - thisctr.pageY;
+    if (isGbcrOutside(pos, distance, d2, gbcr)) { return !within; }
+    if (isGbcrInside(pos, d2, gbcr)) { return within; }
+    fixOriginIfWatching(this);
+    var thispos = getCenterInPageCoordinates(this),
+        dx = pos.pageX - thispos.pageX,
+        dy = pos.pageY - thispos.pageY;
     return within === (dx * dx + dy * dy <= d2);
   });
 }
@@ -1756,10 +2141,11 @@ $.extend(true, $, {
     turtlePenDown: makePenDownHook(),
     turtleSpeed: makeTurtleSpeedHook(),
     turtleForward: makeTurtleForwardHook(),
+    turtleTurningRadius: makeTurningRadiusHook(),
     turtlePosition: makeTurtleXYHook('turtlePosition', 'tx', 'ty', true),
     turtlePositionX: makeTurtleHook('tx', identity, 'px', true),
     turtlePositionY: makeTurtleHook('ty', identity, 'px', true),
-    turtleRotation: makeTurtleHook('rot', normalizeRotation, 'deg', false),
+    turtleRotation: makeTurtleHook('rot', maybeArcRotation, 'deg', true),
     turtleScale: makeTurtleXYHook('turtleScale', 'sx', 'sy', false),
     turtleScaleX: makeTurtleHook('sx', identity, '', false),
     turtleScaleY: makeTurtleHook('sy', identity, '', false),
@@ -1767,6 +2153,7 @@ $.extend(true, $, {
     turtleHull: makeHullHook()
   },
   cssNumber: {
+    turtleRotation: true,
     turtleSpeed: true,
     turtleScale: true,
     turtleScaleX: true,
@@ -1789,24 +2176,73 @@ $.extend(true, $.fx, {
   }
 });
 
+function wraphelp(text, fn) {
+  fn.helptext = text;
+  return fn;
+}
+
+function helpwrite(text) {
+  see.html('<aside style="line-height:133%;word-break:normal;' +
+           'white-space:normal">' + text + '</aside>');
+}
+function globalhelp(obj) {
+  var helptable = $.extend({}, dollar_turtle_methods, turtlefn),
+      helplist, j;
+  if (obj && (!$.isArray(obj.helptext))) {
+    if (obj in helptable) {
+      obj = helptable[obj];
+    }
+  }
+  if (obj && $.isArray(obj.helptext) && obj.helptext.length) {
+    for (j = 0; j < obj.helptext.length; ++j) {
+      var text = obj.helptext[j];
+      helpwrite(text.replace(/<(u|mark)>/g,
+          '<$1 style="border:1px solid black;text-decoration:none;' +
+          'word-break:keep-all;white-space:nowrap">'));
+    }
+    return;
+  }
+  helplist = [];
+  for (var name in helptable) {
+    if (helptable[name].helptext && helptable[name].helptext.length) {
+      helplist.push(name);
+    }
+  }
+  helplist.sort();
+  helpwrite("help available for: " + helplist.join(" "));
+}
+globalhelp.helptext = [];
+
 var turtlefn = {
-  rt: function(amount) {
+  rt: wraphelp(
+  ["<u>rt(degrees)</u> Right turn. Pivots clockwise by some degrees: " +
+      "<mark>rt 90</mark>"],
+  function rt(amount) {
     return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '+=' + amount}, animTime(elem));
+      this.animate({turtleRotation: '+=' + cssNum(amount || 0) + 'deg'},
+          animTime(elem));
     });
-  },
-  lt: function(amount) {
+  }),
+  lt: wraphelp(
+  ["<u>lt(degrees)</u> Left turn. Pivots counterclockwise by some degrees: " +
+      "<mark>lt 90</mark>"],
+  function lt(amount) {
     return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '-=' + amount}, animTime(elem));
+      this.animate({turtleRotation: '-=' + cssNum(amount || 0) + 'deg'},
+          animTime(elem));
     });
-  },
-  fd: function(amount) {
+  }),
+  fd: wraphelp(
+  ["<u>fd(pixels)</u> Forward. Moves ahead by some pixels: " +
+      "<mark>fd 100</mark>"],
+  function fd(amount) {
     var elem, q, doqueue;
     if (this.length == 1 && !$.fx.speeds.turtle &&
         animTime(elem = this[0]) == 'turtle') {
       q = $.queue(elem);
       doqueue = (q.length > 0);
       function domove() {
+        fixOriginIfWatching(elem);
         doQuickMove(elem, amount, 0);
         if (doqueue) { $.dequeue(elem); }
       }
@@ -1819,38 +2255,102 @@ var turtlefn = {
       return this;
     }
     return this.direct(function(j, elem) {
-      this.animate({turtleForward: '+=' + amount}, animTime(elem));
+      fixOriginIfWatching(elem);
+      this.animate({turtleForward: '+=' + cssNum(amount || 0) + 'px'},
+          animTime(elem));
     });
-  },
-  bk: function(amount) {
+  }),
+  bk: wraphelp(
+  ["<u>bk(pixels)</u> Back. Moves in reverse by some pixels: " +
+      "<mark>bk 100</mark>"],
+  function bk(amount) {
     return this.fd(-amount);
-  },
-  move: function(amount, y) {
-    var sideways = 0;
-    if (y !== undefined) {
-      sideways = amount;
-      amount = y;
-    }
+  }),
+  slide: wraphelp(
+  ["<u>slide(x, y)</u> Slides right x and forward y pixels without turning: " +
+      "<mark>slide 50, 100</mark>"],
+  function slide(x, y) {
+    if (!y) { y = 0; }
+    if (!x) { x = 0; }
     return this.direct(function(j, elem) {
       this.animate({turtlePosition:
-          displacedPosition(elem, amount, sideways)}, animTime(elem));
+          displacedPosition(elem, y, x)}, animTime(elem));
     });
-  },
-  moveto: function(position, limit, y) {
-    if ($.isNumeric(position) && $.isNumeric(limit)) {
-      position = { pageX: parseFloat(position), pageY: parseFloat(limit) };
-      limit = null;
-    }
-    var localx = 0, localy = 0;
-    if ($.isNumeric(y) && $.isNumeric(limit)) {
-      localx = limit;
-      localy = y;
-      limit = null;
+  }),
+  rarc: wraphelp(
+  ["<u>rarc(radius, degrees)</u> Right arc. " +
+      "Curves right some degrees, with a radius: " +
+      "<mark>rarc 100, 45</mark>"],
+  function rarc(radius, amount) {
+    if (!radius || !amount) {
+      return this.rt(amount);
     }
     return this.direct(function(j, elem) {
+      var oldRadius = this.css('turtleTurningRadius');
+      this.css({turtleTurningRadius: (amount < 0) ? -radius : radius});
+      this.animate({turtleRotation: '+=' + cssNum(amount) + 'deg'},
+          animTime(elem));
+      this.direct(function() {
+        this.css({turtleTurningRadius: oldRadius});
+      });
+    });
+  }),
+  larc: wraphelp(
+  ["<u>larc(radius, degrees)</u> Left arc. " +
+      "Curves left some degrees, with a radius: " +
+      "<mark>larc 100, 45</mark>"],
+  function larc(radius, amount) {
+    if (!radius || !amount) {
+      return this.lt(amount);
+    }
+    return this.direct(function(j, elem) {
+      var oldRadius = this.css('turtleTurningRadius');
+      this.css({turtleTurningRadius: (amount < 0) ? -radius : radius});
+      this.animate({turtleRotation: '-=' + cssNum(amount) + 'deg'},
+          animTime(elem));
+      this.direct(function() {
+        this.css({turtleTurningRadius: oldRadius});
+      });
+    });
+  }),
+  moveto: wraphelp(
+  ["<u>moveto(x, y)</u> Move to graphing coordinates (see <u>getxy</u>): " +
+      "<mark>moveto 50, 100</mark>",
+   "<u>moveto(obj)</u> Move to page coordinates " +
+      "or an object on the page (see <u>pagexy</u>): " +
+      "<mark>moveto lastmousemove</mark>"],
+  function moveto(x, y) {
+    var position = x, localx = 0, localy = 0, limit = null;
+    if ($.isNumeric(position) && $.isNumeric(y)) {
+      // moveto x, y: use local coordinates.
+      localx = parseFloat(position);
+      localy = parseFloat(y);
+      position = null;
+      limit = null;
+    } else if ($.isArray(position)) {
+      // moveto [x, y], limit: use local coordinates (limit optional).
+      localx = position[0];
+      localy = position[1];
+      position = null;
+      limit = y;
+    } else if ($.isNumeric(y)) {
+      // moveto obj, limit: limited motion in the direction of obj.
+      limit = y;
+    }
+    // Otherwise moveto {pos}, limit: absolute motion with optional limit.
+    return this.direct(function(j, elem) {
       var pos = position;
-      if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
-      if (!pos || !isPageCoordinate(pos)) return this;
+      if (pos === null) {
+        pos = $(homeContainer(elem)).pagexy();
+      }
+      if (pos && !isPageCoordinate(pos)) {
+        try {
+          pos = $(pos).pagexy();
+        } catch (e) {
+          return;
+        }
+      }
+      if (!pos || !isPageCoordinate(pos)) return;
       if ($.isWindow(elem)) {
         scrollWindowToDocumentPosition(pos, limit);
         return;
@@ -1861,35 +2361,82 @@ var turtlefn = {
           computeTargetAsTurtlePosition(elem, pos, limit, localx, localy)},
           animTime(elem));
     });
-  },
-  turnto: function(bearing, limit) {
+  }),
+  turnto: wraphelp(
+  ["<u>turnto(degrees)</u> Turn to a bearing. " +
+      "North is 0, East is 90: <mark>turnto 270</turnto>",
+   "<u>turnto(x, y)</u> Turn to graphing coordinates: " +
+      "<mark>turnto 50, 100</mark>",
+   "<u>turnto(obj)</u> Turn to page coordinates or an object on the page: " +
+      "<mark>turnto lastmousemove</mark>"],
+  function turnto(bearing, y) {
+    if ($.isNumeric(y) && $.isNumeric(bearing)) {
+      // turnto x, y: convert to turnto [x, y].
+      bearing = [bearing, y];
+      y = null;
+    }
     return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
-      var dir = bearing;
-      if (!$.isNumeric(bearing)) {
-        var pos = bearing, cur = $(elem).origin();
-        if (pos && !isPageCoordinate(pos)) { pos = $(pos).origin(); }
-        if (!pos || !isPageCoordinate(pos)) return;
-        dir = radiansToDegrees(
-            Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
+      // turnto bearing: just use the given absolute.
+      var limit = null, ts, r,
+          targetpos = null, nlocalxy = null;
+      if ($.isNumeric(bearing)) {
+        r = convertToRadians(bearing);
+        fixOriginIfWatching(elem);
+        targetpos = getCenterInPageCoordinates(elem);
+        targetpos.pageX += Math.sin(r) * 1024;
+        targetpos.pageY -= Math.cos(r) * 1024;
+        limit = y;
+      } else if ($.isArray(bearing)) {
+        nlocalxy = computePositionAsLocalOffset(elem);
+        nlocalxy[0] -= bearing[0];
+        nlocalxy[1] -= bearing[1];
+      } else if (isPageCoordinate(bearing)) {
+        targetpos = bearing;
+      } else {
+        try {
+          targetpos = $(bearing).pagexy();
+        } catch(e) {
+          return;
+        }
       }
-      this.animate({turtleRotation:
-          computeDirectionAsTurtleRotation(elem, dir, limit)}, animTime(elem));
+      if (!nlocalxy) {
+        nlocalxy = computePositionAsLocalOffset(elem, targetpos);
+      }
+      dir = radiansToDegrees(Math.atan2(-nlocalxy[0], -nlocalxy[1]));
+      if (!(limit === null)) {
+        ts = readTurtleTransform(elem, true);
+        r = convertToRadians(ts.rot);
+        dir = limitRotation(ts.rot, dir, limit);
+      }
+      this.animate({turtleRotation: dir}, animTime(elem));
     });
-  },
-  home: function() {
+  }),
+  home: wraphelp(
+  ["<u>home()</u> Goes home. " +
+      "Jumps to the center without drawing: <mark>home()</mark>"],
+  function home(container) {
     return this.direct(function(j, elem) {
-      var down = this.css('turtlePenDown');
-      this.css({turtlePenDown: 'up' });
+      var down = this.css('turtlePenDown'),
+          radius = this.css('turtleTurningRadius'),
+          hc = container || homeContainer(elem);
+      this.css({turtlePenDown: 'up', turtleTurningRadius: 0 });
       this.css({
         turtlePosition:
-          computeTargetAsTurtlePosition(elem, $(document).origin(), null, 0, 0),
+          computeTargetAsTurtlePosition(
+              elem, $(hc).pagexy(), null, 0, 0),
         turtleRotation: 0});
-      this.css({turtlePenDown: down });
+      this.css({turtlePenDown: down, turtleTurningRadius: radius });
     });
-  },
-  pen: function(penstyle) {
+  }),
+  pen: wraphelp(
+  ["<u>pen(color)</u> Selects a pen. " +
+      "Chooses a color and style for the pen: <mark>pen 'red'</mark>."],
+  function pen(penstyle) {
     return this.direct(function(j, elem) {
+      if (penstyle === undefined) {
+        penstyle = 'black';
+      }
       if (penstyle === false || penstyle === true ||
           penstyle == 'down' || penstyle == 'up') {
         this.css('turtlePenDown', penstyle);
@@ -1897,15 +2444,23 @@ var turtlefn = {
         this.css('turtlePenStyle', penstyle);
       }
     });
-  },
-  fill: function(style) {
+  }),
+  fill: wraphelp(
+  ["<u>fill(color)</u> Fills a path traced using " +
+      "<u>pen 'path'</u>: " +
+      "<mark>pen 'path'; rarc 100, 90; fill 'blue'</mark>"],
+  function fill(style) {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
       endAndFillPenPath(elem, ps);
     });
-  },
-  dot: function(style, diameter) {
+  }),
+  dot: wraphelp(
+  ["<u>dot(color, diameter)</u> Draws a dot. " +
+      "Color and diameter are optional: " +
+      "<mark>dot 'blue'</mark>"],
+  function dot(style, diameter) {
     if ($.isNumeric(style)) {
       // Allow for parameters in either order.
       var t = style;
@@ -1916,58 +2471,112 @@ var turtlefn = {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
     return this.direct(function(j, elem) {
-      var c = this.origin(),
-          ts = readTurtleTransform(elem, true);
+      var c = this.pagexy(),
+          ts = readTurtleTransform(elem, true),
+          extraDiam = (ps.eraseMode ? 2 : 0);
       // Scale by sx.  (TODO: consider parent transforms.)
-      fillDot(c, diameter * ts.sx, ps);
+      fillDot(c, diameter * ts.sx + extraDiam, ps);
       // Once drawing begins, origin must be stable.
       watchImageToFixOriginOnLoad(elem);
     });
-  },
-  erase: function(style) {
-    if (!style) { style = 'transparent'; }
-    var ps = parsePenStyle(style, 'fillStyle');
-    return this.direct(function(j, elem) {
-      eraseBox(elem, ps);
-      // Once drawing begins, origin must be stable.
-      watchImageToFixOriginOnLoad(elem);
-    });
-  },
-  play: function(notes) {
+  }),
+  wait: wraphelp(
+  ["<u>wait(seconds)</u> Waits some seconds before proceeding. " +
+      "<mark>fd 100; wait 2.5; bk 100</mark>"],
+  function wait(seconds) {
+    return this.delay(seconds * 1000);
+  }),
+  st: wraphelp(
+  ["<u>st()</u> Show turtle. The reverse of " +
+      "<u>ht()</u>. <mark>st()</mark>"],
+  function st() {
+    return this.direct(function() { this.show(); });
+  }),
+  ht: wraphelp(
+  ["<u>ht()</u> Hide turtle. The turtle can be shown again with " +
+      "<u>st()</u>. <mark>ht()</mark>"],
+  function ht() {
+    return this.direct(function() { this.hide(); });
+  }),
+  pu: wraphelp(
+  ["<u>pu()</u> Pen up. Tracing can be resumed with " +
+      "<u>pd()</u>. <mark>pu()</mark>"],
+  function pu() {
+    return this.pen(false);
+  }),
+  pd: wraphelp(
+  ["<u>pd()</u> Pen down. Resumes tracing a path that was paused with " +
+      "<u>pu()</u>. <mark>pd()</mark>"],
+  function pd() {
+    return this.pen(true);
+  }),
+  pe: wraphelp(
+  ["<u>pe()</u> Pen erase. Can overtrace old " +
+      "lines to erase them.  <mark>pen 'red'; fd 100; pe(); bk 100</mark>"],
+  function pe() {
+    return this.pen('erase');
+  }),
+  play: wraphelp(
+  ["<u>play(notes)</u> Play notes. Notes are specified in " +
+      "<a href=\"http://abcnotation.com/\">ABC notation</a>. " +
+      "<mark>play \"de[dBFA]2[cGEC]4\"</mark>"],
+  function play(notes) {
     var args = arguments;
     return this.queue(function() {
       // playABC will call $(this).dequeue() when song is done.
       playABC(this, args);
     });
-  },
-  speed: function(mps) {
+  }),
+  speed: wraphelp(
+  ["<u>speed(persec)</u> Set turtle speed in moves per second: " +
+      "<mark>speed Infinity</mark>"],
+  function speed(mps) {
     return this.direct(function(j, elem) {
       this.css('turtleSpeed', mps);
     });
-  },
-  img: function (name) {
+  }),
+  wear: wraphelp(
+  ["<u>wear(color)</u> Sets the turtle shell color: " +
+      "<mark>wear 'turquoise'</mark>",
+   "<u>wear(url)</u> Sets the turtle image url: " +
+      "<mark>wear 'http://bit.ly/1bgrQ0p'</mark>"],
+  function wear(name) {
     var img = nameToImg(name);
     if (!img) return this;
-    return this.direct(function() {
+    return this.direct(function(j, elem) {
+      // Bug workaround - if backgroudnImg isn't cleared early enough,
+      // the turtle image doesn't update.  (Even though this is done
+      // later in applyImg.)
+      this.css({
+        backgroundImage: 'none',
+      });
+      // Keep the position of the origin unchanged even if the image resizes.
+      watchImageToFixOriginOnLoad(elem);
       applyImg(this, img);
+      fixOriginIfWatching(elem);
     });
-  },
-  mark: function(html, fn) {
+  }),
+  label: wraphelp(
+  ["<u>label(text)</u> Labels the current position with HTML: " +
+      "<mark>label 'remember'</mark>"],
+  function label(html, fn) {
     return this.direct(function() {
-      var out = output(html, 'mark').css({
+      var out = output(html, 'label').css({
         position: 'absolute',
-        display: 'inline-block'
-      }).addClass('turtle');
+        display: 'inline-block',
+        top: 0,
+        left: 0
+      }).addClass('turtle').appendTo(getTurtleClipSurface());
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
-            out.get(0), this.origin(), null, 0, 0)
+            out.get(0), this.pagexy(), null, 0, 0)
       });
       if ($.isFunction(fn)) {
         out.direct(fn);
       }
     });
-  },
-  reload: function() {
+  }),
+  reload: function reload() {
     // Used to reload images to cycle animated gifs.
     return this.direct(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) {
@@ -1981,33 +2590,90 @@ var turtlefn = {
       }
     });
   },
-  origin: function() {
+  hatch: wraphelp(
+  ["<u>hatch(count, color)</u> Hatches any number of new turtles. Optional " +
+      "color name. <mark>g = hatch 5; g.direct -> @fd random 500</mark>"],
+  function(count, spec) {
     if (!this.length) return;
+    if (spec === undefined && !$.isNumeric(count)) {
+      spec = count;
+      count = 1;
+    }
+    // Determine the container in which to hatch the turtle.
+    var container = this[0], clone = null;
+    if ($.isWindow(container) || container.nodeType === 9) {
+      container = getTurtleClipSurface();
+    } else if (/^(?:br|img|input|hr)$/i.test(container.tagName)) {
+      container = container.parentElement;
+      clone = this[0];
+    }
+    // Create the turtle(s)
+    if (count === 1) {
+      // Pass through identical jquery instance in the 1 case.
+      return hatchone(
+          typeof spec === 'function' ? spec(0) : spec, container, clone);
+    } else {
+      var k = 0, result = [];
+      for (; k < count; ++k) {
+        result.push(hatchone(
+            typeof spec === 'function' ? spec(k) : spec, container, clone)[0]);
+      }
+      return $(result);
+    }
+  }),
+  pagexy: wraphelp(
+  ["<u>pagexy()</u> Page coordinates as obj, with " +
+      "top-left based obj.pageX, obj.pageY: " +
+      "<mark>c = pagexy(); fd 500; moveto c</mark>"],
+  function pagexy() {
+    if (!this.length) return;
+    fixOriginIfWatching(this[0]);
     return getCenterInPageCoordinates(this[0]);
-  },
-  bearing: function(pos, y) {
+  }),
+  getxy: wraphelp(
+  ["<u>getxy()</u> Returns graphing coordinates [x, y], center-based: " +
+      "<mark>v = getxy(); slide -v[0], -v[1]</mark>"],
+  function getxy() {
     if (!this.length) return;
-    var elem = this[0], dir, cur;
+    return computePositionAsLocalOffset(this[0]);
+  }),
+  bearing: wraphelp(
+  ["<u>bearing()</u> Returns turtle bearing. North is 0; East is 90: " +
+      "<mark>write bearing()</mark>",
+   "<u>bearing(obj)</u> <u>bearing(x, y)</u> Returns the direction " +
+      "from the turtle towards an object or coordinate: " +
+      "<mark>write bearing(lastmouseclick)</mark>"],
+  function bearing(x, y) {
+    if (!this.length) return;
+    var elem = this[0], pos = x, dir, cur;
     if (pos !== undefined) {
-      cur = $(elem).origin();
-      if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
-      else if (!isPageCoordinate(pos)) { pos = $(pos).origin(); }
+      cur = $(elem).pagexy();
+      if ($.isNumeric(y) && $.isNumeric(x)) { pos = [x, y]; }
+      if ($.isArray(pos)) {
+        pos = convertLocalXyToPageCoordinates(elem, [pos])[0];
+      }
+      if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
       return radiansToDegrees(
           Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
     }
     if ($.isWindow(elem) || elem.nodeType === 9) return 0;
     return getDirectionOnPage(elem);
-  },
-  distance: function(pos, y) {
+  }),
+  distance: wraphelp(
+  ["<u>distance(obj)</u> Returns the distance from the turtle to " +
+      "another object: <mark>write distance(lastmouseclick)</mark>",
+   "<u>distance(x, y)</u> Returns the distance from the turtle to " +
+      "graphing coorindates: <mark>write distance(100, 0)</mark>"],
+  function distance(pos, y) {
     if (!this.length) return;
-    var elem = this[0], dx, dy, cur = $(elem).origin();
+    var elem = this[0], dx, dy, cur = $(elem).pagexy();
     if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
-    else if (!isPageCoordinate(pos)) { pos = $(pos).origin(); }
+    else if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
     dx = pos.pageX - cur.pageX;
     dy = pos.pageY - cur.pageY;
     return Math.sqrt(dx * dx + dy * dy);
-  },
-  mirror: function(val) {
+  }),
+  mirror: function mirror(val) {
     if (val === undefined) {
       // Zero arguments returns true if mirrored.
       var c = $.map(this.css('turtleScale').split(' '), parseFloat),
@@ -2023,7 +2689,11 @@ var turtlefn = {
       }
     });
   },
-  twist: function(val) {
+  twist: wraphelp(
+  ["<u>twist(degrees)</u> Set the primary direction of the turtle. Allows " +
+      "use of images that face a different direction than 'up': " +
+      "<mark>twist(90)</mark>"],
+  function twist(val) {
     if (val === undefined) {
       return parseFloat(this.css('turtleTwist'));
     }
@@ -2031,8 +2701,11 @@ var turtlefn = {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       this.css('turtleTwist', val);
     });
-  },
-  scale: function(valx, valy) {
+  }),
+  scale: wraphelp(
+  ["<u>scale(factor)</u> Scales all motion up or down by a factor. " +
+      "To double all drawing: <mark>scale(2)</mark>"],
+  function scale(valx, valy) {
     if (valy === undefined) { valy = valx; }
     // Disallow scaling to zero using this method.
     if (!valx || !valy) { return this; }
@@ -2044,20 +2717,33 @@ var turtlefn = {
       c[1] *= valy;
       this.css('turtleScale', $.map(c, cssNum).join(' '));
     });
-  },
-  cell: function(x, y) {
+  }),
+  cell: wraphelp(
+  ["<u>cell(r, c)</u> Cell in row r and column c in a table. " +
+      "Use together with the table function: " +
+      "<mark>g = table 8, 8; g.cell(0,2).text 'hello'</mark>"],
+  function cell(r, c) {
     var sel = this.find(
-        $.isNumeric(y) ? 'tr:nth-of-type(' + (y + 1) + ')' : 'tr');
+        $.isNumeric(r) ? 'tr:nth-of-type(' + (r + 1) + ')' : 'tr');
     return sel.find(
-        $.isNumeric(x) ? 'td:nth-of-type(' + (x + 1) + ')' : 'td');
-  },
-  shown: function() {
+        $.isNumeric(c) ? 'td:nth-of-type(' + (c + 1) + ')' : 'td');
+  }),
+  shown: wraphelp(
+  ["<u>shown()</u> True if turtle is shown, false if hidden: " +
+      "<mark>ht(); write shown()</mark>"],
+  function shown() {
     return this.is(':visible');
-  },
-  hidden: function() {
+  }),
+  hidden: wraphelp(
+  ["<u>hidden()</u> True if turtle is hidden: " +
+      "<mark>ht(); write hidden()</mark>"],
+  function hidden() {
     return this.is(':hidden');
-  },
-  encloses: function(arg, y) {
+  }),
+  encloses: wraphelp(
+  ["<u>encloses(obj)</u> True if the first element fully encloses obj: " +
+      "<mark>write $(window).encloses(turtle)</mark>"],
+  function encloses(arg, y) {
     if (!this.length || this.hidden()) return false;
     if ($.isNumeric(arg) && $.isNumeric(y)) {
       arg = [{ pageX: arg, pageY: y }];
@@ -2091,11 +2777,18 @@ var turtlefn = {
       }
     }
     return !!allok;
-  },
-  touches: function(arg, y) {
+  }),
+  touches: wraphelp(
+  ["<u>touches(obj)</u> True if the first element touches obj: " +
+      "<mark>write turtle1.touches(turtle2)</mark>"],
+  function touches(arg, y) {
     if (this.hidden() || !this.length) { return false; }
     if ($.isNumeric(arg) && $.isNumeric(y)) {
-      arg = [{ pageX: arg, pageY: y }];
+      arg = [arg, y];
+    }
+    if ($.isArray(arg) && arg.length == 2 &&
+        $.isNumeric(arg[0]) && $.isNumeric(arg[1])) {
+      arg = convertLocalXyToPageCoordinates(this[0] || document.body, [arg])[0];
     }
     if (!arg) return false;
     if (typeof arg === 'string') { arg = $(arg); }
@@ -2121,14 +2814,14 @@ var turtlefn = {
       }
     }
     return !!anyok;
-  },
-  within: function(distance, x, y) {
+  }),
+  within: function within(distance, x, y) {
     return withinOrNot(this, true, distance, x, y);
   },
-  notwithin: function(distance, x, y) {
+  notwithin: function notwithin(distance, x, y) {
     return withinOrNot(this, false, distance, x, y);
   },
-  direct: function(qname, callback, args) {
+  direct: function direct(qname, callback, args) {
     if ($.isFunction(qname)) {
       args = callback;
       callback = qname;
@@ -2174,7 +2867,6 @@ var turtlefn = {
 
 $.fn.extend(turtlefn);
 
-
 //////////////////////////////////////////////////////////////////////////
 // TURTLE GLOBAL ENVIRONMENT
 // Implements educational support when $.turtle() is called:
@@ -2188,7 +2880,7 @@ $.fn.extend(turtlefn);
 // * Sets up a global "hatch" function to make a new turtle.
 //////////////////////////////////////////////////////////////////////////
 
-var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAvAPIHAAFsOACSRQ2ZRQySQzCuSBygRQ+DPv///yH5BAlkAAcAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAKAAvAAAD/ni63P4wygVqnVjWQnoBWdgAXdmBYkiaJZpiK0u4ryafNUwYw0AUHFruARgEjkiBcOgAAJ+FwXJSMcwglqwlFcMxskZkIbDNAKwmlOUoQB4JyDK1a7AMxm4k3K3NNlkVRwVteQF4bnVnJR9/J0VihQKHeU4mjCMzhYN5m5EfgE2BeQJ7eoUBkm10RKeGeKQEhGKHfaynpIMCkrF6kxcRRbJuk3o/HcJkGndAsqSnHW/Iv7aoHEDQhaVAeXXA2YvIpYaFUwdnz4S4gxy6b+RYBs+ci0+wUJdNrcSubri6AgMAlhPVT1w0NwbjeBvmoWCehAG6YWFzTBcvNsT2RSxnfM5atlkO3y28BQcWw30cFQBoBYseM5NxtBBZqUkWB4Pbjji5OYVgEmIXHVYqYYBIpmHIOhWqAwoTASlJkKGSSqbLjCUxqjjzRK7PNAqWqrQKYPCrjRYqaWqKKaILPnNrIm40C8OAgQ8cZTIx42Wvjrd+gUkMrIEu4cMLEgAAIfkECWQABwAsAAAAACgALwCCAm04AJJFDZlFDJJDL65IHKBGDIM+////A/54utz+MMoFgKkzy1qIL4AmNoBneuEolqeZqhnbEi+8zagdE8YwEIVOTfewBI5IwZDoAASfBSUzUqlalwcnCgup9pCBQqDKqJy4pAoYTECSzefmtSIQr492N9wld6nDAndhglo5TWcAgXh3dYIXQkuFNHdRa5WMIBiHHwCCbWyKYHUCF10Wf5R2Ah6heHloCqhrqwK1dUBIuHobA61Il2wnvrAAA0+hq4JBRwS1YJpFSR1BHp5JvqUQBncnwMzSd1yyuYG1QHUdzoNr4p3coh0f1KtAUO3KqaLntrXigslrmrERNIZKq3h5AgDMRRCNO3q2BB5pBCbhri7T3rlC9naJ3QaCCtusSpjRYxorBXzMagHFXMcxkajRcGcpVDyFv14V6WYEXkBfIZVAoxCPU82jggY4wWIB0TVGQGEakjMnZFKLUvms6EXwJUwZPFRU8aRIU1OtI6p+HQIW1oQ5RZykdPvWg4EpaYHQxZtlKV8NZP4KZpAAADs=";
+var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPEDAAFsOACSRTCuSAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQJZAADACwAAAAAKAAwAAACzpyPqcvtByJ49EWBRaw8gZxNXfeB4ciVpoZWqim2zhfUNivP9h7EOQPg9VqSDVDocwUyQ8UFlrS8mobIciXoRRtBULGLBWm/EudVHA6fxVFw+v2mQtbwundhteuz2yp9z/cVMAPIhvIC2EdYiKHIxdhIBIkzgrjnCDSJiacpCbnp1HkoWklKYqo0KUfhxjhWBmQ5ibFaJTsbGYob1nb2+kdbVLNS++Lz5JVEBguhEmQW/GOcSUl09sxZffj1qP2zCPo9QBMuXVMubSS+/lAAACH5BAVkAAMALAEAAQAmAC4AAALNnI9pwKAP4wKiCiZzpLY6DR5c54XhSH5mhnbqugnBTF8wS+fBez+AvuvhdDxEA3NqXYqDnyXIcpIqu5fU8zlqr9OntgPlPrtk2TQcKKvXMpWSDYcu0vB6NVE90uskOY6fsvIGxxQDaFEIMciW6HOIKPhYYrK41qhQqXaZkFm2aSRpQxn6KUIaKVnatHfoZ6TF2sokFopY1PmIZFrryRkrk0dLpef1usXDMKXb5CIk5TqwY+s8idncw1EoPYxdjanVLSqk4aTqPGOOvaxRAAA7";
 
 var eventfn = { click:1, mouseup:1, mousedown:1, mousemove:1,
     keydown:1, keypress:1, keyup:1 };
@@ -2197,17 +2889,80 @@ var global_turtle = null;
 var global_turtle_methods = [];
 var attaching_ids = false;
 var dollar_turtle_methods = {
-  erase: function() { directIfGlobal(function() { $(document).erase() }); },
-  tick: function(x, y) { directIfGlobal(function() { tick(x, y); }); },
-  defaultspeed: function(mps) {
-    directIfGlobal(function() { defaultspeed(mps); }); },
-  playnow: function() { playABC(null, arguments); },
-  print: function(html) { return output(html, 'div'); },
-  random: random,
-  hatch: hatch,
-  input: input,
-  button: button,
-  table: table,
+  cs: wraphelp(
+  ["<u>cs()</u> Clear screen. Erases both graphics canvas and " +
+      "body text: <mark>cs()</mark>"],
+  function cs() { directIfGlobal(function() { clearField() }); }),
+  cg: wraphelp(
+  ["<u>cg()</u> Clear graphics. Does not alter body text: " +
+      "<mark>cg()</mark>"],
+  function cg() { directIfGlobal(function() { clearField('canvas') }); }),
+  ct: wraphelp(
+  ["<u>ct()</u> Clear text. Does not alter graphics canvas: " +
+      "<mark>ct()</mark>"],
+  function ct() { directIfGlobal(function() { clearField('text') }); }),
+  tick: wraphelp(
+  ["<u>tick(fps, fn)</u> Calls fn fps times per second until " +
+      "<u>tick</u> is called again: " +
+      "<mark>c = 10; tick 1, -> c and write(c--) or tick()</mark>"],
+  function tick(tps, fn) {
+    directIfGlobal(function() { globaltick(tps, fn); });
+  }),
+  defaultspeed: wraphelp(
+  ["<u>defaultspeed(mps)</u> Sets default turtle speed for new turtles: " +
+      "<mark>defaultspeed 60</mark>"],
+  function defaultspeed(mps) {
+    directIfGlobal(function() { globaldefaultspeed(mps); }); }),
+  sound: function sound() { playABC(null, arguments); },
+  write: wraphelp(
+  ["<u>write(html)</u> Writes text output. Arbitrary HTML may be written: " +
+      "<mark>write 'Hello, world!'</mark>"],
+  function write(html) { return output(html, 'div'); }),
+  read: wraphelp(
+  ["<u>read(html, fn)</u> Reads text or numeric input. " +
+      "Calls fn once with the entered value: " +
+      "<mark>read 'Your name?', (v) -> write 'Hello ' + v</mark>"],
+  function read(a, b) { return input(a, b, 0); }),
+  readnum: wraphelp(
+  ["<u>readnum(html, fn)</u> Reads numeric input. Only numbers allowed: " +
+      "<mark>read 'Amount?', (v) -> write 'Tip: ' + (0.15 * v)</mark>"],
+  function readnum(a, b) { return input(a, b, 1); }),
+  readstr: wraphelp(
+  ["<u>readstr(html, fn)</u> Reads text input. Never " +
+      "converts input to a number: " +
+      "<mark>read 'Enter code', (v) -> write v.length + ' characters'</mark>"],
+  function readstr(a, b) { return input(a, b, -1); }),
+  random: wraphelp(
+  ["<u>random(n)</u> Returns a random non-negative integer less than n: " +
+      "<mark>write random 10</mark>",
+   "<u>random(list)</u> Returns a random member of the list: " +
+      "<mark>write random ['a', 'b', 'c']</mark>",
+   "<u>random('position')</u> Returns a random page position: " +
+      "<mark>moveto random 'position'</mark>",
+   "<u>random('color')</u> Returns a random page color: " +
+      "<mark>pen random 'color'</mark>"],
+  random),
+  hatch: wraphelp(
+  ["<u>hatch(count, color)</u> Hatches any number of new turtles. Optional " +
+      "color name. <mark>g = hatch 5; g.direct -> @fd random 500</mark>"],
+  function hatch(count, spec) {
+    if (global_turtle) return $(global_turtle).hatch(count, spec);
+    else return $(document).hatch(count, spec);
+  }),
+  button: wraphelp(
+  ["<u>button(text, fn)</u> Writes a button. Calls " +
+      "fn whenever the button is clicked: " +
+      "<mark>button 'GO', -> fd 100</mark>"],
+  button),
+  table: wraphelp(
+  ["<u>table(m, n)</u> Writes m rows and c columns. " +
+      "Access cells using <u>cell</u>: " +
+      "<mark>g = table 8, 8; g.cell(2,3).text 'hello'</mark>",
+   "<u>table(array)</u> Writes tabular data. " +
+      "Each nested array is a row: " +
+      "<mark>table [[1,2,3],[4,5,6]]</mark>"],
+  table),
+  help: globalhelp
 };
 
 $.turtle = function turtle(id, options) {
@@ -2238,10 +2993,6 @@ $.turtle = function turtle(id, options) {
   if (!options.hasOwnProperty('events') || options.events) {
     turtleevents(options.eventprefix);
   }
-  // Set up window-scoped event handler methods too.
-  if (!options.hasOwnProperty('handlers') || options.handlers) {
-    globalizeMethods($(window), eventfn);
-  }
   // Set up global objects by id.
   if (!options.hasOwnProperty('ids') || options.ids) {
     turtleids(options.idprefix);
@@ -2261,7 +3012,7 @@ $.turtle = function turtle(id, options) {
     $.extend(window, dollar_turtle_methods);
   }
   // Set default turtle speed
-  defaultspeed(options.hasOwnProperty('defaultspeed') ?
+  globaldefaultspeed(options.hasOwnProperty('defaultspeed') ?
       options.defaultspeed : 1);
   // Initialize audio context (avoids delay in first notes).
   try {
@@ -2272,7 +3023,7 @@ $.turtle = function turtle(id, options) {
   if (id) {
     selector = $('#' + id);
     if (!selector.length) {
-      selector = hatch(id);
+      selector = dollar_turtle_methods.hatch(id);
     }
   }
   if (selector && !selector.length) { selector = null; }
@@ -2280,9 +3031,9 @@ $.turtle = function turtle(id, options) {
   if (selector && selector.length === 1 &&
       (!options.hasOwnProperty('global') || options.global)) {
     var extraturtlefn = {
-      show:1, hide:1, css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
-      animate:1, delay:1, stop:1, finish:1, toggle:1, remove:1 };
-    var globalfn = $.extend({}, turtlefn, extraturtlefn);
+      css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
+      animate:1, stop:1, toggle:1, finish:1, remove:1 };
+    var globalfn = $.extend({}, turtlefn, eventfn, extraturtlefn);
     global_turtle_methods.push.apply(global_turtle_methods,
        globalizeMethods(selector, globalfn));
     global_turtle = selector[0];
@@ -2292,8 +3043,9 @@ $.turtle = function turtle(id, options) {
   if (!options.hasOwnProperty('panel') || options.panel) {
     var retval = null,
         seeopt = {
-      title: 'turtle test panel',
-      abbreviate: [undefined]
+      title: 'turtle test panel - Enter commands or type help for help',
+      abbreviate: [undefined],
+      consolehook: seehelphook
     };
     if (selector) { seeopt.abbreviate.push(selector); }
     if (options.title) {
@@ -2316,15 +3068,43 @@ $.turtle = function turtle(id, options) {
 
 $.extend($.turtle, dollar_turtle_methods);
 
+function seehelphook(text, result) {
+  if (typeof result == 'function' && /^\w+\s*$/.test(text) && result.helptext) {
+    globalhelp(result);
+    return true;
+  }
+  return false;
+}
+
+function copyhelp(method, fname, extrahelp, globalfn) {
+  if (method.helptext) {
+    globalfn.helptext = method.helptext;
+  } else if (fname in extrahelp) {
+    globalfn.helptext = extrahelp[fname];
+  }
+  return globalfn;
+}
+
+var extrahelp = {
+  remove: ["<u>remove()</u> Removes main turtle completely. " +
+      "Also removes <u>fd</u>, <u>bk</u>, <u>rt</u>, etc: " +
+      "<mark>remove()</mark>"],
+  finish: ["<u>finish()</u> Finishes turtle animation. " +
+      "Does not pause for effect: " +
+      "<mark>finish()</mark>"]
+};
+
 function globalizeMethods(thisobj, fnames) {
   var replaced = [];
   for (var fname in fnames) {
     if (fnames.hasOwnProperty(fname) && !(fname in window)) {
       replaced.push(fname);
-      window[fname] = (function() {
+      window[fname] = (function(fname) {
         var method = thisobj[fname], target = thisobj;
-        return (function() { return method.apply(target, arguments); });
-      })();
+        return copyhelp(method, fname, extrahelp,
+            (function() { /* Use parentheses to call a function */
+                return method.apply(target, arguments); }));
+      })(fname);
     }
   }
   return replaced;
@@ -2359,10 +3139,65 @@ function onDOMNodeRemoved(e) {
 }
 
 function isCSSColor(color) {
-  if (!/^[a-z]+$/i.exec(color)) { return false; }
+  if (!/^[a-z]+$|^(?:rgb|hsl)a?\([^)]*\)$|^\#[a-f0-9]{3}(?:[a-f0-9]{3})?$/i
+      .exec(color)) {
+    return false;
+  }
   var d = document.createElement('div'), unset = d.style.color;
   d.style.color = color;
   return (unset != d.style.color);
+}
+
+function createTurtleShellOfColor(color) {
+  var c = document.createElement('canvas');
+  c.width = 40;
+  c.height = 48;
+  var ctx = c.getContext('2d'),
+      cx = 20,
+      cy = 26;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 16, 0, 2 * Math.PI, false);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.beginPath();
+  // Half of a symmetric turtle shell pattern.
+  var pattern = [
+    [[5, -14], [3, -11]],
+    [[3, -11], [7, -8], [4, -4]],
+    [[4, -4], [7, 0], [4, 4]],
+    [[4, 4], [7, 8], [3, 11]],
+    [[7, -8], [12, -9], null],
+    [[7, 0], [15, 0], null],
+    [[7, 8], [12, 9], null],
+    [[3, 11], [1, 15], null]
+  ];
+  for (var j = 0; j < pattern.length; j++) {
+    var path = pattern[j], connect = true;
+    ctx.moveTo(cx + path[0][0], cy + path[0][1]);
+    for (var k = 1; k < path.length; k++) {
+      if (path[k] !== null) {
+        ctx.lineTo(cx + path[k][0], cy + path[k][1]);
+      }
+    }
+    for (var k = path.length - 1; k >= 0; k--) {
+      if (path[k] === null) {
+        k--;
+        ctx.moveTo(cx - path[k][0], cy + path[k][1]);
+      } else {
+        ctx.lineTo(cx - path[k][0], cy + path[k][1]);
+      }
+    }
+  }
+  ctx.lineWidth = 1.1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 15.5, 0, 2 * Math.PI, false);
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.stroke();
+  return c.toDataURL();
 }
 
 function createPointerOfColor(color) {
@@ -2385,50 +3220,25 @@ var entityMap = {
   "&": "&amp;",
   "<": "&lt;",
   ">": "&gt;",
-  '"': '&quot;',
+  '"': '&quot;'
 };
 
 function escapeHtml(string) {
   return String(string).replace(/[&<>"]/g, function(s) {return entityMap[s];});
 }
 
-// Turtle creation function.
-function hatch(count, spec) {
-  if (spec === undefined && !$.isNumeric(count)) {
-    spec = count;
-    count = 1;
-  }
-  if (count === 1) {
-    // Pass through identical jquery instance in the 1 case.
-    return hatchone(typeof spec === 'function' ? spec(0) : spec);
-  } else {
-    var j = 0, result = [];
-    for (; j < count; ++j) {
-      result.push(hatchone(typeof spec === 'function' ? spec(j) : spec)[0]);
-    }
-    return $(result);
-  }
-}
-
 function nameToImg(name) {
-  if (name == 'turtle') return {
-    url: turtleGIFUrl,
+  if (name == 'turtle') { name = 'mediumseagreen'; }
+  if (isCSSColor(name)) return {
+    url: createTurtleShellOfColor(name),
     css: {
       width: 20,
       height: 24,
       turtleHull: "-8 -5 -8 6 0 -13 8 6 8 -5 0 9",
       transformOrigin: '10px 13px',
-      opacity: 0.5
-    }
-  };
-  if (isCSSColor(name)) return {
-    url: createPointerOfColor(name),
-    css: {
-      width: 20,
-      height: 24,
-      turtleHull: "-10 11 0 -13 10 11",
-      transformOrigin: '10px 13px',
-      opacity: 0.8
+      opacity: 0.5,
+      backgroundImage: 'url(' + turtleGIFUrl + ')',
+      backgroundSize: 'contain'
     }
   };
   var openicon =
@@ -2461,14 +3271,16 @@ function nameToImg(name) {
       css: {
         width: targetSize,
         height: targetSize,
+        transformOrigin: '50% 50%',
         opacity: 1
       }
     }
   }
-  if (/^(?:https?:\/)?\//i.exec(name)) {
+  if (/^(?:(?:https?|data):)?\//i.exec(name)) {
     return {
       url: name,
       css: {
+        transformOrigin: '50% 50%',
         opacity: 1
       }
     }
@@ -2476,7 +3288,7 @@ function nameToImg(name) {
   return null;
 }
 
-function hatchone(name) {
+function hatchone(name, container, clonepos) {
   var isID = name && /^[a-zA-Z]\w*$/.exec(name),
       isTag = name && /^<.*>$/.exec(name),
       img = nameToImg(name) ||
@@ -2495,12 +3307,29 @@ function hatchone(name) {
   } else {
     result = $('<div>' + escapeHtml(name) + '</div>');
   }
+  // Position the turtle inside the container.
   result.css({
-    'position': 'absolute',
-    'display': 'inline-block',
-    'top': 0,
-    'left': 0
-  }).appendTo(getTurtleClipSurface()).home();
+    position: 'absolute',
+    display: 'inline-block',
+    top: 0,
+    left: 0
+  });
+  if (!container || container.nodeType == 9 || $.isWindow(container)) {
+    container = getTurtleClipSurface();
+  }
+  result.appendTo(container);
+
+  // Move it to the starting pos.
+  if (clonepos) {
+    var t = $.style(clonepos, 'transform');
+    if (t) {
+      result.css({transform: $.style(clonepos, 'transform')});
+    } else {
+      result.home(clonepos);
+    }
+  } else {
+    result.home(container);
+  }
 
   // Every hatched turtle has class="turtle".
   result.addClass('turtle');
@@ -2552,7 +3381,7 @@ function random(arg) {
 
 // Simplify setInterval(fn, 1000) to just tick(fn).
 var tickinterval = null;
-function tick(rps, fn) {
+function globaltick(rps, fn) {
   if (fn === undefined && $.isFunction(rps)) {
     fn = rps;
     rps = 1;
@@ -2567,7 +3396,7 @@ function tick(rps, fn) {
 }
 
 // Allow speed to be set in moves per second.
-function defaultspeed(mps) {
+function globaldefaultspeed(mps) {
   if (mps === undefined) {
     return 1000 / $.fx.speeds.turtle;
   } else {
@@ -2614,7 +3443,8 @@ function turtleevents(prefix) {
 // Simplify $('body').append(html).
 function output(html, defaulttag) {
   if (html === undefined || html === null) {
-    return $('<img>').img('turtle').appendTo('body');
+    // Print a turtle shell when no arguments.
+    return $('<img>').wear('turtle').css({background: 'none'}).appendTo('body');
   }
   var wrapped = false, result = null;
   html = '' + html;
@@ -2623,12 +3453,17 @@ function output(html, defaulttag) {
     // to trust a surrounding tag but found multiple bits.
     if (html.charAt(0) != '<' || html.charAt(html.length - 1) != '>' ||
         (result !== null && result.length != 1)) {
-      html = '<' + defaulttag + '>' + html + '</' + defaulttag + '>';
+      html = '<' + defaulttag + ' style="display:inline-block">' +
+          html + '</' + defaulttag + '>';
       wrapped = true;
     }
     result = $(html);
   }
-  return result.appendTo('body');
+  result.appendTo('body');
+  if (wrapped && defaulttag == 'div') {
+    result.after('<br>');
+  }
+  return result;
 }
 
 // Simplify $('body'>.append('<button>' + label + '</button>').click(fn).
@@ -2650,8 +3485,8 @@ function button(name, callback) {
 
 
 // Simplify $('body').append('<input>' + label) and onchange hookup.
-function input(name, callback) {
-  if ($.isFunction(name) && callback === undefined) {
+function input(name, callback, numeric) {
+  if ($.isFunction(name) && !callback) {
     callback = name;
     name = null;
   }
@@ -2670,34 +3505,78 @@ function input(name, callback) {
     }
   }
   function newval() {
+    if (!validate()) { return false; }
     var val = textbox.val();
     if (debounce && lastseen == val) { return; }
     dodebounce();
     lastseen = val;
     textbox.remove();
     label.append(val);
-    if ($.isNumeric(val)) {
+    if (numeric > 0 || (
+      numeric >= 0 && $.isNumeric(val) && ('' + parseFloat(val) == val))) {
       val = parseFloat(val);
     }
     if (callback) { callback.call(thisval, val); }
   }
+  function validate() {
+    if (!numeric) return true;
+    var val = textbox.val(),
+        nval = val.replace(/[^0-9\.]/g, '');
+    if (val != nval || !$.isNumeric(nval)) {
+      textbox.val(nval);
+      return false;
+    }
+    return true;
+  }
   function key(e) {
-    if (e.which == 13) { newval(); }
+    if (e.which == 13) {
+      if (!validate()) { return false; }
+      newval();
+    }
+    if (numeric > 0 && (e.which >= 32 && e.which <= 127) &&
+        (e.which < '0'.charCodeAt(0) || e.which > '9'.charCodeAt(0))) {
+      return false;
+    }
   }
   dodebounce();
-  textbox.on('keydown', key);
+  textbox.on('keypress keydown', key);
   textbox.on('change', newval);
   $('body').append(label);
   textbox.focus();
   return thisval;
 }
 
-function table(width, height, cellCss, tableCss) {
+function table(height, width, cellCss, tableCss) {
+  var contents = null, row, col;
+  if ($.isArray(height)) {
+    tableCss = cellCss;
+    cellCss = width;
+    contents = height;
+    height = contents.length;
+    width = 0;
+    for (row = 0; row < height; row++) {
+      if ($.isArray(contents[row])) {
+        width = Math.max(width, contents[row].length);
+      } else {
+        width = Math.max(width, 1);
+      }
+    }
+  }
   var html = ['<table>'];
-  for (var row = 0; row < height; row++) {
+  for (row = 0; row < height; row++) {
     html.push('<tr>');
-    for (var col = 0; col < width; col++) {
-      html.push('<td></td>');
+    for (col = 0; col < width; col++) {
+      if (contents) {
+        if ($.isArray(contents[row]) && col < contents[row].length) {
+          html.push('<td>' + escapeHtml(contents[row][col]) + '</td>');
+        } else if (!$.isArray(contents[row]) && col == 0) {
+          html.push('<td>' + escapeHtml(contents[row]) + '</td>');
+        } else {
+          html.push('<td></td>');
+        }
+      } else {
+        html.push('<td></td>');
+      }
     }
     html.push('</tr>');
   }
@@ -2713,8 +3592,8 @@ function table(width, height, cellCss, tableCss) {
     margin: '0',
     padding: '0'
   };
-  result.css($.extend({}, defaultCss, cellCss,
-    { width: 'auto', height: 'auto', maxWidth: 'auto'},
+  result.css($.extend({}, defaultCss,
+    { width: 'auto', height: 'auto', maxWidth: 'auto', border: 'none'},
     tableCss));
   result.find('td').css($.extend({}, defaultCss, cellCss));
   result.appendTo('body');
@@ -2728,14 +3607,29 @@ function table(width, height, cellCss, tableCss) {
 
 var ABCtoken = /\s+|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\d*\/\d+|\d+|\/+|[xzXZ]|./g;
 var audioTop = null;
+function isAudioPresent() {
+  return !!(window.audioContext || window.webkitAudioContext);
+}
 function getAudioTop() {
   if (!audioTop) {
-    var ac = new (window.audioContext || window.webkitAudioContext),
-        dcn = ac.createDynamicsCompressor();
+    var ac = new (window.AudioContext || window.webkitAudioContext),
+        dcn = ac.createDynamicsCompressor(),
+        firstTime = null;
     dcn.connect(ac.destination);
     audioTop = {
       ac: ac,
-      out: dcn
+      out: dcn,
+      // Partial workaround for http://crbug.com/254942:
+      // add little extra pauses before scheduling envelopes.
+      // A quarter second or so seems to be needed at initial startup,
+      // then 1/64 second before scheduling each envelope afterwards.
+      nextStartTime: function() {
+        if (firstTime === null) {
+          firstTime = ac.currentTime;
+        }
+        return Math.max(firstTime + 0.25,
+                        ac.currentTime + 0.015625);
+      }
     }
   }
   return audioTop;
@@ -2819,11 +3713,15 @@ function durationToTime(duration) {
   return n / d;
 }
 function playABC(elem, args) {
+  if (!isAudioPresent()) {
+    if (elem) { $(elem).dequeue(); }
+    return;
+  }
   var atop = getAudioTop(),
-      start_time = atop.ac.currentTime, end_time = start_time,
-      firstvoice = 0, voice, freqmult, beatsecs,
+      firstvoice = 0, argindex, voice, freqmult, beatsecs,
       volume = 0.5, tempo = 120, transpose = 0, type = ['square'],
-      envelope = {a: 0.01, d: 0.2, s: 0.1, r: 0.1},
+      venv = {a: 0.01, d: 0.2, s: 0.1, r: 0.1}, envelope = [venv],
+      start_time = null, end_time = atop.ac.currentTime,
       notes, vtype, time, fingers, strength, i, g, t,
       atime, slast, rtime, stime, dt, opts;
   if ($.isPlainObject(args[0])) {
@@ -2832,38 +3730,53 @@ function playABC(elem, args) {
     if ('tempo' in opts) { tempo = opts.tempo; }
     if ('transpose' in opts) { transpose = opts.transpose; }
     if ('type' in opts) { type = opts.type; }
-    if ('envelope' in opts) { $.extend(envelope, opts.envelope); }
+    if ('envelope' in opts) {
+      if ($.isArray(opts.envelope)) {
+        envelope = []
+        for (i = 0; i < opts.envelope.length; i++) {
+          envelope.push($.extend({}, venv, opts.envelope[i]));
+        }
+      } else {
+        $.extend(venv, opts.envelope);
+      }
+    }
     firstvoice = 1;
   }
-  voice = firstvoice;
   beatsecs = 60 / tempo;
-  freqmult = Math.pow(2, transpose / 12);
   if (!$.isArray(type)) { type = [type]; }
-  for (; voice < args.length; voice++) {
-    notes = parseABCNotes(args[voice]);
-    vtype = type[(voice - firstvoice) % type.length] || 'square';
-    time = start_time;
+  if (!$.isArray(volume)) { volume = [volume]; }
+  if (!$.isArray(transpose)) { transpose = [transpose]; }
+  for (argindex = firstvoice; argindex < args.length; argindex++) {
+    voice = argindex - firstvoice;
+    notes = parseABCNotes(args[argindex]);
+    vtype = type[voice % type.length] || 'square';
     fingers = 0;
     for (i = 0; i < notes.length; i++) {
       fingers = Math.max(fingers, notes[i].frequency.length);
     }
     if (fingers == 0) { continue; }
     // Attenuate chorded voice so chorded power matches volume.
-    strength = volume / Math.sqrt(fingers);
+    strength = volume[voice % volume.length] / Math.sqrt(fingers);
+    venv = envelope[voice % envelope.length];
+    freqmult = Math.pow(2, transpose[voice % transpose.length] / 12);
+    if (start_time === null) {
+      start_time = atop.nextStartTime();
+    }
+    time = start_time;
     for (i = 0; i < notes.length; i++) {
       t = notes[i].time;
       if (notes[i].frequency.length > 0) {
         g = atop.ac.createGainNode();
         stime = t * beatsecs + time;
-        atime = Math.min(t, envelope.a) * beatsecs + time;
-        rtime = Math.max(0, t + envelope.r) * beatsecs + time;
+        atime = Math.min(t, venv.a) * beatsecs + time;
+        rtime = Math.max(0, t + venv.r) * beatsecs + time;
         if (atime > rtime) { atime = rtime = (atime + rtime) / 2; }
         if (rtime < stime) { stime = rtime; rtime = t * beatsecs + time; }
-        dt = envelope.d * beatsecs;
+        dt = venv.d * beatsecs;
         g.gain.setValueAtTime(0, time);
         g.gain.linearRampToValueAtTime(strength, atime);
-        g.gain.setTargetAtTime(envelope.s * strength, atime, dt);
-        slast = envelope.s + (1 - envelope.s) * Math.exp((atime - stime) / dt);
+        g.gain.setTargetAtTime(venv.s * strength, atime, dt);
+        slast = venv.s + (1 - venv.s) * Math.exp((atime - stime) / dt);
         g.gain.setValueAtTime(slast * strength, stime);
         g.gain.linearRampToValueAtTime(0, rtime);
         g.connect(atop.out);
@@ -2949,6 +3862,7 @@ function init(options) {
   if (options.hasOwnProperty('history')) { uselocalstorage = options.history; }
   if (options.hasOwnProperty('coffee')) { coffeescript = options.coffee; }
   if (options.hasOwnProperty('abbreviate')) { abbreviate = options.abbreviate; }
+  if (options.hasOwnProperty('consolehook')) { consolehook= options.consolehook; }
   if (options.hasOwnProperty('noconflict')) { noconflict(options.noconflict); }
   if (panel) {
     // panel overrides element and autoscroll.
@@ -2984,7 +3898,7 @@ function seeeval(scope, code) {
 
 var varpat = '[_$a-zA-Z\xA0-\uFFFF][_$a-zA-Z0-9\xA0-\uFFFF]*';
 var initialvardecl = new RegExp(
-  '^\\s*var\\s+(?:' + varpat + '\\s*,)*' + varpat + '\\s*;\\s*');
+  '^\\s*var\\s+(?:' + varpat + '\\s*,\\s*)*' + varpat + '\\s*;\\s*');
 
 function barecs(s) {
   // Compile coffeescript in bare mode.
@@ -3007,7 +3921,9 @@ function exportsee() {
   see.eval = seeeval;
   see.barecs = barecs;
   see.here = 'eval(' + seepkg + '.init())';
-  see.clear = clear;
+  see.clear = seeclear;
+  see.hide = seehide;
+  see.show = seeshow;
   see.js = seejs;
   see.cs = '(function(){return eval(' + seepkg + '.barecs(arguments[0]));})';
   see.version = version;
@@ -3018,7 +3934,7 @@ function noteoldvalue(name) {
   return {
     name: name,
     has: window.hasOwnProperty(name),
-    value: window[name],
+    value: window[name]
   };
 }
 
@@ -3523,16 +4439,15 @@ function flushqueue() {
 var addedpanel = false;
 var inittesttimer = null;
 var abbreviate = [{}.undefined];
+var consolehook = null;
 
-function show(flag) {
-  if (!addedpanel) { return; }
-  if (arguments.length === 0 || flag) {
-    $('#_testpanel').show();
-  } else {
-    $('#_testpanel').hide();
-  }
+function seehide() {
+  $('#_testpanel').hide();
 }
-function clear() {
+function seeshow() {
+  $('#_testpanel').show();
+}
+function seeclear() {
   if (!addedpanel) { return; }
   $('#_testlog').find('._log').not('#_testpaneltitle').remove();
 }
@@ -3600,6 +4515,7 @@ function tryinitpanel() {
         $('#_testlog').prepend(formattitle(paneltitle));
       }
     }
+    $('#_testpanel').show();
   } else {
     if (!window.document.getElementById('_testlog') && window.document.body) {
       initlogcss();
@@ -3609,7 +4525,7 @@ function tryinitpanel() {
         state.height = Math.min(wheight(), Math.max(10, wheight() - 50));
       }
       $('body').prepend(
-        '<samp id="_testpanel" style="overflow:hidden;' +
+        '<samp id="_testpanel" style="overflow:hidden;z-index:99;' +
             'position:fixed;bottom:0;left:0;width:100%;height:' + state.height +
             'px;background:rgba(240,240,240,0.8);' +
             'font:10pt monospace;' +
@@ -3669,11 +4585,13 @@ function tryinitpanel() {
           // Actually execute the command and log the results (or error).
           try {
             var result = seeeval(currentscope, text);
-            for (var j = abbreviate.length - 1; j >= 0; --j) {
-              if (result === abbreviate[j]) break;
-            }
-            if (j < 0) {
-              loghtml(repr(result));
+            if (!consolehook || !consolehook(text, result)) {
+              for (var j = abbreviate.length - 1; j >= 0; --j) {
+                if (result === abbreviate[j]) break;
+              }
+              if (j < 0) {
+                loghtml(repr(result));
+              }
             }
           } catch (e) {
             see(e);
