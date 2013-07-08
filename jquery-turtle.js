@@ -2642,7 +2642,7 @@ var turtlefn = {
       "<mark>write bearing()</mark>",
    "<u>bearing(obj)</u> <u>bearing(x, y)</u> Returns the direction " +
       "from the turtle towards an object or coordinate: " +
-      "<mark>write bearing(lastmouseclick)</mark>"],
+      "<mark>write bearing lastclick</mark>"],
   function bearing(x, y) {
     if (!this.length) return;
     var elem = this[0], pos = x, dir, cur;
@@ -2661,7 +2661,7 @@ var turtlefn = {
   }),
   distance: wraphelp(
   ["<u>distance(obj)</u> Returns the distance from the turtle to " +
-      "another object: <mark>write distance(lastmouseclick)</mark>",
+      "another object: <mark>write distance lastclick</mark>",
    "<u>distance(x, y)</u> Returns the distance from the turtle to " +
       "graphing coorindates: <mark>write distance(100, 0)</mark>"],
   function distance(pos, y) {
