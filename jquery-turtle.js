@@ -1355,7 +1355,8 @@ function getTurtleClipSurface() {
       position: 'absolute',
       display: 'inline-block',
       top: 0, left: 0, width: '100%', height: '100%',
-      'z-index': -1,
+      zIndex: -1,
+      fontFamily: 'inherit',
       overflow: 'hidden'
     });
   drawing.surface = surface;
@@ -1397,7 +1398,7 @@ function getTurtleDrawingCtx() {
   var surface = getTurtleClipSurface();
   drawing.canvas = document.createElement('canvas');
   $(drawing.canvas).css({'z-index': -1});
-  surface.appendChild(drawing.canvas);
+  surface.insertBefore(drawing.canvas, surface.firstChild);
   drawing.ctx = drawing.canvas.getContext('2d');
   resizecanvas();
   pollbodysize(resizecanvas);
@@ -2008,6 +2009,9 @@ function makeTurtleXYHook(publicname, propx, propy, displace) {
 }
 
 function fixOriginIfWatching(elem) {
+  // A function to reposition an image turtle each time its origin
+  // changes from the last seen origin, to keep the origin in the
+  // same location on the page.
   var state = $.data(elem, 'turtleData');
   if (state && state.lastSeenOrigin) {
     var oldOrigin = state.lastSeenOrigin,
@@ -2034,8 +2038,9 @@ function fixOriginIfWatching(elem) {
     } else if (!state.lastSeenOriginTime) {
       state.lastSeenOriginTime = now;
     } else if (!state.lastSeenOriginEvent &&
-        now - state.lastSeenOriginTime > 2000) {
-      // We're done watching.
+        now - state.lastSeenOriginTime > 1000) {
+      // Watch for an additional second after anything interesting;
+      // then clear the watcher.
       clearInterval(state.lastSeenOriginTimer);
       state.lastSeenOriginTimer = null;
       state.lastSeenOriginTime = null;
@@ -2045,7 +2050,8 @@ function fixOriginIfWatching(elem) {
 }
 
 function watchImageToFixOriginOnLoad(elem) {
-  if (!elem || elem.tagName !== 'IMG') {
+  if (!elem || elem.tagName !== 'IMG' ||
+      $(elem).css('position') != 'absolute') {
     return;
   }
   var state = getTurtleData(elem),
@@ -2557,8 +2563,10 @@ var turtlefn = {
     return this.direct(function() {
       var out = output(html, 'label').css({
         position: 'absolute',
-        display: 'inline-block'
-      }).addClass('turtle');
+        display: 'inline-block',
+        top: 0,
+        left: 0
+      }).addClass('turtle').appendTo(getTurtleClipSurface());
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
             out.get(0), this.pagexy(), null, 0, 0)
