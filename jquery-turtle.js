@@ -507,6 +507,30 @@ function decomposeSVD(m) {
   return [theta, sv1, sv2, phi];
 }
 
+// Returns approximate three bezier curve control points for a unit circle
+// arc from angle a1 to a2 (not including the beginning point).
+function approxBezierUnitArc(a1, a2) {
+  var a = (a2 - a1) / 2,
+      x4 = Math.cos(a),
+      y4 = Math.sin(a),
+      x1 = x4,
+      y1 = -y4,
+      q2 = 1 + x1 * x4 + y1 * y4,
+      k2 = 4/3 * (Math.sqrt(2 * q2) - q2) / (x1 * y4 - y1 * x4),
+      x2 = x1 - k2 * y1,
+      y2 = y1 + k2 * x1,
+      x3 = x2,
+      y3 = -y2,
+      ar = a + a1,
+      car = Math.cos(ar),
+      sar = Math.sin(ar);
+  return [
+     [x2 * car - y2 * sar, x2 * sar + y2 * car],
+     [x3 * car - y3 * sar, x3 * sar + y3 * car],
+     [Math.cos(a2), Math.sin(a2)]
+  ];
+}
+
 //////////////////////////////////////////////////////////////////////////
 // CSS TRANSFORMS
 // Basic manipulation of 2d CSS transforms.
@@ -1616,28 +1640,6 @@ function drawAndClearPath(path, style, scale) {
   path[0].splice(0, path[0].length - 1);
 }
 
-function approxBezierUnitArc(a1, a2) {
-  var a = (a2 - a1) / 2,
-      x4 = Math.cos(a),
-      y4 = Math.sin(a),
-      x1 = x4,
-      y1 = -y4,
-      q2 = 1 + x1 * x4 + y1 * y4,
-      k2 = 4/3 * (Math.sqrt(2 * q2) - q2) / (x1 * y4 - y1 * x4),
-      x2 = x1 - k2 * y1,
-      y2 = y1 + k2 * x1,
-      x3 = x2,
-      y3 = -y2,
-      ar = a + a1,
-      car = Math.cos(ar),
-      sar = Math.sin(ar);
-  return [
-     [x2 * car - y2 * sar, x2 * sar + y2 * car],
-     [x3 * car - y3 * sar, x3 * sar + y3 * car],
-     [Math.cos(a2), Math.sin(a2)]
-  ];
-}
-
 function addBezierToPath(path, start, triples) {
   if (!path.length || !isPointNearby(start, path[path.length - 1])) {
     path.push(start);
@@ -1885,7 +1887,7 @@ function maybeArcRotation(end, elem, ts, opt) {
   if (tradius == 0) { return normalizeRotation(end); }
   var r0 = ts.rot, r1, r1r, a1r, a2r, j, r, pts, triples,
       delta = normalizeRotationDelta(end - r0),
-      radius = delta > 0 ? tradius : -tradius,
+      radius = (delta > 0 ? tradius : -tradius) * ts.sy,
       splits = 1,
       splita = delta,
       absang = Math.abs(delta),
@@ -2633,13 +2635,16 @@ var turtlefn = {
    "<u>bearing(obj)</u> <u>bearing(x, y)</u> Returns the direction " +
       "from the turtle towards an object or coordinate: " +
       "<mark>write bearing(lastmouseclick)</mark>"],
-  function bearing(pos, y) {
+  function bearing(x, y) {
     if (!this.length) return;
-    var elem = this[0], dir, cur;
+    var elem = this[0], pos = x, dir, cur;
     if (pos !== undefined) {
       cur = $(elem).pagexy();
-      if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
-      else if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
+      if ($.isNumeric(y) && $.isNumeric(x)) { pos = [x, y]; }
+      if ($.isArray(pos)) {
+        pos = convertLocalXyToPageCoordinates(elem, [pos])[0];
+      }
+      if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
       return radiansToDegrees(
           Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
     }
