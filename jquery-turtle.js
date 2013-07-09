@@ -4,7 +4,7 @@
 jQuery-turtle
 =============
 
-version 2.0.6
+version 2.0.7
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -879,7 +879,7 @@ function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
 
 function homeContainer(elem) {
   var container = elem.offsetParent;
-  if (!container || container == drawing.surface) {
+  if (!container) {
     return document;
   }
   return container;
@@ -1357,6 +1357,11 @@ function getTurtleClipSurface() {
       top: 0, left: 0, width: '100%', height: '100%',
       zIndex: -1,
       fontFamily: 'inherit',
+      // Setting transform origin for the turtle field
+      // fixes a "center" point in page coordinates that
+      // will not change even if the document resizes.
+      transformOrigin: Math.floor(ww() / 2) + "px " +
+                       Math.floor(wh() / 2) + "px",
       overflow: 'hidden'
     });
   drawing.surface = surface;
@@ -1749,13 +1754,16 @@ function eraseBox(elem, style) {
 
 function applyImg(sel, img) {
   if (sel[0].tagName == 'IMG') {
-    sel[0].src = '';
-    sel[0].src = img.url;
+    // Set the image to a 1x1 transparent GIF before next switching it
+    // to the image of interest.
+    sel[0].src = 'data:image/gif;base64,R0lGODlhAQABAIAAA' +
+                 'AAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     sel.css({
       backgroundImage: 'none',
       height: 'auto',
       width: 'auto'
     });
+    sel[0].src = img.url;
     sel.css(img.css);
   } else {
     var props = {
