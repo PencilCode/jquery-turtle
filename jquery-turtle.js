@@ -96,7 +96,7 @@ the default turtle, if used):
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
-  $(x).encloses(y)  // Containment collision test.
+  $(x).enclosedby(y)// Containment collision test.
   $(x).within(d, t) // Filters to items with centers within d of t.pagexy().
   $(x).notwithin()  // The negation of within.
   $(x).cell(y, x)   // Selects the yth row and xth column cell in a table.
@@ -161,7 +161,7 @@ That includes, usefullly, mouse events and turtle objects.  Page
 coordinates are measured downward from the top-left corner of the
 page to the center (or transform-origin) of the given object.
 
-The hit-testing functions touches() and encloses() will test for
+The hit-testing functions touches() and enclosedby() will test for
 collisions using the convex hulls of the objects in question.
 The hull of an element defaults to the bounding box of the element
 (as transformed) but can be overridden by the turtleHull CSS property,
@@ -294,7 +294,7 @@ used; pen styles include canvas style properties such as lineWidth
 and lineCap.
 
 A convex hull polygon can be set to be used by the collision detection
-and hit-testing functions (encloses, touches).  The turtleHull is a list
+and hit-testing functions (enclosedby, touches).  The turtleHull is a list
 of (unrotated) x-y coordinates relative to the object's transformOrigin.
 If set to 'auto' (the default) the hull is just the bounding box for the
 element.
@@ -507,8 +507,12 @@ function decomposeSVD(m) {
   return [theta, sv1, sv2, phi];
 }
 
-// Returns approximate three bezier curve control points for a unit circle
-// arc from angle a1 to a2 (not including the beginning point).
+// approxBezierUnitArc:
+// Returns three bezier curve control points that approximate
+// a a unit circle arc from angle a1 to a2 (not including the
+// beginning point, which would just be at cos(a1), sin(a1)).
+// For a discussion and derivation of this formula,
+// google [riskus approximating circular arcs]
 function approxBezierUnitArc(a1, a2) {
   var a = (a2 - a1) / 2,
       x4 = Math.cos(a),
@@ -1004,28 +1008,6 @@ function getCornersInPageCoordinates(elem, untransformed) {
     return { pageX: tpt[0], pageY: tpt[1] };
   });
 }
-
-/*
-function computeDirectionAsTurtleRotation(elem, target, limit) {
-  var totalParentTransform = totalTransform2x2(elem.parentElement),
-      inverseParent = inverse2x2(totalParentTransform),
-      ts = readTurtleTransform(elem, true);
-  if (!inverseParent) {
-    return;
-  }
-  if ($.isNumeric(limit)) {
-    var r = convertToRadians(ts.rot),
-        ux = Math.sin(r), uy = Math.cos(r),
-        up = matrixVectorProduct(totalParentTransform, [ux, uy]);
-        d = radiansToDegrees(Math.atan2(up[0], up[1]));
-    target = limitRotation(d, target, limit);
-  }
-  var rt = convertToRadians(target),
-      lp = matrixVectorProduct(inverseParent, [Math.sin(rt), Math.cos(rt)]),
-      tr = Math.atan2(lp[0], lp[1]);
-  return radiansToDegrees(tr);
-}
-*/
 
 function getDirectionOnPage(elem) {
   var ts = readTurtleTransform(elem, true),
@@ -1548,6 +1530,11 @@ function makeTurningRadiusHook() {
       getTurtleData(elem).turningRadius = radius;
       elem.style.turtleTurningRadius = '' + cssNum(radius) + 'px';
       if (radius === 0) {
+        // When radius goes to zero, renormalize rotation to
+        // between 180 and -180.  (We avoid normalizing rotation
+        // when there is a visible turning radius so we can tell
+        // the difference between +361 and +1 and -359 arcs,
+        // which are all different.)
         var ts = readTurtleTransform(elem, false);
         if (ts && (ts.rot > 180 || ts.rot <= -180)) {
           ts.rot = normalizeRotation(ts.rot);
@@ -1900,28 +1887,27 @@ function maybeArcRotation(end, elem, ts, opt) {
   end = parseFloat(end);
   var state = $.data(elem, 'turtleData'),
       tradius = state ? state.turningRadius : 0;
-  if (tradius == 0) { return normalizeRotation(end); }
-  var r0 = ts.rot, r1, r1r, a1r, a2r, j, r, pts, triples,
+  if (tradius === 0) { return normalizeRotation(end); }
+  var tracing = (state && state.style && state.down),
+      r0 = ts.rot, r1, r1r, a1r, a2r, j, r, pts, triples,
+      r0r = convertToRadians(ts.rot),
       delta = normalizeRotationDelta(end - r0),
       radius = (delta > 0 ? tradius : -tradius) * ts.sy,
-      splits = 1,
-      splita = delta,
-      absang = Math.abs(delta),
-      tracing = (state && state.style && state.down),
-      r0r = convertToRadians(ts.rot),
       dc = [Math.cos(r0r) * radius, Math.sin(r0r) * radius],
+      splits, splita, absang,
       path, totalParentTransform, start, relative, points;
   if (tracing) {
-    if (!state) {
-      state = getTurtleData(elem);
-    }
+    // Decompose an arc into equal arcs, all 45 degrees or less.
+    splits = 1;
+    splita = delta;
+    absang = Math.abs(delta);
     if (absang > 45) {
       splits = Math.ceil(absang / 45);
       splita = delta / splits;
     }
     path = state.path[0];
     totalParentTransform = totalTransform2x2(elem.parentElement);
-    start = getCenterInPageCoordinates(elem);
+    // Relative traces out the unit-radius arc centered at the origin.
     relative = [];
     while (--splits >= 0) {
       r1 = splits === 0 ? end : r0 + splita;
@@ -1931,24 +1917,34 @@ function maybeArcRotation(end, elem, ts, opt) {
       r0 = r1;
     }
     points = [];
-    r = matrixVectorProduct(totalParentTransform, dc);
+    // start is the starting position in absolute coordinates,
+    // and dc is the local coordinate offset from the starting
+    // position to the center of the turning radius.
+    start = getCenterInPageCoordinates(elem);
     for (j = 0; j < relative.length; j++) {
-      // Multiply each coordinate by radius and add to dc; then
-      // apply parent distortions to get relative offsets to the
+      // Multiply each coordinate by radius scale up to the right
+      // turning radius and add to dc to center the turning radius
+      // at the right local coordinate position; then apply parent
+      // distortions to get page-coordinate relative offsets to the
       // turtle's original position.
       r = matrixVectorProduct(totalParentTransform,
           addVector(scaleVector(relative[j], radius), dc));
+      // Finally add these to the turtle's actual original position
+      // to get page-coordinate control points for the bezier curves.
       points.push({
         pageX: r[0] + start.pageX,
         pageY: r[1] + start.pageY});
     }
+    // Divide control points into triples again to form bezier curves.
     triples = [];
     for (j = 0; j < points.length; j += 3) {
       triples.push(points.slice(j, j + 3));
     }
     addBezierToPath(path, start, triples);
   }
-  r1r = convertToRadians(end)
+  // Now move turtle to its final position: in local coordinates,
+  // translate to the turning center plus the vector to the arc end.
+  r1r = convertToRadians(end);
   ts.tx += dc[0] - Math.cos(r1r) * radius;
   ts.ty += dc[1] - Math.sin(r1r) * radius;
   opt.displace = true;
@@ -2085,19 +2081,21 @@ function watchImageToFixOriginOnLoad(elem) {
 
 
 function withinOrNot(obj, within, distance, x, y) {
-  var sel, gbcr, pos, d2;
+  var sel, elem, gbcr, pos, d2;
   if (x === undefined && y === undefined) {
     sel = $(distance);
-    gbcr = getPageGbcr(sel[0]);
-    if (polyMatchesGbcr(getCornersInPageCoordinates(sel[0]), gbcr)) {
+    if (!sel.length) { return []; }
+    elem = sel[0];
+    gbcr = getPageGbcr(elem);
+    if (polyMatchesGbcr(getCornersInPageCoordinates(elem), gbcr)) {
       return obj.filter(function() {
         var thisgbcr = getPageGbcr(this);
         return within === (gbcrEncloses(gbcr, thisgbcr) ||
-            (!isDisjointGbcr(gbcr, thisgbcr) && sel.encloses(this)));
+            (!isDisjointGbcr(gbcr, thisgbcr) && $(this).enclosedby(elem)));
       });
     } else {
       return obj.filter(function() {
-        return within === sel.encloses(this);
+        return within === $(this).enclosedby(elem);
       });
     }
   }
@@ -2113,7 +2111,7 @@ function withinOrNot(obj, within, distance, x, y) {
   if (distance === 'touch') {
     if (isPageCoordinate(pos)) {
       return obj.filter(function() {
-        return within === $(this).encloses(pos);
+        return within === $(this).touches(pos);
       });
     } else {
       sel = $(pos);
@@ -2211,9 +2209,12 @@ function globalhelp(obj) {
   if (obj && $.isArray(obj.helptext) && obj.helptext.length) {
     for (j = 0; j < obj.helptext.length; ++j) {
       var text = obj.helptext[j];
-      helpwrite(text.replace(/<(u|mark)>/g,
+      helpwrite(text.replace(/<(u)>/g,
           '<$1 style="border:1px solid black;text-decoration:none;' +
-          'word-break:keep-all;white-space:nowrap">'));
+          'word-break:keep-all;white-space:nowrap">').replace(/<(mark)>/g,
+          '<$1 style="border:1px solid black;text-decoration:none;' +
+          'word-break:keep-all;white-space:nowrap;cursor:pointer;" ' +
+          'onclick="see.enter($(this).text())">'));
     }
     return;
   }
@@ -2224,7 +2225,11 @@ function globalhelp(obj) {
     }
   }
   helplist.sort();
-  helpwrite("help available for: " + helplist.join(" "));
+  helpwrite("help available for: " + helplist.map(function(x) {
+     return '<mark style="border:1px solid black;text-decoration:none;' +
+       'word-break:keep-all;white-space:nowrap;cursor:pointer;" ' +
+       'onclick="see.enter($(this).text())">' + x + '</mark>';
+  }).join(" "));
 }
 globalhelp.helptext = [];
 
@@ -2584,7 +2589,9 @@ var turtlefn = {
       }).addClass('turtle').appendTo(getTurtleClipSurface());
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
-            out.get(0), this.pagexy(), null, 0, 0)
+            out.get(0), this.pagexy(), null, 0, 0),
+        turtleRotation: css('turtleRotation'),
+        turtleScale: css('turtleScale')
       });
       if ($.isFunction(fn)) {
         out.direct(fn);
@@ -2654,10 +2661,10 @@ var turtlefn = {
   }),
   bearing: wraphelp(
   ["<u>bearing()</u> Returns turtle bearing. North is 0; East is 90: " +
-      "<mark>write bearing()</mark>",
+      "<mark>bearing()</mark>",
    "<u>bearing(obj)</u> <u>bearing(x, y)</u> Returns the direction " +
       "from the turtle towards an object or coordinate: " +
-      "<mark>write bearing lastclick</mark>"],
+      "<mark>bearing lastclick</mark>"],
   function bearing(x, y) {
     if (!this.length) return;
     var elem = this[0], pos = x, dir, cur;
@@ -2676,9 +2683,9 @@ var turtlefn = {
   }),
   distance: wraphelp(
   ["<u>distance(obj)</u> Returns the distance from the turtle to " +
-      "another object: <mark>write distance lastclick</mark>",
+      "another object: <mark>distance lastclick</mark>",
    "<u>distance(x, y)</u> Returns the distance from the turtle to " +
-      "graphing coorindates: <mark>write distance(100, 0)</mark>"],
+      "graphing coorindates: <mark>distance(100, 0)</mark>"],
   function distance(pos, y) {
     if (!this.length) return;
     var elem = this[0], dx, dy, cur = $(elem).pagexy();
@@ -2734,7 +2741,7 @@ var turtlefn = {
     });
   }),
   cell: wraphelp(
-  ["<u>cell(r, c)</u> Cell in row r and column c in a table. " +
+  ["<u>cell(r, c)</u> Row r and column c in a table. " +
       "Use together with the table function: " +
       "<mark>g = table 8, 8; g.cell(0,2).text 'hello'</mark>"],
   function cell(r, c) {
@@ -2755,23 +2762,23 @@ var turtlefn = {
   function hidden() {
     return this.is(':hidden');
   }),
-  encloses: wraphelp(
-  ["<u>encloses(obj)</u> True if the first element fully encloses obj: " +
-      "<mark>write $(window).encloses(turtle)</mark>"],
-  function encloses(arg, y) {
-    if (!this.length || this.hidden()) return false;
-    if ($.isNumeric(arg) && $.isNumeric(y)) {
-      arg = [{ pageX: arg, pageY: y }];
+  enclosedby: wraphelp(
+  ["<u>enclosedby(obj)</u> True if the turtle is encircled by obj: " +
+      "<mark>enclosedby(window)</mark>"],
+  function enclosedby(elem) {
+    if (!elem) return false;
+    if (typeof elem == 'string') {
+      elem = $(elem);
     }
-    if (!arg) return true;
-    if (typeof arg === 'string') { arg = $(arg); }
-    if (!arg.jquery && !$.isArray(arg)) { arg = [arg]; }
-    var elem = this[0],
-        gbcr0 = getPageGbcr(elem),
+    if (elem.jquery) {
+      if (!elem.length || elem.hidden()) return false;
+      elem = elem[0];
+    }
+    var gbcr0 = getPageGbcr(elem),
         encloser = null, rectenc = false,
         allok = true, j = 0, k, obj;
-    for (; allok && j < arg.length; ++j) {
-      obj = arg[j];
+    for (; allok && j < this.length; ++j) {
+      obj = this[j];
       // Optimize the outside-bounding-box case.
       if (isDisjointGbcr(gbcr0, getPageGbcr(obj))) {
         return false;
@@ -2794,8 +2801,8 @@ var turtlefn = {
     return !!allok;
   }),
   touches: wraphelp(
-  ["<u>touches(obj)</u> True if the first element touches obj: " +
-      "<mark>write turtle1.touches(turtle2)</mark>"],
+  ["<u>touches(obj)</u> True if the turtle touches obj: " +
+      "<mark>touches(lastclick)</mark>"],
   function touches(arg, y) {
     if (this.hidden() || !this.length) { return false; }
     if ($.isNumeric(arg) && $.isNumeric(y)) {
@@ -2808,24 +2815,26 @@ var turtlefn = {
     if (!arg) return false;
     if (typeof arg === 'string') { arg = $(arg); }
     if (!arg.jquery && !$.isArray(arg)) { arg = [arg]; }
-    var elem = this[0],
-        gbcr0 = getPageGbcr(elem),
-        toucher = null,
-        anyok = false, j = 0, k, obj;
-    for (;!anyok && j < arg.length; ++j) {
-      obj = arg[j];
-      // Optimize the outside-bounding-box case.
-      if (isDisjointGbcr(gbcr0, getPageGbcr(obj))) {
-        continue;
-      }
-      if (!toucher) {
-        toucher = getCornersInPageCoordinates(elem);
-      }
-      if (isPageCoordinate(obj)) {
-        anyok |= pointInConvexPolygon(obj, toucher);
-      } else {
-        anyok |= doConvexPolygonsOverlap(
-          toucher, getCornersInPageCoordinates(obj));
+    var anyok = false, k = 0, j, obj, elem, gbcr0, toucher;
+    for (;!anyok && k < this.length; ++k) {
+      elem = this[k];
+      gbcr0 = getPageGbcr(elem);
+      toucher = null;
+      for (j = 0; !anyok && j < arg.length; ++j) {
+        obj = arg[j];
+        // Optimize the outside-bounding-box case.
+        if (isDisjointGbcr(gbcr0, getPageGbcr(obj))) {
+          continue;
+        }
+        if (!toucher) {
+          toucher = getCornersInPageCoordinates(elem);
+        }
+        if (isPageCoordinate(obj)) {
+          anyok |= pointInConvexPolygon(obj, toucher);
+        } else {
+          anyok |= doConvexPolygonsOverlap(
+            toucher, getCornersInPageCoordinates(obj));
+        }
       }
     }
     return !!anyok;
@@ -2948,13 +2957,13 @@ var dollar_turtle_methods = {
       "<mark>read 'Enter code', (v) -> write v.length + ' characters'</mark>"],
   function readstr(a, b) { return input(a, b, -1); }),
   random: wraphelp(
-  ["<u>random(n)</u> Returns a random non-negative integer less than n: " +
+  ["<u>random(n)</u> Random non-negative integer less than n: " +
       "<mark>write random 10</mark>",
-   "<u>random(list)</u> Returns a random member of the list: " +
+   "<u>random(list)</u> Random member of the list: " +
       "<mark>write random ['a', 'b', 'c']</mark>",
-   "<u>random('position')</u> Returns a random page position: " +
+   "<u>random('position')</u> Random page position: " +
       "<mark>moveto random 'position'</mark>",
-   "<u>random('color')</u> Returns a random page color: " +
+   "<u>random('color')</u> Random color: " +
       "<mark>pen random 'color'</mark>"],
   random),
   hatch: wraphelp(
@@ -3939,6 +3948,7 @@ function exportsee() {
   see.clear = seeclear;
   see.hide = seehide;
   see.show = seeshow;
+  see.enter = seeenter;
   see.js = seejs;
   see.cs = '(function(){return eval(' + seepkg + '.barecs(arguments[0]));})';
   see.version = version;
@@ -4461,6 +4471,9 @@ function seehide() {
 }
 function seeshow() {
   $('#_testpanel').show();
+}
+function seeenter(text) {
+  $('#_testinput').val(text);
 }
 function seeclear() {
   if (!addedpanel) { return; }
