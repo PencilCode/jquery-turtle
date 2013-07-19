@@ -1771,7 +1771,7 @@ function getBoundingBoxOfCorners(c, clipToDoc) {
   return result;
 }
 
-function touchesPixel(elem) {
+function touchesPixel(elem, color) {
   if (!elem || !drawing.canvas) { return false; }
   var c = getCornersInPageCoordinates(elem),
       canvas = drawing.canvas,
@@ -1780,8 +1780,9 @@ function touchesPixel(elem) {
       h = bb.bottom - bb.top,
       osc = getOffscreenCanvas(w, h),
       octx = osc.getContext('2d'),
+      rgba = rgbaForColor(color),
       j = 1, k, data;
-  if (!c || c.length < 3) { return; }
+  if (!c || c.length < 3 || !w || !h) { return false; }
   octx.clearRect(0, 0, w, h);
   octx.drawImage(canvas, bb.left, bb.top, w, h, 0, 0, w, h);
   octx.save();
@@ -1802,8 +1803,21 @@ function touchesPixel(elem) {
   octx.restore();
   // Now examine the results and look for alpha > 0%.
   data = octx.getImageData(0, 0, w, h).data;
-  for (j = 0; j < data.length; j += 4) {
-    if (data[j + 3] > 0) return true;
+  if (!rgba) {
+    for (j = 0; j < data.length; j += 4) {
+      if (data[j + 3] > 0) return true;
+    }
+  } else {
+    for (j = 0; j < data.length; j += 4) {
+      // Look for a near-match in color: within a 7x7x7 cube in rgb space,
+      // and at least 50% of the target alpha value.
+      if (Math.abs(data[j + 0] - rgba[0]) <= 3 &&
+          Math.abs(data[j + 1] - rgba[1]) <= 3 &&
+          Math.abs(data[j + 2] - rgba[2]) <= 3 &&
+          data[j + 3] <= rgba[3] && data[j + 3] >= rgba[3] / 2) {
+        return true;
+      }
+    }
   }
   return false;
 }
@@ -2876,11 +2890,13 @@ var turtlefn = {
   }),
   touches: wraphelp(
   ["<u>touches(obj)</u> True if the turtle touches obj: " +
-      "<mark>touches(lastclick)</mark>"],
+      "<mark>touches(lastclick)</mark>",
+   "<u>touches(color)</u> True if the turtle touches a drawn color: " +
+      "<mark>touches 'red'</mark>"],
   function touches(arg, y) {
     if (this.hidden() || !this.length) { return false; }
-    if (arg == 'ink') {
-      return touchesPixel(this[0]);
+    if (arg == 'ink' || isCSSColor(arg)) {
+      return touchesPixel(this[0], arg == 'ink' ? null : arg);
     }
     if ($.isNumeric(arg) && $.isNumeric(y)) {
       arg = [arg, y];
@@ -3240,13 +3256,34 @@ function onDOMNodeRemoved(e) {
 }
 
 function isCSSColor(color) {
-  if (!/^[a-z]+$|^(?:rgb|hsl)a?\([^)]*\)$|^\#[a-f0-9]{3}(?:[a-f0-9]{3})?$/i
+  return rgbaForColor(color) !== null;
+}
+
+var colorCache = {};
+
+function rgbaForColor(color) {
+  if (!color ||
+      !/^[a-z]+$|^(?:rgb|hsl)a?\([^)]*\)$|^\#[a-f0-9]{3}(?:[a-f0-9]{3})?$/i
       .exec(color)) {
-    return false;
+    return null;
   }
-  var d = document.createElement('div'), unset = d.style.color;
+  if (color in colorCache) {
+    return colorCache[color];
+  }
+  var d = document.createElement('div'), unset = d.style.color,
+      result = null, m;
   d.style.color = color;
-  return (unset != d.style.color);
+  if (unset !== d.style.color) {
+    m = /rgba?\s*\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([.\d]+))?\s*\)/.exec($(d).
+        css({position:'absolute',top:0,left:0}).appendTo('body').css('color'));
+    if (m) {
+      result = [parseInt(m[1]), parseInt(m[2]), parseInt(m[3]),
+                Math.round(255 * (m[4] ? parseFloat(m[4]) : 1))];
+    }
+    $(d).remove();
+  }
+  colorCache[color] = result;
+  return result;
 }
 
 function createTurtleShellOfColor(color) {
