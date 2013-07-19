@@ -1394,6 +1394,20 @@ function getTurtleDrawingCtx() {
   return drawing.ctx;
 }
 
+function getOffscreenCanvas(width, height) {
+  if (drawing.offscreen &&
+      drawing.offscreen.width === width &&
+      drawing.offscreen.height === height) {
+    return drawing.offscreen;
+  }
+  if (!drawing.offscreen) {
+    drawing.offscreen = document.createElement('canvas');
+  }
+  drawing.offscreen.width = width;
+  drawing.offscreen.height = height;
+  return drawing.offscreen;
+}
+
 function pollbodysize(callback) {
   var b = $('body');
   var lastwidth = b.width();
@@ -1732,6 +1746,66 @@ function eraseBox(elem, style) {
   ctx.clip();
   ctx.fill();
   ctx.restore();
+}
+
+function getBoundingBoxOfCorners(c, clipToDoc) {
+  if (!c || c.length < 1) return null;
+  var j = 1, result = {
+    left: Math.floor(c[0].pageX),
+    top: Math.floor(c[0].pageY),
+    right: Math.ceil(c[0].pageX),
+    bottom: Math.ceil(c[0].pageY)
+  };
+  for (; j < c.length; ++j) {
+    result.left = Math.min(result.left, Math.floor(c[j].pageX));
+    result.top = Math.min(result.top, Math.floor(c[j].pageY));
+    result.right = Math.max(result.right, Math.ceil(c[j].pageX));
+    result.bottom = Math.max(result.bottom, Math.ceil(c[j].pageY));
+  }
+  if (clipToDoc) {
+    result.left = Math.max(0, result.left);
+    result.top = Math.max(0, result.top);
+    result.right = Math.min(dw(), result.right);
+    result.bottom = Math.min(dh(), result.bottom);
+  }
+  return result;
+}
+
+function touchesPixel(elem) {
+  if (!elem || !drawing.canvas) { return false; }
+  var c = getCornersInPageCoordinates(elem),
+      canvas = drawing.canvas,
+      bb = getBoundingBoxOfCorners(c, true),
+      w = bb.right - bb.left,
+      h = bb.bottom - bb.top,
+      osc = getOffscreenCanvas(w, h),
+      octx = osc.getContext('2d'),
+      j = 1, k, data;
+  if (!c || c.length < 3) { return; }
+  octx.clearRect(0, 0, w, h);
+  octx.drawImage(canvas, bb.left, bb.top, w, h, 0, 0, w, h);
+  octx.save();
+  // Erase everything outside clipping region.
+  octx.beginPath();
+  octx.moveTo(0, 0);
+  octx.lineTo(w, 0);
+  octx.lineTo(w, h);
+  octx.lineTo(0, h);
+  octx.closePath();
+  octx.moveTo(c[0].pageX - bb.left, c[0].pageY - bb.top);
+  for (; j < c.length; j += 1) {
+    octx.lineTo(c[j].pageX - bb.left, c[j].pageY - bb.top);
+  }
+  octx.closePath();
+  octx.clip();
+  octx.clearRect(0, 0, w, h);
+  octx.restore();
+  // Now examine the results and look for alpha >= 25%.
+  data = octx.getImageData(0, 0, w, h).data;
+  for (j = 0; j < data.length; j += 4) {
+    if (data[j + 3] > 0) return true;
+  }
+  return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2805,6 +2879,9 @@ var turtlefn = {
       "<mark>touches(lastclick)</mark>"],
   function touches(arg, y) {
     if (this.hidden() || !this.length) { return false; }
+    if (arg == 'ink') {
+      return touchesPixel(this[0]);
+    }
     if ($.isNumeric(arg) && $.isNumeric(y)) {
       arg = [arg, y];
     }
