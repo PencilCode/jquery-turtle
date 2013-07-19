@@ -1800,7 +1800,7 @@ function touchesPixel(elem) {
   octx.clip();
   octx.clearRect(0, 0, w, h);
   octx.restore();
-  // Now examine the results and look for alpha >= 25%.
+  // Now examine the results and look for alpha > 0%.
   data = octx.getImageData(0, 0, w, h).data;
   for (j = 0; j < data.length; j += 4) {
     if (data[j + 3] > 0) return true;
