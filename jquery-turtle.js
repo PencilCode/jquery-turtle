@@ -2289,7 +2289,7 @@ function helpwrite(text) {
            'white-space:normal">' + text + '</aside>');
 }
 function globalhelp(obj) {
-  var helptable = $.extend({}, dollar_turtle_methods, turtlefn),
+  var helptable = $.extend({}, dollar_turtle_methods, turtlefn, extrahelp),
       helplist, j;
   if (obj && (!$.isArray(obj.helptext))) {
     if (obj in helptable) {
@@ -2302,24 +2302,26 @@ function globalhelp(obj) {
       helpwrite(text.replace(/<(u)>/g,
           '<$1 style="border:1px solid black;text-decoration:none;' +
           'word-break:keep-all;white-space:nowrap">').replace(/<(mark)>/g,
-          '<$1 style="border:1px solid black;text-decoration:none;' +
+          '<$1 style="border:1px solid blue;color:blue;text-decoration:none;' +
           'word-break:keep-all;white-space:nowrap;cursor:pointer;" ' +
           'onclick="see.enter($(this).text())">'));
     }
-    return;
+    return helpok;
   }
   helplist = [];
   for (var name in helptable) {
-    if (helptable[name].helptext && helptable[name].helptext.length) {
+    if (helptable[name].helptext && helptable[name].helptext.length &&
+        (!(name in window) || typeof(window[name]) == 'function')) {
       helplist.push(name);
     }
   }
   helplist.sort();
   helpwrite("help available for: " + helplist.map(function(x) {
-     return '<mark style="border:1px solid black;text-decoration:none;' +
+     return '<mark style="border:1px solid blue;color:blue;text-decoration:none;' +
        'word-break:keep-all;white-space:nowrap;cursor:pointer;" ' +
        'onclick="see.enter($(this).text())">' + x + '</mark>';
   }).join(" "));
+  return helpok;
 }
 globalhelp.helptext = [];
 
@@ -2558,7 +2560,7 @@ var turtlefn = {
   fill: wraphelp(
   ["<u>fill(color)</u> Fills a path traced using " +
       "<u>pen 'path'</u>: " +
-      "<mark>pen 'path'; rarc 100, 90; fill 'blue'</mark>"],
+      "<mark>pen 'path'; rarc 100, 90; fill blue</mark>"],
   function fill(style) {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
@@ -2569,7 +2571,7 @@ var turtlefn = {
   dot: wraphelp(
   ["<u>dot(color, diameter)</u> Draws a dot. " +
       "Color and diameter are optional: " +
-      "<mark>dot 'blue'</mark>"],
+      "<mark>dot blue</mark>"],
   function dot(style, diameter) {
     if ($.isNumeric(style)) {
       // Allow for parameters in either order.
@@ -2628,7 +2630,8 @@ var turtlefn = {
   }),
   play: wraphelp(
   ["<u>play(notes)</u> Play notes. Notes are specified in " +
-      "<a href=\"http://abcnotation.com/\">ABC notation</a>. " +
+      "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
+      "ABC notation</a>. " +
       "<mark>play \"de[dBFA]2[cGEC]4\"</mark>"],
   function play(notes) {
     var args = arguments;
@@ -3036,7 +3039,12 @@ var dollar_turtle_methods = {
       "<mark>defaultspeed 60</mark>"],
   function defaultspeed(mps) {
     directIfGlobal(function() { globaldefaultspeed(mps); }); }),
-  sound: function sound() { playABC(null, arguments); },
+  sound: wraphelp(
+  ["<u>sound(notes)</u> Sound notes immediately. Notes are specified in " +
+      "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
+      "ABC notation</a>. " +
+      "<mark>sound \"cc/e/c/e/g2\"</mark>"],
+  function sound() { playABC(null, arguments); }),
   write: wraphelp(
   ["<u>write(html)</u> Writes text output. Arbitrary HTML may be written: " +
       "<mark>write 'Hello, world!'</mark>"],
@@ -3053,7 +3061,7 @@ var dollar_turtle_methods = {
   readstr: wraphelp(
   ["<u>readstr(html, fn)</u> Reads text input. Never " +
       "converts input to a number: " +
-      "<mark>read 'Enter code', (v) -> write v.length + ' characters'</mark>"],
+      "<mark>readstr 'Enter code', (v) -> write v.length + ' long'</mark>"],
   function readstr(a, b) { return input(a, b, -1); }),
   random: wraphelp(
   ["<u>random(n)</u> Random non-negative integer less than n: " +
@@ -3108,6 +3116,17 @@ var dollar_turtle_methods = {
   help: globalhelp
 };
 
+var extrahelp = {
+  remove: {helptext: ["<u>remove()</u> Removes main turtle completely. " +
+      "Also removes <u>fd</u>, <u>bk</u>, <u>rt</u>, etc: " +
+      "<mark>remove()</mark>"]},
+  finish: {helptext: ["<u>finish()</u> Finishes turtle animation. " +
+      "Does not pause for effect: " +
+      "<mark>finish()</mark>"]}
+};
+
+var helpok = {};
+
 (function() {
   var colors = [
     "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
@@ -3141,6 +3160,8 @@ var dollar_turtle_methods = {
   for (; j < colors.length; j++) {
     dollar_turtle_methods[colors[j]] = colors[j];
   }
+  extrahelp.colors = {helptext:
+      ["Defined colors: " + colors.slice(0, -3).join(" ")]};
 })();
 
 $.turtle = function turtle(id, options) {
@@ -3222,7 +3243,7 @@ $.turtle = function turtle(id, options) {
     var retval = null,
         seeopt = {
       title: 'turtle test panel - Enter commands or type help for help',
-      abbreviate: [undefined],
+      abbreviate: [undefined, helpok],
       consolehook: seehelphook
     };
     if (selector) { seeopt.abbreviate.push(selector); }
@@ -3247,8 +3268,17 @@ $.turtle = function turtle(id, options) {
 $.extend($.turtle, dollar_turtle_methods);
 
 function seehelphook(text, result) {
-  if (typeof result == 'function' && /^\w+\s*$/.test(text) && result.helptext) {
-    globalhelp(result);
+  if ((typeof result == 'function' || typeof result == 'undefined')
+      && /^\w+\s*$/.test(text)) {
+    if (result && result.helptext) {
+      globalhelp(result);
+      return true;
+    } else if (text in extrahelp) {
+      globalhelp(text);
+      return true;
+    }
+  } else if (typeof result == 'undefined' && /^help\s+\S+$/.test(text)) {
+    globalhelp(/^help\s+(\S+)$/.exec(text)[1]);
     return true;
   }
   return false;
@@ -3258,19 +3288,10 @@ function copyhelp(method, fname, extrahelp, globalfn) {
   if (method.helptext) {
     globalfn.helptext = method.helptext;
   } else if (fname in extrahelp) {
-    globalfn.helptext = extrahelp[fname];
+    globalfn.helptext = extrahelp[fname].helptext;
   }
   return globalfn;
 }
-
-var extrahelp = {
-  remove: ["<u>remove()</u> Removes main turtle completely. " +
-      "Also removes <u>fd</u>, <u>bk</u>, <u>rt</u>, etc: " +
-      "<mark>remove()</mark>"],
-  finish: ["<u>finish()</u> Finishes turtle animation. " +
-      "Does not pause for effect: " +
-      "<mark>finish()</mark>"]
-};
 
 function globalizeMethods(thisobj, fnames) {
   var replaced = [];
@@ -4067,7 +4088,7 @@ function init(options) {
   if (options.hasOwnProperty('history')) { uselocalstorage = options.history; }
   if (options.hasOwnProperty('coffee')) { coffeescript = options.coffee; }
   if (options.hasOwnProperty('abbreviate')) { abbreviate = options.abbreviate; }
-  if (options.hasOwnProperty('consolehook')) { consolehook= options.consolehook; }
+  if (options.hasOwnProperty('consolehook')) { consolehook = options.consolehook; }
   if (options.hasOwnProperty('noconflict')) { noconflict(options.noconflict); }
   if (panel) {
     // panel overrides element and autoscroll.
@@ -4792,18 +4813,29 @@ function tryinitpanel() {
             return;
           }
           // Actually execute the command and log the results (or error).
+          var hooked = false;
           try {
-            var result = seeeval(currentscope, text);
-            if (!consolehook || !consolehook(text, result)) {
-              for (var j = abbreviate.length - 1; j >= 0; --j) {
-                if (result === abbreviate[j]) break;
-              }
-              if (j < 0) {
-                loghtml(repr(result));
+            var result;
+            try {
+              result = seeeval(currentscope, text);
+            } finally {
+              if (consolehook && consolehook(text, result)) {
+                hooked = true;
+              } else {
+                // Show the result (unless abbreviated).
+                for (var j = abbreviate.length - 1; j >= 0; --j) {
+                  if (result === abbreviate[j]) break;
+                }
+                if (j < 0) {
+                  loghtml(repr(result));
+                }
               }
             }
           } catch (e) {
-            see(e);
+            // Show errors (unless hooked).
+            if (!hooked) {
+              see(e);
+            }
           }
         } else if (e.which == 38 || e.which == 40) {
           // Handle the up and down arrow keys.
