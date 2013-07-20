@@ -2547,7 +2547,7 @@ var turtlefn = {
   pen: wraphelp(
   ["<u>pen(color)</u> Selects a pen. " +
       "Chooses a color and style for the pen: <mark>pen red</mark>."],
-  function pen(penstyle) {
+  function pen(penstyle, lineWidth) {
     return this.direct(function(j, elem) {
       if (penstyle === undefined) {
         penstyle = 'black';
@@ -2558,14 +2558,17 @@ var turtlefn = {
           penstyle == 'down' || penstyle == 'up') {
         this.css('turtlePenDown', penstyle);
       } else {
+        if (lineWidth !== undefined) {
+          penstyle += " lineWidth " + lineWidth;
+        }
         this.css('turtlePenStyle', penstyle);
       }
     });
   }),
   fill: wraphelp(
   ["<u>fill(color)</u> Fills a path traced using " +
-      "<u>pen 'path'</u>: " +
-      "<mark>pen 'path'; rarc 100, 90; fill blue</mark>"],
+      "<u>pf()</u>: " +
+      "<mark>pf(); rarc 100, 90; fill blue</mark>"],
   function fill(style) {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
@@ -2632,6 +2635,12 @@ var turtlefn = {
       "lines to erase them.  <mark>pen red; fd 100; pe(); bk 100</mark>"],
   function pe() {
     return this.pen('erase');
+  }),
+  pf: wraphelp(
+  ["<u>pf()</u> Pen fill. Traces an invisible path to fill. " +
+      "<mark>pf(); rarc 100, 90; fill blue</mark>"],
+  function pf() {
+    return this.pen('path');
   }),
   play: wraphelp(
   ["<u>play(notes)</u> Play notes. Notes are specified in " +
@@ -3063,7 +3072,7 @@ var dollar_turtle_methods = {
   function read(a, b) { return input(a, b, 0); }),
   readnum: wraphelp(
   ["<u>readnum(html, fn)</u> Reads numeric input. Only numbers allowed: " +
-      "<mark>read 'Amount?', (v) -> write 'Tip: ' + (0.15 * v)</mark>"],
+      "<mark>readnum 'Amount?', (v) -> write 'Tip: ' + (0.15 * v)</mark>"],
   function readnum(a, b) { return input(a, b, 1); }),
   readstr: wraphelp(
   ["<u>readstr(html, fn)</u> Reads text input. Never " +
@@ -3761,7 +3770,8 @@ function input(name, callback, numeric) {
       newval();
     }
     if (numeric > 0 && (e.which >= 32 && e.which <= 127) &&
-        (e.which < '0'.charCodeAt(0) || e.which > '9'.charCodeAt(0))) {
+        (e.which < '0'.charCodeAt(0) || e.which > '9'.charCodeAt(0)) &&
+        (e.which != '.'.charCodeAt(0) || textbox.val().indexOf('.') >= 0)) {
       return false;
     }
   }
