@@ -184,8 +184,7 @@ In detail, after eval($.turtle()):
   * Default turtle animation is set to 1 move per sec so steps can be seen.
   * Global event listeners are created to update global event variables.
   * Methods of $.turtle.* (enumerated below) are exposed as global functions.
-  * String constants are defined for the named CSS colors, plus "none",
-    "transparent", and "erase".
+  * String constants are defined for the 140 named CSS colors.
 
 Beyond the functions to control the default turtle, the globals added by
 $.turtle() are as follows:
@@ -729,14 +728,14 @@ function cleanedStyle(trans) {
   return result;
 }
 
-function cleanSwap(elem, options, callback, args) {
+function cleanSwap(elem, options, callback) {
   var ret, name, old = {};
   // Remember the old values, and insert the new ones
   for (name in options) {
     old[name] = elem.style[name];
     elem.style[name] = options[name];
   }
-  ret = callback.apply(elem, args || []);
+  ret = callback.apply(elem);
   // Revert the old values
   for (name in options) {
     elem.style[name] = cleanedStyle(old[name]);
@@ -949,9 +948,8 @@ function getCenterInPageCoordinates(elem) {
       hidden = ($.css(elem, 'display') === 'none'),
       swapout = hidden ?
         { position: "absolute", visibility: "hidden", display: "block" } : {},
-      st = swapout[transform] = (inverseParent ? 'matrix(' +
-          $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
-      substTransform = (st == 'matrix(1, 0, 0, 1, 0, 0)') ? 'none' : st,
+      st = swapout[transform] = (inverseParent ?
+          'matrix(' + $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
       saved = elem.style[transform],
       gbcr = cleanSwap(elem, swapout, readPageGbcr),
       middle = readTransformOrigin(elem, [gbcr.width, gbcr.height]),
@@ -1977,7 +1975,11 @@ function maybeArcRotation(end, elem, ts, opt) {
   end = parseFloat(end);
   var state = $.data(elem, 'turtleData'),
       tradius = state ? state.turningRadius : 0;
-  if (tradius === 0) { return normalizeRotation(end); }
+  if (tradius === 0) {
+    // Avoid drawing a line if zero turning radius.
+    opt.displace = false;
+    return normalizeRotation(end);
+  }
   var tracing = (state && state.style && state.down),
       r0 = ts.rot, r1, r1r, a1r, a2r, j, r, pts, triples,
       r0r = convertToRadians(ts.rot),
@@ -2117,7 +2119,7 @@ function fixOriginIfWatching(elem) {
   if (state && state.lastSeenOrigin) {
     var oldOrigin = state.lastSeenOrigin,
         newOrigin = readTransformOrigin(elem),
-        now = (new Date).getTime();
+        now = $.now();
     if (state.lastSeenOriginEvent && elem.complete) {
       $.event.remove(elem, 'load.turtle', state.lastSeenOriginEvent);
       state.lastSeenOriginEvent = null;
@@ -2136,8 +2138,6 @@ function fixOriginIfWatching(elem) {
         state.lastSeenOriginEvent = (function() { fixOriginIfWatching(elem); });
         $.event.add(elem, 'load.turtle', state.lastSeenOriginEvent);
       }
-    } else if (!state.lastSeenOriginTime) {
-      state.lastSeenOriginTime = now;
     } else if (!state.lastSeenOriginEvent &&
         now - state.lastSeenOriginTime > 1000) {
       // Watch for an additional second after anything interesting;
@@ -2150,13 +2150,14 @@ function fixOriginIfWatching(elem) {
   }
 }
 
-function watchImageToFixOriginOnLoad(elem) {
+function watchImageToFixOriginOnLoad(elem, force) {
   if (!elem || elem.tagName !== 'IMG' ||
+      (!force && elem.complete) ||
       $(elem).css('position') != 'absolute') {
     return;
   }
   var state = getTurtleData(elem),
-      now = (new Date).getTime();
+      now = $.now();
   if (state.lastSeenOrigin) {
     // Already tracking: let it continue.
     fixOriginIfWatching(elem);
@@ -2166,6 +2167,7 @@ function watchImageToFixOriginOnLoad(elem) {
   state.lastSeenOriginTimer = setInterval(function() {
     fixOriginIfWatching(elem);
   }, 200);
+  state.lastSeenOriginTime = $.now();
   fixOriginIfWatching(elem);
 }
 
@@ -2548,6 +2550,8 @@ var turtlefn = {
     return this.direct(function(j, elem) {
       if (penstyle === undefined) {
         penstyle = 'black';
+      } else if (penstyle === null) {
+        penstyle = 'none';
       }
       if (penstyle === false || penstyle === true ||
           penstyle == 'down' || penstyle == 'up') {
@@ -2664,7 +2668,7 @@ var turtlefn = {
         backgroundImage: 'none',
       });
       // Keep the position of the origin unchanged even if the image resizes.
-      watchImageToFixOriginOnLoad(elem);
+      watchImageToFixOriginOnLoad(elem, true);
       applyImg(this, img);
       fixOriginIfWatching(elem);
     });
@@ -2961,13 +2965,15 @@ var turtlefn = {
     function enqueue(elem, index) {
        var animation = (function() {
             var saved = $.queue(this, qname),
-                subst = [];
+                subst = [], inserted;
             if (saved[0] === 'inprogress') {
               subst.unshift(saved.shift());
             }
             $.queue(elem, qname, subst);
             action();
-            $.merge($.queue(elem, qname), saved);
+            // The Array.prototype.push is faster.
+            // $.merge($.queue(elem, qname), saved);
+            Array.prototype.push.apply($.queue(elem, qname), saved);
             $.dequeue(elem, qname);
           }),
           action = animation.finish = (args ?
@@ -3155,13 +3161,13 @@ var helpok = {};
     "seashell", "sienna", "silver", "skyblue", "slateblue", "slategray",
     "snow", "springgreen", "steelblue", "tan", "teal", "thistle", "tomato",
     "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow",
-    "yellowgreen", "erase", "transparent", "none",
+    "yellowgreen"
   ], j = 0;
   for (; j < colors.length; j++) {
     dollar_turtle_methods[colors[j]] = colors[j];
   }
   extrahelp.colors = {helptext:
-      ["Defined colors: " + colors.slice(0, -3).join(" ")]};
+      ["Defined colors: " + colors.join(" ")]};
 })();
 
 $.turtle = function turtle(id, options) {
