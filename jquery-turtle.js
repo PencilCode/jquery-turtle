@@ -34,13 +34,13 @@ sixteen colored polygons.
   eval $.turtle()  # Create the default turtle.
 
   speed 100
-  for color in ['red', 'gold', 'green', 'blue']
+  for color in [red, gold, green, blue]
     for sides in [3..6]
       pen color
       for x in [1..sides]
         fd 100 / sides
         lt 360 / sides
-      pen 'none'
+      pen transparent
       fd 40
     slide 40, -160
 </pre>
@@ -184,6 +184,8 @@ In detail, after eval($.turtle()):
   * Default turtle animation is set to 1 move per sec so steps can be seen.
   * Global event listeners are created to update global event variables.
   * Methods of $.turtle.* (enumerated below) are exposed as global functions.
+  * String constants are defined for the named CSS colors, plus "none",
+    "transparent", and "erase".
 
 Beyond the functions to control the default turtle, the globals added by
 $.turtle() are as follows:
@@ -2539,7 +2541,7 @@ var turtlefn = {
   }),
   pen: wraphelp(
   ["<u>pen(color)</u> Selects a pen. " +
-      "Chooses a color and style for the pen: <mark>pen 'red'</mark>."],
+      "Chooses a color and style for the pen: <mark>pen red</mark>."],
   function pen(penstyle) {
     return this.direct(function(j, elem) {
       if (penstyle === undefined) {
@@ -2620,7 +2622,7 @@ var turtlefn = {
   }),
   pe: wraphelp(
   ["<u>pe()</u> Pen erase. Can overtrace old " +
-      "lines to erase them.  <mark>pen 'red'; fd 100; pe(); bk 100</mark>"],
+      "lines to erase them.  <mark>pen red; fd 100; pe(); bk 100</mark>"],
   function pe() {
     return this.pen('erase');
   }),
@@ -2732,8 +2734,7 @@ var turtlefn = {
     }
   }),
   pagexy: wraphelp(
-  ["<u>pagexy()</u> Page coordinates as obj, with " +
-      "top-left based obj.pageX, obj.pageY: " +
+  ["<u>pagexy()</u> Page coordinates {pageX:, pageY}, top-left based: " +
       "<mark>c = pagexy(); fd 500; moveto c</mark>"],
   function pagexy() {
     if (!this.length) return;
@@ -2741,14 +2742,14 @@ var turtlefn = {
     return getCenterInPageCoordinates(this[0]);
   }),
   getxy: wraphelp(
-  ["<u>getxy()</u> Returns graphing coordinates [x, y], center-based: " +
+  ["<u>getxy()</u> Graphing coordinates [x, y], center-based: " +
       "<mark>v = getxy(); slide -v[0], -v[1]</mark>"],
   function getxy() {
     if (!this.length) return;
     return computePositionAsLocalOffset(this[0]);
   }),
   bearing: wraphelp(
-  ["<u>bearing()</u> Returns turtle bearing. North is 0; East is 90: " +
+  ["<u>bearing()</u> Turtle bearing. North is 0; East is 90: " +
       "<mark>bearing()</mark>",
    "<u>bearing(obj)</u> <u>bearing(x, y)</u> Returns the direction " +
       "from the turtle towards an object or coordinate: " +
@@ -2763,6 +2764,7 @@ var turtlefn = {
         pos = convertLocalXyToPageCoordinates(elem, [pos])[0];
       }
       if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
+      if (!pos) { return NaN; }
       return radiansToDegrees(
           Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
     }
@@ -2777,8 +2779,12 @@ var turtlefn = {
   function distance(pos, y) {
     if (!this.length) return;
     var elem = this[0], dx, dy, cur = $(elem).pagexy();
-    if ($.isNumeric(y) && $.isNumeric(x)) { pos = { pageX: pos, pageY: y }; }
-    else if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
+    if ($.isNumeric(y) && $.isNumeric(pos)) { pos = [pos, y]; }
+    if ($.isArray(pos)) {
+      pos = convertLocalXyToPageCoordinates(elem, [pos])[0];
+    }
+    if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
+    if (!pos) { return NaN; }
     dx = pos.pageX - cur.pageX;
     dy = pos.pageY - cur.pageY;
     return Math.sqrt(dx * dx + dy * dy);
@@ -2892,7 +2898,7 @@ var turtlefn = {
   ["<u>touches(obj)</u> True if the turtle touches obj: " +
       "<mark>touches(lastclick)</mark>",
    "<u>touches(color)</u> True if the turtle touches a drawn color: " +
-      "<mark>touches 'red'</mark>"],
+      "<mark>touches red</mark>"],
   function touches(arg, y) {
     if (this.hidden() || !this.length) { return false; }
     if (arg == 'ink' || isCSSColor(arg)) {
@@ -3079,8 +3085,63 @@ var dollar_turtle_methods = {
       "Each nested array is a row: " +
       "<mark>table [[1,2,3],[4,5,6]]</mark>"],
   table),
+  rgb: wraphelp(
+  ["<u>rgb(r,g,b)</u> Makes a color out of red, green, and blue parts. " +
+      "<mark>pen rgb(150,88,255)</mark>"],
+  function() { return componentColor('rgb', arguments); }),
+  rgba: wraphelp(
+  ["<u>rgba(r,g,b,a)</u> Makes a color out of red, green, blue, and alpha. " +
+      "<mark>pen rgba(150,88,255,0.5)</mark>"],
+  function() { return componentColor('rgba', arguments); }),
+  hsl: wraphelp(
+  ["<u>hsl(h,s,l)</u> Makes a color out of hue, saturation, and lightness. " +
+      "<mark>pen hsl(120,0.65,0.75)</mark>"],
+  function() { return componentColor('hsl', [arguments[0],
+     (arguments[1] * 100).toFixed(0) + '%',
+     (arguments[2] * 100).toFixed() + '%']); }),
+  hsla: wraphelp(
+  ["<u>hsla(h,s,l,a)</u> Makes a color out of hue, saturation, lightness, " +
+      "alpha. <mark>pen hsla(120,0.65,0.75,0.5)</mark>"],
+  function() { return componentColor('hsl', [arguments[0],
+     (arguments[1] * 100).toFixed(0) + '%',
+     (arguments[2] * 100).toFixed(0) + '%', arguments[3]]); }),
   help: globalhelp
 };
+
+(function() {
+  var colors = [
+    "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
+    "bisque", "black", "blanchedalmond", "blue", "blueviolet", "brown",
+    "burlywood", "cadetblue", "chartreuse", "chocolate", "coral",
+    "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
+    "darkgoldenrod", "darkgray", "darkgreen", "darkkhaki", "darkmagenta",
+    "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon",
+    "darkseagreen", "darkslateblue", "darkslategray", "darkturquoise",
+    "darkviolet", "deeppink", "deepskyblue", "dimgray", "dodgerblue",
+    "firebrick", "floralwhite", "forestgreen", "fuchsia", "gainsboro",
+    "ghostwhite", "gold", "goldenrod", "gray", "green", "greenyellow",
+    "honeydew", "hotpink", "indianred", "indigo", "ivory", "khaki",
+    "lavender", "lavenderblush", "lawngreen", "lemonchiffon", "lightblue",
+    "lightcoral", "lightcyan", "lightgoldenrodyellow", "lightgray",
+    "lightgreen", "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
+    "lightslategray", "lightsteelblue", "lightyellow", "lime", "limegreen",
+    "linen", "magenta", "maroon", "mediumaquamarine", "mediumblue",
+    "mediumorchid", "mediumpurple", "mediumseagreen", "mediumslateblue",
+    "mediumspringgreen", "mediumturquoise", "mediumvioletred", "midnightblue",
+    "mintcream", "mistyrose", "moccasin", "navajowhite", "navy", "oldlace",
+    "olive", "olivedrab", "orange", "orangered", "orchid", "palegoldenrod",
+    "palegreen", "paleturquoise", "palevioletred", "papayawhip", "peachpuff",
+    "peru", "pink", "plum", "powderblue", "purple", "red", "rosybrown",
+    "royalblue", "saddlebrown", "salmon", "sandybrown", "seagreen",
+    "seashell", "sienna", "silver", "skyblue", "slateblue", "slategray",
+    "snow", "springgreen", "steelblue", "tan", "teal", "thistle", "tomato",
+    "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow",
+    "yellowgreen", "erase", "transparent", "none",
+  ], j = 0;
+  for (; j < colors.length; j++) {
+    dollar_turtle_methods[colors[j]] = colors[j];
+  }
+})();
 
 $.turtle = function turtle(id, options) {
   var exportedsee = false;
@@ -3684,6 +3745,12 @@ function input(name, callback, numeric) {
   return thisval;
 }
 
+// Functions to generate CSS color strings
+function componentColor(t, args) {
+  return t + '(' + Array.prototype.join.call(args, ',') + ')';
+}
+
+// Simplify creation of tables with cells.
 function table(height, width, cellCss, tableCss) {
   var contents = null, row, col;
   if ($.isArray(height)) {
