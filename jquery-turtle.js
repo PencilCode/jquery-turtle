@@ -2350,9 +2350,10 @@ var turtlefn = {
   ["<u>fd(pixels)</u> Forward. Moves ahead by some pixels: " +
       "<mark>fd 100</mark>"],
   function fd(amount) {
-    var elem, q, doqueue;
-    if (this.length == 1 && !$.fx.speeds.turtle &&
-        animTime(elem = this[0]) == 'turtle') {
+    var elem, q, doqueue, atime;
+    if (this.length == 1 &&
+        ((atime = animTime(elem = this[0])) === 0 ||
+          $.fx.speeds[atime] === 0)) {
       q = $.queue(elem);
       doqueue = (q.length > 0);
       function domove() {
