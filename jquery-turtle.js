@@ -1814,7 +1814,7 @@ function touchesPixel(elem, color) {
       if (Math.abs(data[j + 0] - rgba[0]) <= 3 &&
           Math.abs(data[j + 1] - rgba[1]) <= 3 &&
           Math.abs(data[j + 2] - rgba[2]) <= 3 &&
-          data[j + 3] <= rgba[3] && data[j + 3] >= rgba[3] / 2) {
+          data[j + 3] <= rgba[3] * 2 && data[j + 3] >= rgba[3] / 2) {
         return true;
       }
     }
