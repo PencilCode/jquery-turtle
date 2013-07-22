@@ -31,13 +31,13 @@ sixteen colored polygons.
   eval $.turtle()  # Create the default turtle.
 
   speed 100
-  for color in ['red', 'gold', 'green', 'blue']
+  for color in [red, gold, green, blue]
     for sides in [3..6]
       pen color
       for x in [1..sides]
         fd 100 / sides
         lt 360 / sides
-      pen 'none'
+      pen transparent
       fd 40
     slide 40, -160
 </pre>
@@ -93,7 +93,7 @@ the default turtle, if used):
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
-  $(x).encloses(y)  // Containment collision test.
+  $(x).enclosedby(y)// Containment collision test.
   $(x).within(d, t) // Filters to items with centers within d of t.pagexy().
   $(x).notwithin()  // The negation of within.
   $(x).cell(y, x)   // Selects the yth row and xth column cell in a table.
@@ -158,7 +158,7 @@ That includes, usefullly, mouse events and turtle objects.  Page
 coordinates are measured downward from the top-left corner of the
 page to the center (or transform-origin) of the given object.
 
-The hit-testing functions touches() and encloses() will test for
+The hit-testing functions touches() and enclosedby() will test for
 collisions using the convex hulls of the objects in question.
 The hull of an element defaults to the bounding box of the element
 (as transformed) but can be overridden by the turtleHull CSS property,
@@ -181,6 +181,7 @@ In detail, after eval($.turtle()):
   * Default turtle animation is set to 1 move per sec so steps can be seen.
   * Global event listeners are created to update global event variables.
   * Methods of $.turtle.* (enumerated below) are exposed as global functions.
+  * String constants are defined for the 140 named CSS colors.
 
 Beyond the functions to control the default turtle, the globals added by
 $.turtle() are as follows:
@@ -291,7 +292,7 @@ used; pen styles include canvas style properties such as lineWidth
 and lineCap.
 
 A convex hull polygon can be set to be used by the collision detection
-and hit-testing functions (encloses, touches).  The turtleHull is a list
+and hit-testing functions (enclosedby, touches).  The turtleHull is a list
 of (unrotated) x-y coordinates relative to the object's transformOrigin.
 If set to 'auto' (the default) the hull is just the bounding box for the
 element.
