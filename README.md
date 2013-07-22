@@ -37,7 +37,7 @@ sixteen colored polygons.
       for x in [1..sides]
         fd 100 / sides
         lt 360 / sides
-      pen transparent
+      pen null 
       fd 40
     slide 40, -160
 </pre>
