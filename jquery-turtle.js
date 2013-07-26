@@ -40,7 +40,7 @@ sixteen colored polygons.
       for x in [1..sides]
         fd 100 / sides
         lt 360 / sides
-      pen null 
+      pen null
       fd 40
     slide 40, -160
 </pre>
@@ -59,11 +59,9 @@ the default turtle, if used):
 <pre>
   $(x).fd(100)      // Forward relative motion in local coordinates.
   $(x).bk(50)       // Back.
-  $(x).rt(90)       // Right turn.
-  $(x).lt(45)       // Left turn.
+  $(x).rt(90)       // Right turn.  Optional turning radius second arg.
+  $(x).lt(45)       // Left turn.  Optional turning radius second arg.
   $(x).slide(x, y)  // Move right by x while moving forward by y.
-  $(x).rarc(100,60) // Turn right 60 degrees tracing an arc of radius 100.
-  $(x).larc(50,360) // Left 360 degrees tracing a full circle of radius 50.
   $(x).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
   $(x).turnto(bearing || position)        // Absolute direction adjustment.
   $(x).play("ccgg") // Plays notes using ABC notation and waits until done.
@@ -75,7 +73,7 @@ the default turtle, if used):
   $(x).pd()         // Pen down - starts a new pen path.
   $(x).pe()         // Uses the pen 'erase' style.
   $(x).fill('gold') // Fills a shape previously outlined using pen('path').
-  $(x).dot(12)      // Draws a circular dot of diameter 12.
+  $(x).dot(12)      // Draws a circular dot of diameter 12.  Color second arg.
   $(x).label('A')   // Prints an HTML label at the turtle location.
   $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
   $(x).ht()         // Hides the turtle.
@@ -1338,7 +1336,7 @@ function getTurtleClipSurface() {
       display: 'inline-block',
       top: 0, left: 0, width: '100%', height: '100%',
       zIndex: -1,
-      fontFamily: 'inherit',
+      font: 'inherit',
       // Setting transform origin for the turtle field
       // fixes a "center" point in page coordinates that
       // will not change even if the document resizes.
@@ -2330,21 +2328,49 @@ globalhelp.helptext = [];
 var turtlefn = {
   rt: wraphelp(
   ["<u>rt(degrees)</u> Right turn. Pivots clockwise by some degrees: " +
-      "<mark>rt 90</mark>"],
-  function rt(amount) {
-    return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '+=' + cssNum(amount || 0) + 'deg'},
-          animTime(elem));
-    });
+      "<mark>rt 90</mark>",
+   "<u>rt(degrees, radius)</u> Right arc. Pivots with a turning radius: " +
+      "<mark>rt 90, 50</mark>"],
+  function rt(degrees, radius) {
+    if (!radius) {
+      return this.direct(function(j, elem) {
+        this.animate({turtleRotation: '+=' + cssNum(degrees || 0) + 'deg'},
+            animTime(elem));
+      });
+    } else {
+      return this.direct(function(j, elem) {
+        var oldRadius = this.css('turtleTurningRadius');
+        this.css({turtleTurningRadius: (degrees < 0) ? -radius : radius});
+        this.animate({turtleRotation: '+=' + cssNum(degrees) + 'deg'},
+            animTime(elem));
+        this.direct(function() {
+          this.css({turtleTurningRadius: oldRadius});
+        });
+      });
+    }
   }),
   lt: wraphelp(
   ["<u>lt(degrees)</u> Left turn. Pivots counterclockwise by some degrees: " +
-      "<mark>lt 90</mark>"],
-  function lt(amount) {
-    return this.direct(function(j, elem) {
-      this.animate({turtleRotation: '-=' + cssNum(amount || 0) + 'deg'},
-          animTime(elem));
-    });
+      "<mark>lt 90</mark>",
+   "<u>lt(degrees, radius)</u> Left arc. Pivots with a turning radius: " +
+      "<mark>lt 90, 50</mark>"],
+  function lt(degrees, radius) {
+    if (!radius) {
+      return this.direct(function(j, elem) {
+        this.animate({turtleRotation: '-=' + cssNum(degrees || 0) + 'deg'},
+            animTime(elem));
+      });
+    } else {
+      return this.direct(function(j, elem) {
+        var oldRadius = this.css('turtleTurningRadius');
+        this.css({turtleTurningRadius: (degrees < 0) ? -radius : radius});
+        this.animate({turtleRotation: '-=' + cssNum(degrees) + 'deg'},
+            animTime(elem));
+        this.direct(function() {
+          this.css({turtleTurningRadius: oldRadius});
+        });
+      });
+    }
   }),
   fd: wraphelp(
   ["<u>fd(pixels)</u> Forward. Moves ahead by some pixels: " +
@@ -2390,42 +2416,6 @@ var turtlefn = {
     return this.direct(function(j, elem) {
       this.animate({turtlePosition:
           displacedPosition(elem, y, x)}, animTime(elem));
-    });
-  }),
-  rarc: wraphelp(
-  ["<u>rarc(radius, degrees)</u> Right arc. " +
-      "Curves right some degrees, with a radius: " +
-      "<mark>rarc 100, 45</mark>"],
-  function rarc(radius, amount) {
-    if (!radius || !amount) {
-      return this.rt(amount);
-    }
-    return this.direct(function(j, elem) {
-      var oldRadius = this.css('turtleTurningRadius');
-      this.css({turtleTurningRadius: (amount < 0) ? -radius : radius});
-      this.animate({turtleRotation: '+=' + cssNum(amount) + 'deg'},
-          animTime(elem));
-      this.direct(function() {
-        this.css({turtleTurningRadius: oldRadius});
-      });
-    });
-  }),
-  larc: wraphelp(
-  ["<u>larc(radius, degrees)</u> Left arc. " +
-      "Curves left some degrees, with a radius: " +
-      "<mark>larc 100, 45</mark>"],
-  function larc(radius, amount) {
-    if (!radius || !amount) {
-      return this.lt(amount);
-    }
-    return this.direct(function(j, elem) {
-      var oldRadius = this.css('turtleTurningRadius');
-      this.css({turtleTurningRadius: (amount < 0) ? -radius : radius});
-      this.animate({turtleRotation: '-=' + cssNum(amount) + 'deg'},
-          animTime(elem));
-      this.direct(function() {
-        this.css({turtleTurningRadius: oldRadius});
-      });
     });
   }),
   moveto: wraphelp(
@@ -2529,7 +2519,7 @@ var turtlefn = {
   }),
   home: wraphelp(
   ["<u>home()</u> Goes home. " +
-      "Jumps to the center without drawing: <mark>home()</mark>"],
+      "Jumps to the center without drawing: <mark>do home</mark>"],
   function home(container) {
     return this.direct(function(j, elem) {
       var down = this.css('turtlePenDown'),
@@ -2568,7 +2558,7 @@ var turtlefn = {
   fill: wraphelp(
   ["<u>fill(color)</u> Fills a path traced using " +
       "<u>pf()</u>: " +
-      "<mark>pf(); rarc 100, 90; fill blue</mark>"],
+      "<mark>pf(); rt 100, 90; fill blue</mark>"],
   function fill(style) {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
@@ -2608,25 +2598,25 @@ var turtlefn = {
   }),
   st: wraphelp(
   ["<u>st()</u> Show turtle. The reverse of " +
-      "<u>ht()</u>. <mark>st()</mark>"],
+      "<u>ht()</u>. <mark>do st</mark>"],
   function st() {
     return this.direct(function() { this.show(); });
   }),
   ht: wraphelp(
   ["<u>ht()</u> Hide turtle. The turtle can be shown again with " +
-      "<u>st()</u>. <mark>ht()</mark>"],
+      "<u>st()</u>. <mark>do ht</mark>"],
   function ht() {
     return this.direct(function() { this.hide(); });
   }),
   pu: wraphelp(
   ["<u>pu()</u> Pen up. Tracing can be resumed with " +
-      "<u>pd()</u>. <mark>pu()</mark>"],
+      "<u>pd()</u>. <mark>do pu</mark>"],
   function pu() {
     return this.pen(false);
   }),
   pd: wraphelp(
   ["<u>pd()</u> Pen down. Resumes tracing a path that was paused with " +
-      "<u>pu()</u>. <mark>pd()</mark>"],
+      "<u>pu()</u>. <mark>do pd</mark>"],
   function pd() {
     return this.pen(true);
   }),
@@ -2638,7 +2628,7 @@ var turtlefn = {
   }),
   pf: wraphelp(
   ["<u>pf()</u> Pen fill. Traces an invisible path to fill. " +
-      "<mark>pf(); rarc 100, 90; fill blue</mark>"],
+      "<mark>pf(); rt 100, 90; fill blue</mark>"],
   function pf() {
     return this.pen('path');
   }),
@@ -3033,15 +3023,15 @@ var attaching_ids = false;
 var dollar_turtle_methods = {
   cs: wraphelp(
   ["<u>cs()</u> Clear screen. Erases both graphics canvas and " +
-      "body text: <mark>cs()</mark>"],
+      "body text: <mark>do cs</mark>"],
   function cs() { directIfGlobal(function() { clearField() }); }),
   cg: wraphelp(
   ["<u>cg()</u> Clear graphics. Does not alter body text: " +
-      "<mark>cg()</mark>"],
+      "<mark>do cg</mark>"],
   function cg() { directIfGlobal(function() {clearField('canvas turtles') });}),
   ct: wraphelp(
   ["<u>ct()</u> Clear text. Does not alter graphics canvas: " +
-      "<mark>ct()</mark>"],
+      "<mark>do ct</mark>"],
   function ct() { directIfGlobal(function() { clearField('text') }); }),
   tick: wraphelp(
   ["<u>tick(fps, fn)</u> Calls fn fps times per second until " +
@@ -3135,10 +3125,10 @@ var dollar_turtle_methods = {
 var extrahelp = {
   remove: {helptext: ["<u>remove()</u> Removes main turtle completely. " +
       "Also removes <u>fd</u>, <u>bk</u>, <u>rt</u>, etc: " +
-      "<mark>remove()</mark>"]},
+      "<mark>do remove</mark>"]},
   finish: {helptext: ["<u>finish()</u> Finishes turtle animation. " +
       "Does not pause for effect: " +
-      "<mark>finish()</mark>"]}
+      "<mark>do finish</mark>"]}
 };
 
 var helpok = {};
