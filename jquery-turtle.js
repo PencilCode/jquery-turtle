@@ -1885,7 +1885,7 @@ function displacedPosition(elem, distance, sideways) {
 }
 
 function isPageCoordinate(obj) {
-  return $.isNumeric(obj.pageX) && $.isNumeric(obj.pageY);
+  return obj && $.isNumeric(obj.pageX) && $.isNumeric(obj.pageY);
 }
 
 function makeTurtleSpeedHook() {
@@ -2145,6 +2145,22 @@ function fixOriginIfWatching(elem) {
       state.lastSeenOriginTime = null;
       state.lastSeenOrigin = null;
     }
+  }
+}
+
+function queueWaitForImageLoad(sel) {
+  if (sel[0] && sel[0].tagName == 'IMG' && !sel[0].complete) {
+    sel.queue(function() {
+      var interval = null;
+      function checkIfLoaded() {
+        if (sel[0].complete) {
+          clearInterval(interval);
+          // fixOriginIfWatching(sel[0]);
+          sel.dequeue();
+        }
+      }
+      interval = setInterval(checkIfLoaded, 100);
+    });
   }
 }
 
@@ -2670,6 +2686,7 @@ var turtlefn = {
       // Keep the position of the origin unchanged even if the image resizes.
       watchImageToFixOriginOnLoad(elem, true);
       applyImg(this, img);
+      queueWaitForImageLoad(this);
       fixOriginIfWatching(elem);
     });
   }),
@@ -3528,6 +3545,7 @@ function hatchone(name, container, clonepos) {
   if (img) {
     result = $('<img>');
     applyImg(result, img);
+    queueWaitForImageLoad(result);
   } else if (isTag) {
     result = $(name);
   } else {
