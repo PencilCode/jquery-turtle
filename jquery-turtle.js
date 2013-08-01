@@ -519,7 +519,8 @@ function approxBezierUnitArc(a1, a2) {
       x1 = x4,
       y1 = -y4,
       q2 = 1 + x1 * x4 + y1 * y4,
-      k2 = 4/3 * (Math.sqrt(2 * q2) - q2) / (x1 * y4 - y1 * x4),
+      d = (x1 * y4 - y1 * x4),
+      k2 = d && (4/3 * (Math.sqrt(2 * q2) - q2) / d),
       x2 = x1 - k2 * y1,
       y2 = y1 + k2 * x1,
       x3 = x2,
@@ -1591,6 +1592,14 @@ function isPointNearby(a, b) {
          Math.round(a.pageY - b.pageY) === 0;
 }
 
+function isBezierTiny(a, b) {
+  return isPointNearby(a, b) &&
+         Math.round(a.pageX - b.pageX1) === 0 &&
+         Math.round(a.pageY - b.pageY1) === 0 &&
+         Math.round(b.pageX2 - b.pageX) === 0 &&
+         Math.round(b.pageY2 - b.pageY) === 0;
+}
+
 function applyPenStyle(ctx, ps, scale) {
   scale = scale || 1;
   var extraWidth = ps.eraseMode ? 1 : 0;
@@ -1626,7 +1635,8 @@ function drawAndClearPath(path, style, scale) {
       skipLast = isClosed && (!('pageX2' in segment[segment.length - 1]));
       ctx.moveTo(segment[0].pageX, segment[0].pageY);
       for (var k = 1; k < segment.length - (skipLast ? 1 : 0); ++k) {
-        if ('pageX2' in segment[k]) {
+        if ('pageX2' in segment[k] &&
+            !isBezierTiny(segment[k - 1], segment[k])) {
           ctx.bezierCurveTo(
              segment[k].pageX1, segment[k].pageY1,
              segment[k].pageX2, segment[k].pageY2,
