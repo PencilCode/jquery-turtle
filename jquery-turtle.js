@@ -2584,7 +2584,7 @@ var turtlefn = {
   fill: wraphelp(
   ["<u>fill(color)</u> Fills a path traced using " +
       "<u>pf()</u>: " +
-      "<mark>pf(); rt 100, 90; fill blue</mark>"],
+      "<mark>do pf; rt 100, 90; fill blue</mark>"],
   function fill(style) {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
@@ -2648,13 +2648,13 @@ var turtlefn = {
   }),
   pe: wraphelp(
   ["<u>pe()</u> Pen erase. Can overtrace old " +
-      "lines to erase them.  <mark>pen red; fd 100; pe(); bk 100</mark>"],
+      "lines to erase them.  <mark>pen red; fd 100; do pe; bk 100</mark>"],
   function pe() {
     return this.pen('erase');
   }),
   pf: wraphelp(
   ["<u>pf()</u> Pen fill. Traces an invisible path to fill. " +
-      "<mark>pf(); rt 100, 90; fill blue</mark>"],
+      "<mark>do pf; rt 100, 90; fill blue</mark>"],
   function pf() {
     return this.pen('path');
   }),
@@ -2880,13 +2880,13 @@ var turtlefn = {
   }),
   shown: wraphelp(
   ["<u>shown()</u> True if turtle is shown, false if hidden: " +
-      "<mark>ht(); write shown()</mark>"],
+      "<mark>do ht; write shown()</mark>"],
   function shown() {
     return this.is(':visible');
   }),
   hidden: wraphelp(
   ["<u>hidden()</u> True if turtle is hidden: " +
-      "<mark>ht(); write hidden()</mark>"],
+      "<mark>do ht; write hidden()</mark>"],
   function hidden() {
     return this.is(':hidden');
   }),
@@ -3070,8 +3070,7 @@ var dollar_turtle_methods = {
   defaultspeed: wraphelp(
   ["<u>defaultspeed(mps)</u> Sets default turtle speed for new turtles: " +
       "<mark>defaultspeed 60</mark>"],
-  function defaultspeed(mps) {
-    directIfGlobal(function() { globaldefaultspeed(mps); }); }),
+  globaldefaultspeed),
   sound: wraphelp(
   ["<u>sound(notes)</u> Sound notes immediately. Notes are specified in " +
       "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
