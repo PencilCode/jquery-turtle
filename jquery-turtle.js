@@ -2159,7 +2159,9 @@ function fixOriginIfWatching(elem) {
 }
 
 function queueWaitForImageLoad(sel) {
-  if (sel[0] && sel[0].tagName == 'IMG' && !sel[0].complete) {
+  if (sel[0] && sel[0].tagName == 'IMG' && !sel[0].complete &&
+      ((!sel[0].style.width && !sel[0].getAttribute('width'))
+       || (!sel[0].style.height && !sel[0].getAttribute('height')))) {
     sel.queue(function() {
       var interval = null;
       function checkIfLoaded() {
