@@ -4035,7 +4035,13 @@ function playABC(elem, args) {
         dt = venv.d * beatsecs;
         g.gain.setValueAtTime(0, time);
         g.gain.linearRampToValueAtTime(strength, atime);
-        g.gain.setTargetAtTime(venv.s * strength, atime, dt);
+        if ('setTargetAtTime' in g.gain) {
+          // Current web audio spec.
+          g.gain.setTargetAtTime(venv.s * strength, atime, dt);
+        } else {
+          // Early draft web audio spec.
+          g.gain.setTargetValueAtTime(venv.s * strength, atime, dt);
+        }
         slast = venv.s + (1 - venv.s) * Math.exp((atime - stime) / dt);
         g.gain.setValueAtTime(slast * strength, stime);
         g.gain.linearRampToValueAtTime(0, rtime);
@@ -4045,8 +4051,15 @@ function playABC(elem, args) {
           o.type = vtype;
           o.frequency.value = notes[i].frequency[x] * freqmult;
           o.connect(g);
-          o.start(time);
-          o.stop(rtime);
+          if ('start' in g) {
+            // Current web audio spec.
+            o.start(time);
+            o.stop(rtime);
+          } else {
+            // Early draft web audio spec.
+            o.noteOn(time);
+            o.noteOff(rtime);
+          }
         }
       }
       time += t * beatsecs;
