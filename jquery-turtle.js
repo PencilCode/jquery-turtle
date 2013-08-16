@@ -2884,24 +2884,27 @@ var turtlefn = {
   ["<u>shown()</u> True if turtle is shown, false if hidden: " +
       "<mark>do ht; write shown()</mark>"],
   function shown() {
+    checkPredicate('shown', this);
     return this.is(':visible');
   }),
   hidden: wraphelp(
   ["<u>hidden()</u> True if turtle is hidden: " +
       "<mark>do ht; write hidden()</mark>"],
   function hidden() {
+    checkPredicate('hidden', this);
     return this.is(':hidden');
   }),
   enclosedby: wraphelp(
   ["<u>enclosedby(obj)</u> True if the turtle is encircled by obj: " +
       "<mark>enclosedby(window)</mark>"],
   function enclosedby(elem) {
+    checkPredicate('enclosedby', this);
     if (!elem) return false;
     if (typeof elem == 'string') {
       elem = $(elem);
     }
     if (elem.jquery) {
-      if (!elem.length || elem.hidden()) return false;
+      if (!elem.length || !elem.is(':visible')) return false;
       elem = elem[0];
     }
     var gbcr0 = getPageGbcr(elem),
@@ -2936,7 +2939,8 @@ var turtlefn = {
    "<u>touches(color)</u> True if the turtle touches a drawn color: " +
       "<mark>touches red</mark>"],
   function touches(arg, y) {
-    if (this.hidden() || !this.length) { return false; }
+    checkPredicate('touches', this);
+    if (!this.is(':visible') || !this.length) { return false; }
     if (arg == 'ink' || isCSSColor(arg)) {
       return touchesPixel(this[0], arg == 'ink' ? null : arg);
     }
@@ -2975,9 +2979,11 @@ var turtlefn = {
     return !!anyok;
   }),
   within: function within(distance, x, y) {
+    checkPredicate('within', this);
     return withinOrNot(this, true, distance, x, y);
   },
   notwithin: function notwithin(distance, x, y) {
+    checkPredicate('notwithin', this);
     return withinOrNot(this, false, distance, x, y);
   },
   direct: function direct(qname, callback, args) {
@@ -3025,6 +3031,30 @@ var turtlefn = {
     return this;
   }
 };
+
+// It is unreasonable (and a common error) to queue up motions to try to
+// change the value of a predicate.  The problem is that queuing will not
+// do anything immediately.  This check prints a warning and flushes the
+// queue when the queue is 100 long.
+function checkPredicate(fname, sel) {
+  var ok = true, j;
+  for (j = 0; ok && j < sel.length; ++j) {
+    if ($.queue(sel[j]).length >= 100) {
+      ok = false;
+    }
+  }
+  if (!ok) {
+    if (see.visible()) {
+      see.html('<span style="color:red">Warning: ' + fname +
+      ' may not return useful results when motion is queued. ' +
+      'Try <b style="background:yellow">defaultspeed Infinity</b></span>.');
+    } else {
+      console.warn(fname + ' may not return useful results when motion ' +
+      'is queued.  Try defaultspeed Infinity.');
+    }
+    sel.finish();
+  }
+}
 
 $.fn.extend(turtlefn);
 
@@ -4199,6 +4229,7 @@ function exportsee() {
   see.clear = seeclear;
   see.hide = seehide;
   see.show = seeshow;
+  see.visible = seevisible;
   see.enter = seeenter;
   see.js = seejs;
   see.cs = '(function(){return eval(' + seepkg + '.barecs(arguments[0]));})';
@@ -4722,6 +4753,9 @@ function seehide() {
 }
 function seeshow() {
   $('#_testpanel').show();
+}
+function seevisible() {
+  return $('#_testpanel').is(':visible');
 }
 function seeenter(text) {
   $('#_testinput').val(text);
