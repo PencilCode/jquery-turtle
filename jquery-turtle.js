@@ -1452,9 +1452,11 @@ function resizecanvas() {
 // turtlePenStyle style syntax
 function parsePenStyle(text, defaultProp) {
   if (!text) { return null; }
-  text = text.trim();
+  if (text.trim) { text = text.trim(); }
   if (!text || text === 'none') { return null; }
-  if (text === 'path') { return { savePath: true }; }
+  if (text === 'path' || text === 'fill') {
+    return { savePath: true };
+  }
   var eraseMode = false;
   if (/^erase\b/.test(text)) {
     text = text.replace(
@@ -2566,6 +2568,9 @@ var turtlefn = {
   ["<u>pen(color)</u> Selects a pen. " +
       "Chooses a color and style for the pen: <mark>pen red</mark>."],
   function pen(penstyle, lineWidth) {
+    if (penstyle && ((penstyle.method || penstyle) === turtlefn.fill)) {
+      penstyle = 'fill';
+    }
     return this.direct(function(j, elem) {
       if (penstyle === undefined) {
         penstyle = 'black';
@@ -3354,6 +3359,7 @@ function copyhelp(method, fname, extrahelp, globalfn) {
   } else if (fname in extrahelp) {
     globalfn.helptext = extrahelp[fname].helptext;
   }
+  globalfn.method = method;
   return globalfn;
 }
 
