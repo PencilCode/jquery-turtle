@@ -44,7 +44,7 @@ rt (right turn), and lt (left turn).  The pen function allows
 a turtle to draw on a full-document canvas as it moves.</p>
 
 <pre>
-  $('#turtle').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
+$('#turtle').pen('red').rt(90).fd(100).lt(90).bk(50).fadeOut();
 </pre>
 
 <p>jQuery-turtle provides:</p>
@@ -62,18 +62,18 @@ CoffeeScript program that uses the default turtle to draw a grid of
 sixteen colored polygons.</p>
 
 <pre>
-  eval $.turtle()  # Create the default turtle.
+eval $.turtle()  # Create the default turtle.
 
-  speed 100
-  for color in [red, gold, green, blue]
-    for sides in [3..6]
-      pen color
-      for x in [1..sides]
-        fd 100 / sides
-        lt 360 / sides
-      pen null 
-      fd 40
-    slide 40, -160
+speed 100
+for color in [red, gold, green, blue]
+  for sides in [3..6]
+    pen color
+    for x in [1..sides]
+      fd 100 / sides
+      lt 360 / sides
+    pen null
+    fd 40
+  slide 40, -160
 </pre>
 
 <p><a href="http://davidbau.github.io/jquery-turtle/demo.html">Try an interactive demo (CoffeeScript syntax) here.</a></p>
@@ -86,53 +86,55 @@ turtle-oriented methods operate on any jQuery object (including
 the default turtle, if used):</p>
 
 <pre>
-  $(x).fd(100)      // Forward relative motion in local coordinates.
-  $(x).bk(50)       // Back.
-  $(x).rt(90)       // Right turn.
-  $(x).lt(45)       // Left turn.
-  $(x).slide(x, y)  // Move right by x while moving forward by y.
-  $(x).rarc(100,60) // Turn right 60 degrees tracing an arc of radius 100.
-  $(x).larc(50,360) // Left 360 degrees tracing a full circle of radius 50.
-  $(x).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
-  $(x).turnto(bearing || position)        // Absolute direction adjustment.
-  $(x).play("ccgg") // Plays notes using ABC notation and waits until done.
+$(q).fd(100)      // Forward relative motion in local coordinates.
+$(q).bk(50)       // Back.
+$(q).rt(90)       // Right turn.  Optional turning radius second arg.
+$(q).lt(45)       // Left turn.  Optional turning radius second arg.
+$(q).slide(x, y)  // Slide right by x while sliding forward by y.
+$(q).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
+$(q).jumpto({pageX:x,pageY:y} | [x,y])  // Like moveto, without drawing.
+$(q).turnto(bearing || position)        // Absolute direction adjustment.
+$(q).play("ccgg") // Plays notes using ABC notation and waits until done.
 
-  // Methods below happen in an instant, but line up in the animation queue.
-  $(x).home()       // Jumps to the center of the document, with bearing 0.
-  $(x).pen('red')   // Sets a pen style, or 'none' for no drawing.
-  $(x).pu()         // Pen up - temporarily disables the pen (also pen(false)).
-  $(x).pd()         // Pen down - starts a new pen path.
-  $(x).pe()         // Uses the pen 'erase' style.
-  $(x).fill('gold') // Fills a shape previously outlined using pen('path').
-  $(x).dot(12)      // Draws a circular dot of diameter 12.
-  $(x).label('A')   // Prints an HTML label at the turtle location.
-  $(x).speed(10)    // Sets turtle animation speed to 10 moves per sec.
-  $(x).ht()         // Hides the turtle.
-  $(x).st()         // Shows the turtle.
-  $(x).wear('blue') // Switches to a blue shell.  Use any image or color.
-  $(x).scale(1.5)   // Scales turtle size and motion by 150%.
-  $(x).twist(180)   // Changes which direction is considered "forward".
-  $(x).mirror(true) // Flips the turtle across its main axis.
-  $(x).reload()     // Reloads the turtle's image (restarting animated gifs)
-  $(x).direct(fn)   // Like each, but this is set to $(elt) instead of elt,
-                    // and the callback fn can insert into the animation queue.
+// Methods below happen in an instant, but line up in the animation queue.
+$(q).home()       // Jumps to the center of the document, with bearing 0.
+$(q).pen('red')   // Sets a pen style, or 'none' for no drawing.
+$(q).pu()         // Pen up - temporarily disables the pen (also pen(false)).
+$(q).pd()         // Pen down - starts a new pen path.
+$(q).pe()         // Uses the pen 'erase' style.
+$(q).fill('gold') // Fills a shape previously outlined using pen('path').
+$(q).dot(12)      // Draws a circular dot of diameter 12.  Color second arg.
+$(q).label('A')   // Prints an HTML label at the turtle location.
+$(q).speed(10)    // Sets turtle animation speed to 10 moves per sec.
+$(q).ht()         // Hides the turtle.
+$(q).st()         // Shows the turtle.
+$(q).wear('blue') // Switches to a blue shell.  Use any image or color.
+$(q).scale(1.5)   // Scales turtle size and motion by 150%.
+$(q).twist(180)   // Changes which direction is considered "forward".
+$(q).mirror(true) // Flips the turtle across its main axis.
+$(q).reload()     // Reloads the turtle's image (restarting animated gifs)
+$(q).direct(fn)   // Like each, but this is set to $(elt) instead of elt,
+                  // and the callback fn can insert into the animation queue.
 
-  // Methods below this line do not queue for animation.
-  $(x).getxy()      // Local (center-y-up [x, y]) coordinates of the turtle.
-  $(x).pagexy()     // Page (topleft-y-down {pageX:x, pageY:y}) coordinates.
-  $(x).bearing([p]) // The turtles absolute direction (or direction towards p).
-  $(x).distance(p)  // Distance to p in page coordinates.
-  $(x).shown()      // Shorthand for is(":visible")
-  $(x).hidden()     // Shorthand for !is(":visible")
-  $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
-  $(x).enclosedby(y)// Containment collision test.
-  $(x).within(d, t) // Filters to items with centers within d of t.pagexy().
-  $(x).notwithin()  // The negation of within.
-  $(x).cell(y, x)   // Selects the yth row and xth column cell in a table.
-  $(x).hatch([n,] [img]) // Creates and returns n turtles with the given img.
+// Methods below this line do not queue for animation.
+$(q).getxy()      // Local (center-y-up [x, y]) coordinates of the turtle.
+$(q).pagexy()     // Page (topleft-y-down {pageX:x, pageY:y}) coordinates.
+$(q).bearing([p]) // The turtles absolute direction (or direction towards p).
+$(q).distance(p)  // Distance to p in page coordinates.
+$(q).shown()      // Shorthand for is(":visible")
+$(q).hidden()     // Shorthand for !is(":visible")
+$(q).touches(y)   // Collision tests elements (uses turtleHull if present).
+$(q).enclosedby(y)// Containment collision test.
+$(q).within(d, t) // Filters to items with centers within d of t.pagexy().
+$(q).notwithin()  // The negation of within.
+$(q).cell(y, x)   // Selects the yth row and xth column cell in a table.
+$(q).hatch([n,] [img]) // Creates and returns n turtles with the given img.
 </pre>
 
-<p>When the speed of a turtle is nonzero, the first seven movement
+<h2>
+<a name="speed-and-turtle-animation" class="anchor" href="#speed-and-turtle-animation"><span class="octicon octicon-link"></span></a>Speed and Turtle Animation</h2>
+
+<p>When the speed of a turtle is nonzero, the first eight movement
 functions animate at that speed (in moves per second), and the
 remaining mutators also participate in the animation queue.  The
 default turtle speed is a leisurely one move per second (as
@@ -142,6 +144,9 @@ desire to set speed higher.</p>
 <p>Setting the turtle speed to Infinity will make its movement synchronous,
 which makes the synchronous distance, direction, and hit-testing useful
 for realtime game-making.</p>
+
+<h2>
+<a name="pen-and-fill-styles" class="anchor" href="#pen-and-fill-styles"><span class="octicon octicon-link"></span></a>Pen and Fill Styles</h2>
 
 <p>The turtle pen respects canvas styling: any valid strokeStyle is
 accepted; and also using a space-separated syntax, lineWidth, lineCap,
@@ -153,6 +158,9 @@ first value is fillStyle instead of strokeStyle).</p>
 <p>The fill method is used by tracing an invisible path using the
 pen('path') style, and then calling the fill method.  Disconnected
 paths can be created using pu() and pd().</p>
+
+<h2>
+<a name="conventions-for-musical-notes" class="anchor" href="#conventions-for-musical-notes"><span class="octicon octicon-link"></span></a>Conventions for Musical Notes</h2>
 
 <p>The play method plays a sequence of notes specified using a subset of
 standard ABC notation.  Capital C denotes middle C, and lowercase c is
@@ -169,16 +177,25 @@ an ADSR envelope e.g., { a: 0.01, d: 0.2, s: 0.1, r: 0.1 }.</p>
 notes without stalling turtle movement, use the global function sound()
 instead of the turtle method play().</p>
 
+<h2>
+<a name="directing-logic-in-the-animation-queue" class="anchor" href="#directing-logic-in-the-animation-queue"><span class="octicon octicon-link"></span></a>Directing Logic in the Animation Queue</h2>
+
 <p>The direct method can be used to queue logic (including synchronous
 tests or actions) by running a function in the animation queue.  Unlike
 jquery queue(), direct arranges things so that if further animations
 are queued by the callback function, they are inserted (in natural
 recursive functional execution order) instead of being appended.</p>
 
+<h2>
+<a name="turnto-and-absolute-bearings" class="anchor" href="#turnto-and-absolute-bearings"><span class="octicon octicon-link"></span></a>Turnto and Absolute Bearings</h2>
+
 <p>The turnto method can turn to an absolute bearing (if called with a
 single numeric argument) or towards an absolute position on the
 screen.  The methods moveto and turnto accept either page or
 graphing coordinates.</p>
+
+<h2>
+<a name="moveto-and-two-flavors-of-cartesian-coordinates" class="anchor" href="#moveto-and-two-flavors-of-cartesian-coordinates"><span class="octicon octicon-link"></span></a>Moveto and Two Flavors of Cartesian Coordinates</h2>
 
 <p>Graphing coordinates are measured upwards and rightwards from the
 center of the page, and they are specified as bare numeric x, y
@@ -189,6 +206,9 @@ properties, or with a pagexy() method that will return such an object.
 That includes, usefullly, mouse events and turtle objects.  Page
 coordinates are measured downward from the top-left corner of the
 page to the center (or transform-origin) of the given object.</p>
+
+<h2>
+<a name="hit-testing" class="anchor" href="#hit-testing"><span class="octicon octicon-link"></span></a>Hit Testing</h2>
 
 <p>The hit-testing functions touches() and enclosedby() will test for
 collisions using the convex hulls of the objects in question.
@@ -220,64 +240,64 @@ beginners with a simplified programming environment.</p>
 $.turtle() are as follows:</p>
 
 <pre>
-  lastclick             // Event object of the last click event in the doc.
-  lastmousemove         // The last mousemove event.
-  lastmouseup           // The last mouseup event.
-  lastmousedown         // The last mousedown event.
-  keydown               // The last keydown event.
-  keyup                 // The last keyup event.
-  keypress              // The last keypress event.
-  hatch([n,] [img])     // Creates and returns n turtles with the given img.
-  cs()                  // Clears the screen, both the canvas and the body text.
-  cg()                  // Clears the graphics canvas without clearing the text.
-  ct()                  // Clears the text without clearing the canvas.
-  defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
-  tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
-  random(n)             // Returns a random number [0..n-1].
-  random(list)          // Returns a random element of the list.
-  random('normal')      // Returns a gaussian random (mean 0 stdev 1).
-  random('uniform')     // Returns a uniform random [0...1).
-  random('position')    // Returns a random {pageX:x, pageY:y} coordinate.
-  random('color')       // Returns a random hsl(*, 100%, 50%) color.
-  random('gray')        // Returns a random hsl(0, 0, *) gray.
-  remove()              // Removes default turtle and its globals (fd, etc).
-  see(a, b, c...)       // Logs tree-expandable data into debugging panel.
-  write(html)           // Appends html into the document body.
-  read([label,] fn)     // Makes a one-time input field, calls fn after entry.
-  readnum([label,] fn)  // Like read, but restricted to numeric input.
-  readstr([label,] fn)  // Like read, but never converts input to a number.
-  button([label,] fn)   // Makes a clickable button, calls fn when clicked.
-  table(m, n)           // Outputs a table with m rows and n columns.
-  sound('[DFG][EGc]')   // Plays musical notes now, without queueing.
+lastclick             // Event object of the last click event in the doc.
+lastmousemove         // The last mousemove event.
+lastmouseup           // The last mouseup event.
+lastmousedown         // The last mousedown event.
+keydown               // The last keydown event.
+keyup                 // The last keyup event.
+keypress              // The last keypress event.
+hatch([n,] [img])     // Creates and returns n turtles with the given img.
+cs()                  // Clears the screen, both the canvas and the body text.
+cg()                  // Clears the graphics canvas without clearing the text.
+ct()                  // Clears the text without clearing the canvas.
+defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
+tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
+random(n)             // Returns a random number [0..n-1].
+random(list)          // Returns a random element of the list.
+random('normal')      // Returns a gaussian random (mean 0 stdev 1).
+random('uniform')     // Returns a uniform random [0...1).
+random('position')    // Returns a random {pageX:x, pageY:y} coordinate.
+random('color')       // Returns a random hsl(*, 100%, 50%) color.
+random('gray')        // Returns a random hsl(0, 0, *) gray.
+remove()              // Removes default turtle and its globals (fd, etc).
+see(a, b, c...)       // Logs tree-expandable data into debugging panel.
+write(html)           // Appends html into the document body.
+read([label,] fn)     // Makes a one-time input field, calls fn after entry.
+readnum([label,] fn)  // Like read, but restricted to numeric input.
+readstr([label,] fn)  // Like read, but never converts input to a number.
+button([label,] fn)   // Makes a clickable button, calls fn when clicked.
+table(m, n)           // Outputs a table with m rows and n columns.
+sound('[DFG][EGc]')   // Plays musical notes now, without queueing.
 </pre>
 
 <p>Here is another CoffeeScript example that demonstrates some of
 the functions:</p>
 
 <pre>
-  eval $.turtle()  # Create the default turtle and global functions.
+eval $.turtle()  # Create the default turtle and global functions.
 
-  defaultspeed Infinity
-  write "Catch blue before red gets you."
-  bk 100
-  r = hatch 'red'
-  b = hatch 'blue'
-  tick 10, -&gt;
-    turnto lastmousemove
-    fd 6
-    r.turnto turtle
-    r.fd 4
-    b.turnto bearing b
-    b.fd 3
-    if b.touches(turtle)
-      write "You win!"
-      tick off
-    else if r.touches(turtle)
-      write "Red got you!"
-      tick off
-    else if not b.touches(document)
-      write "Blue got away!"
-      tick off
+defaultspeed Infinity
+write "Catch blue before red gets you."
+bk 100
+r = hatch red
+b = hatch blue
+tick 10, -&gt;
+  turnto lastmousemove
+  fd 6
+  r.turnto turtle
+  r.fd 4
+  b.turnto bearing b
+  b.fd 3
+  if b.touches(turtle)
+    write "You win!"
+    tick off
+  else if r.touches(turtle)
+    write "Red got you!"
+    tick off
+  else if not b.enclosedby(document)
+    write "Blue got away!"
+    tick off
 </pre>
 
 <p>The turtle teaching environment is designed to work well with either
@@ -290,20 +310,20 @@ Javascript or CoffeeScript.</p>
 with animation support on all motion:</p>
 
 <pre>
-  $(x).css('turtleSpeed', '10');         // default speed in moves per second.
-  $(x).css('turtlePosition', '30 40');   // position in local coordinates.
-  $(x).css('turtlePositionX', '30px');   // x component.
-  $(x).css('turtlePositionY', '40px');   // y component.
-  $(x).css('turtleRotation', '90deg');   // rotation in degrees.
-  $(x).css('turtleScale', '2');          // double the size of any element.
-  $(x).css('turtleScaleX', '2');         // x stretch after twist.
-  $(x).css('turtleScaleY', '2');         // y stretch after twist.
-  $(x).css('turtleTwist', '45deg');      // turn before stretching.
-  $(x).css('turtleForward', '50px');     // position in direction of rotation.
-  $(x).css('turtleTurningRadius, '50px');// arc turning radius for rotation.
-  $(x).css('turtlePenStyle', 'red');     // or 'red lineWidth 2px' etc.
-  $(x).css('turtlePenDown', 'up');       // default 'down' to draw with pen.
-  $(x).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
+$(q).css('turtleSpeed', '10');         // default speed in moves per second.
+$(q).css('turtlePosition', '30 40');   // position in local coordinates.
+$(q).css('turtlePositionX', '30px');   // x component.
+$(q).css('turtlePositionY', '40px');   // y component.
+$(q).css('turtleRotation', '90deg');   // rotation in degrees.
+$(q).css('turtleScale', '2');          // double the size of any element.
+$(q).css('turtleScaleX', '2');         // x stretch after twist.
+$(q).css('turtleScaleY', '2');         // y stretch after twist.
+$(q).css('turtleTwist', '45deg');      // turn before stretching.
+$(q).css('turtleForward', '50px');     // position in direction of rotation.
+$(q).css('turtleTurningRadius, '50px');// arc turning radius for rotation.
+$(q).css('turtlePenStyle', 'red');     // or 'red lineWidth 2px' etc.
+$(q).css('turtlePenDown', 'up');       // default 'down' to draw with pen.
+$(q).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
 </pre>
 
 <p>Arbitrary 2d transforms are supported, including transforms of elements
