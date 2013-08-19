@@ -1,39 +1,40 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>jQuery-turtle by davidbau</title>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="jQuery-turtle : Turtle Graphics for JQuery" />
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="javascripts/scale.fix.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>jQuery-turtle</title>
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1 class="header">jQuery-turtle</h1>
-        <p class="header">Turtle Graphics for JQuery</p>
 
-        <ul>
-          <li class="download"><a class="buttons" href="https://github.com/davidbau/jquery-turtle/zipball/master">Download ZIP</a></li>
-          <li class="download"><a class="buttons" href="https://github.com/davidbau/jquery-turtle/tarball/master">Download TAR</a></li>
-          <li><a class="buttons github" href="https://github.com/davidbau/jquery-turtle">View On GitHub</a></li>
-        </ul>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/davidbau/jquery-turtle">View on GitHub</a>
 
-        <p class="header">This project is maintained by <a class="header name" href="https://github.com/davidbau">davidbau</a></p>
+          <h1 id="project_title">jQuery-turtle</h1>
+          <h2 id="project_tagline">Turtle Graphics for JQuery</h2>
 
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/davidbau/jquery-turtle/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/davidbau/jquery-turtle/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
 
-      </header>
-      <section>
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <h1>
 <a name="jquery-turtle" class="anchor" href="#jquery-turtle"><span class="octicon octicon-link"></span></a>jQuery-turtle</h1>
 
-<p>version 2.0.6</p>
+<p>version 2.0.7</p>
 
 <p>jQuery-turtle is a jQuery plugin for turtle graphics.</p>
 
@@ -64,21 +65,18 @@ sixteen colored polygons.</p>
   eval $.turtle()  # Create the default turtle.
 
   speed 100
-  for color in ['red', 'gold', 'green', 'blue']
+  for color in [red, gold, green, blue]
     for sides in [3..6]
       pen color
       for x in [1..sides]
         fd 100 / sides
         lt 360 / sides
-      pen 'none'
+      pen null 
       fd 40
     slide 40, -160
 </pre>
 
 <p><a href="http://davidbau.github.io/jquery-turtle/demo.html">Try an interactive demo (CoffeeScript syntax) here.</a></p>
-<iframe src="http://davidbau.github.io/jquery-turtle/demo.html" height="540" width="640" style="background:lightblue">
-interactive demo
-</iframe>
 
 <h2>
 <a name="jquery-methods-for-turtle-movement" class="anchor" href="#jquery-methods-for-turtle-movement"><span class="octicon octicon-link"></span></a>JQuery Methods for Turtle Movement</h2>
@@ -127,7 +125,7 @@ the default turtle, if used):</p>
   $(x).shown()      // Shorthand for is(":visible")
   $(x).hidden()     // Shorthand for !is(":visible")
   $(x).touches(y)   // Collision tests elements (uses turtleHull if present).
-  $(x).encloses(y)  // Containment collision test.
+  $(x).enclosedby(y)// Containment collision test.
   $(x).within(d, t) // Filters to items with centers within d of t.pagexy().
   $(x).notwithin()  // The negation of within.
   $(x).cell(y, x)   // Selects the yth row and xth column cell in a table.
@@ -192,7 +190,7 @@ That includes, usefullly, mouse events and turtle objects.  Page
 coordinates are measured downward from the top-left corner of the
 page to the center (or transform-origin) of the given object.</p>
 
-<p>The hit-testing functions touches() and encloses() will test for
+<p>The hit-testing functions touches() and enclosedby() will test for
 collisions using the convex hulls of the objects in question.
 The hull of an element defaults to the bounding box of the element
 (as transformed) but can be overridden by the turtleHull CSS property,
@@ -217,6 +215,7 @@ beginners with a simplified programming environment.</p>
 <li>Default turtle animation is set to 1 move per sec so steps can be seen.</li>
 <li>Global event listeners are created to update global event variables.</li>
 <li>Methods of $.turtle.* (enumerated below) are exposed as global functions.</li>
+<li>String constants are defined for the 140 named CSS colors.</li>
 </ul><p>Beyond the functions to control the default turtle, the globals added by
 $.turtle() are as follows:</p>
 
@@ -326,7 +325,7 @@ used; pen styles include canvas style properties such as lineWidth
 and lineCap.</p>
 
 <p>A convex hull polygon can be set to be used by the collision detection
-and hit-testing functions (encloses, touches).  The turtleHull is a list
+and hit-testing functions (enclosedby, touches).  The turtleHull is a list
 of (unrotated) x-y coordinates relative to the object's transformOrigin.
 If set to 'auto' (the default) the hull is just the bounding box for the
 element.</p>
@@ -354,11 +353,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.</p>
       </section>
-      <footer>
-        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">jQuery-turtle maintained by <a href="https://github.com/davidbau">davidbau</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-		
+
+    
+
   </body>
 </html>
