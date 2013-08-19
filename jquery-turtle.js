@@ -1360,7 +1360,10 @@ function attachClipSurface() {
       if (e.target === this && !e.isTrigger) {
         // Only forward events directly on the body that (geometrically)
         // touch a turtle directly within the turtlefield.
+        var warn = $.turtle.nowarn;
+        $.turtle.nowarn = true;
         var sel = $('#_turtlefield > .turtle').within('touch', e).eq(0);
+        $.turtle.nowarn = warn;
         if (sel.length === 1) {
           // Erase portions of the event that are wrong for the turtle.
           e.target = null;
@@ -2497,6 +2500,20 @@ var turtlefn = {
           animTime(elem));
     });
   }),
+  jumpto: wraphelp(
+  ["<u>jumpto(x, y)</u> Move without drawing (compare to <u>moveto</u>): " +
+      "<mark>jumpto 50, 100</mark>"],
+  function jumpto(x, y) {
+    var args = arguments;
+    return this.direct(function(j, elem) {
+      var down = this.css('turtlePenDown');
+      this.css({turtlePenDown: 'up'});
+      this.moveto.apply(this, args);
+      this.direct(function() {
+        this.css({turtlePenDown: down});
+      });
+    });
+  }),
   turnto: wraphelp(
   ["<u>turnto(degrees)</u> Turn to a bearing. " +
       "North is 0, East is 90: <mark>turnto 270</turnto>",
@@ -3042,6 +3059,7 @@ var turtlefn = {
 // do anything immediately.  This check prints a warning and flushes the
 // queue when the queue is 100 long.
 function checkPredicate(fname, sel) {
+  if ($.turtle.nowarn) return;
   var ok = true, j;
   for (j = 0; ok && j < sel.length; ++j) {
     if ($.queue(sel[j]).length >= 100) {
