@@ -4,7 +4,7 @@
 jQuery-turtle
 =============
 
-version 2.0.7
+version 2.0.8
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -2371,7 +2371,12 @@ function globalhelp(obj) {
       helplist.push(name);
     }
   }
-  helplist.sort();
+  helplist.sort(function(a, b) {
+    if (a.length != b.length) { return a.length - b.length; }
+    if (a < b) { return -1; }
+    if (a > b) { return 1; }
+    return 0;
+  });
   helpwrite("help available for: " + helplist.map(function(x) {
      return '<mark style="border:1px solid blue;color:blue;text-decoration:none;' +
        'word-break:keep-all;white-space:nowrap;cursor:pointer;" ' +
@@ -2606,7 +2611,9 @@ var turtlefn = {
   }),
   pen: wraphelp(
   ["<u>pen(color)</u> Selects a pen. " +
-      "Chooses a color and style for the pen: <mark>pen red</mark>."],
+      "Chooses a color or style for the pen: <mark>pen red</mark>.",
+   "<u>pen(color, size)</u> " +
+      "Chooses a color and size for the pen: <mark>pen blue, 5</mark>."],
   function pen(penstyle, lineWidth) {
     if (penstyle && ((penstyle.method || penstyle) === turtlefn.fill)) {
       penstyle = 'fill';
@@ -2708,7 +2715,7 @@ var turtlefn = {
   play: wraphelp(
   ["<u>play(notes)</u> Play notes. Notes are specified in " +
       "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
-      "ABC notation</a>. " +
+      "ABC notation</a>.  Also see <u>sound</u>. " +
       "<mark>play \"de[dBFA]2[cGEC]4\"</mark>"],
   function play(notes) {
     var args = arguments;
@@ -2833,7 +2840,8 @@ var turtlefn = {
   ["<u>bearing()</u> Turtle bearing. North is 0; East is 90: " +
       "<mark>bearing()</mark>",
    "<u>bearing(obj)</u> <u>bearing(x, y)</u> Returns the direction " +
-      "from the turtle towards an object or coordinate: " +
+      "from the turtle towards an object or coordinate. " +
+      "Also see <u>turnto</u>: " +
       "<mark>bearing lastclick</mark>"],
   function bearing(x, y) {
     if (!this.length) return;
@@ -3152,7 +3160,7 @@ var dollar_turtle_methods = {
   sound: wraphelp(
   ["<u>sound(notes)</u> Sound notes immediately. Notes are specified in " +
       "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
-      "ABC notation</a>. " +
+      "ABC notation</a>. Also see <u>play</u>." +
       "<mark>sound \"cc/e/c/e/g2\"</mark>"],
   function sound() { playABC(null, arguments); }),
   write: wraphelp(
@@ -3160,8 +3168,10 @@ var dollar_turtle_methods = {
       "<mark>write 'Hello, world!'</mark>"],
   function write(html) { return output(html, 'div'); }),
   read: wraphelp(
-  ["<u>read(html, fn)</u> Reads text or numeric input. " +
-      "Calls fn once with the entered value: " +
+  ["<u>read(fn)</u> Reads text or numeric input. " +
+      "Calls fn once: " +
+      "<mark>read (x) -> write x</mark>",
+   "<u>read(html, fn)</u> Prompts for input: " +
       "<mark>read 'Your name?', (v) -> write 'Hello ' + v</mark>"],
   function read(a, b) { return input(a, b, 0); }),
   readnum: wraphelp(
@@ -3238,6 +3248,10 @@ var extrahelp = {
 var helpok = {};
 
 (function() {
+  var specialstrings = [
+    "none", "path", "up", "down",  // Pen modes.
+    "color", "position", "normal"  // Random modes.
+  ];
   var colors = [
     "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
     "bisque", "black", "blanchedalmond", "blue", "blueviolet", "brown",
@@ -3266,9 +3280,9 @@ var helpok = {};
     "snow", "springgreen", "steelblue", "tan", "teal", "thistle", "tomato",
     "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow",
     "yellowgreen"
-  ], j = 0;
-  for (; j < colors.length; j++) {
-    dollar_turtle_methods[colors[j]] = colors[j];
+  ], definedstrings = specialstrings.concat(colors), j = 0;
+  for (; j < definedstrings.length; j++) {
+    dollar_turtle_methods[definedstrings[j]] = definedstrings[j];
   }
   extrahelp.colors = {helptext:
       ["Defined colors: " + colors.join(" ")]};
@@ -3352,7 +3366,7 @@ $.turtle = function turtle(id, options) {
   if (!options.hasOwnProperty('panel') || options.panel) {
     var retval = null,
         seeopt = {
-      title: 'turtle test panel - Enter commands or type help for help',
+      title: 'turtle test panel - enter commands or type help for help',
       abbreviate: [undefined, helpok],
       consolehook: seehelphook
     };
