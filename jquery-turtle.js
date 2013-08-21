@@ -2734,7 +2734,7 @@ var turtlefn = {
   }),
   wear: wraphelp(
   ["<u>wear(color)</u> Sets the turtle shell color: " +
-      "<mark>wear 'turquoise'</mark>",
+      "<mark>wear turquoise</mark>",
    "<u>wear(url)</u> Sets the turtle image url: " +
       "<mark>wear 'http://bit.ly/1bgrQ0p'</mark>"],
   function wear(name) {
@@ -3774,14 +3774,19 @@ function turtleevents(prefix) {
   }
   if (prefix || prefix === '') {
     eventsaver = (function(e) {
+      // Keep the old instance if possible.
+      var old = window[prefix + e.type], prop;
+      if (old && old.__proto__ === e.__proto__) {
+        for (prop in old) { if (old.hasOwnProperty(prop)) delete old[prop]; }
+        for (prop in e) { if (e.hasOwnProperty(prop)) old[prop] = e[prop]; }
+        return;
+      }
       window[prefix + e.type] = e;
     });
     $(window).on($.map(eventfn, function(x,k) { return k; }).join(' '),
         eventsaver);
     for (var k in eventfn) {
-      if (eventfn.hasOwnProperty(k)) {
-        window[prefix + k] = null;
-      }
+      window[prefix + k] = new $.Event();
     }
   }
 }
