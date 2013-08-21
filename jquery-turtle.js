@@ -2584,11 +2584,12 @@ var turtlefn = {
         nlocalxy = computePositionAsLocalOffset(elem, targetpos);
       }
       dir = radiansToDegrees(Math.atan2(-nlocalxy[0], -nlocalxy[1]));
+      ts = readTurtleTransform(elem, true);
       if (!(limit === null)) {
-        ts = readTurtleTransform(elem, true);
         r = convertToRadians(ts.rot);
-        dir = limitRotation(ts.rot, dir, limit);
+        dir = limitRotation(ts.rot, dir, limit === null ? 360 : limit);
       }
+      dir = ts.rot + normalizeRotation(dir - ts.rot);
       this.animate({turtleRotation: dir}, animTime(elem));
     });
   }),
