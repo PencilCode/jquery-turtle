@@ -3039,6 +3039,12 @@ var turtlefn = {
     checkPredicate('notwithin', this);
     return withinOrNot(this, false, distance, x, y);
   },
+  done: wraphelp(
+  ["<u>done(fn)</u> Calls fn when animation is complete. Use with await: " +
+      "<mark>await done defer()</mark>"],
+  function done(callback) {
+    return this.promise().done(callback);
+  }),
   direct: function direct(qname, callback, args) {
     if ($.isFunction(qname)) {
       args = callback;
@@ -3355,7 +3361,7 @@ $.turtle = function turtle(id, options) {
       (!options.hasOwnProperty('global') || options.global)) {
     var extraturtlefn = {
       css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
-      animate:1, stop:1, toggle:1, finish:1, remove:1 };
+      animate:1, stop:1, toggle:1, finish:1, remove:1, promise:1 };
     var globalfn = $.extend({}, turtlefn, eventfn, extraturtlefn);
     global_turtle_methods.push.apply(global_turtle_methods,
        globalizeMethods(selector, globalfn));
