@@ -2853,7 +2853,10 @@ var turtlefn = {
       if ($.isArray(pos)) {
         pos = convertLocalXyToPageCoordinates(elem, [pos])[0];
       }
-      if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
+      if (!isPageCoordinate(pos)) {
+        try { pos = $(pos).pagexy(); }
+        catch(e) { }
+      }
       if (!pos) { return NaN; }
       return radiansToDegrees(
           Math.atan2(pos.pageX - cur.pageX, cur.pageY - pos.pageY));
@@ -2873,7 +2876,10 @@ var turtlefn = {
     if ($.isArray(pos)) {
       pos = convertLocalXyToPageCoordinates(elem, [pos])[0];
     }
-    if (!isPageCoordinate(pos)) { pos = $(pos).pagexy(); }
+    if (!isPageCoordinate(pos)) {
+      try { pos = $(pos).pagexy(); }
+      catch(e) { }
+    }
     if (!pos) { return NaN; }
     dx = pos.pageX - cur.pageX;
     dy = pos.pageY - cur.pageY;
@@ -3044,7 +3050,15 @@ var turtlefn = {
   ["<u>done(fn)</u> Calls fn when animation is complete. Use with await: " +
       "<mark>await done defer()</mark>"],
   function done(callback) {
-    return this.promise().done(callback);
+    var synchronous = true;
+    return this.promise().done(function() {
+      if (synchronous) {
+        setTimeout(callback, 0);
+      } else {
+        callback();
+      }
+    });
+    synchronous = false;
   }),
   direct: function direct(qname, callback, args) {
     if ($.isFunction(qname)) {
