@@ -1,7 +1,7 @@
 jQuery-turtle
 =============
 
-version 2.0.7
+version 2.0.8
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -81,6 +81,7 @@ $(q).scale(1.5)   // Scales turtle size and motion by 150%.
 $(q).twist(180)   // Changes which direction is considered "forward".
 $(q).mirror(true) // Flips the turtle across its main axis.
 $(q).reload()     // Reloads the turtle's image (restarting animated gifs)
+$(q).done(fn)     // Like $(q).promise().done(fn). Calls after all animation.
 $(q).direct(fn)   // Like each, but this is set to $(elt) instead of elt,
                   // and the callback fn can insert into the animation queue.
 

@@ -84,6 +84,7 @@ $(q).scale(1.5)   // Scales turtle size and motion by 150%.
 $(q).twist(180)   // Changes which direction is considered "forward".
 $(q).mirror(true) // Flips the turtle across its main axis.
 $(q).reload()     // Reloads the turtle's image (restarting animated gifs)
+$(q).done(fn)     // Like $(q).promise().done(fn). Calls after all animation.
 $(q).direct(fn)   // Like each, but this is set to $(elt) instead of elt,
                   // and the callback fn can insert into the animation queue.
 
@@ -3053,9 +3054,9 @@ var turtlefn = {
     var synchronous = true;
     return this.promise().done(function() {
       if (synchronous) {
-        setTimeout(callback, 0);
+        setTimeout(function() { this.promise().done(callback); }, 0);
       } else {
-        callback();
+        callback.apply(this, arguments);
       }
     });
     synchronous = false;
