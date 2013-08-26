@@ -97,6 +97,7 @@ $(q).shown()      // Shorthand for is(":visible")
 $(q).hidden()     // Shorthand for !is(":visible")
 $(q).touches(y)   // Collision tests elements (uses turtleHull if present).
 $(q).enclosedby(y)// Containment collision test.
+$(q).nearest(pos) // Filters to item (or items if tied) nearest pos.
 $(q).within(d, t) // Filters to items with centers within d of t.pagexy().
 $(q).notwithin()  // The negation of within.
 $(q).cell(y, x)   // Selects the yth row and xth column cell in a table.
@@ -812,7 +813,7 @@ function getPageGbcr(elem) {
   return readPageGbcr.apply(elem);
 }
 
-function isGbcrOutside(center, distance, d2, gbcr) {
+function isGbcrOutside(center, d2, gbcr) {
   var dy = Math.max(0,
            Math.max(gbcr.top - center.pageY, center.pageY - gbcr.bottom)),
       dx = Math.max(0,
@@ -2280,7 +2281,7 @@ function withinOrNot(obj, within, distance, x, y) {
   d2 = distance * distance;
   return obj.filter(function() {
     var gbcr = getPageGbcr(this);
-    if (isGbcrOutside(pos, distance, d2, gbcr)) { return !within; }
+    if (isGbcrOutside(pos, d2, gbcr)) { return !within; }
     if (isGbcrInside(pos, d2, gbcr)) { return within; }
     fixOriginIfWatching(this);
     var thispos = getCenterInPageCoordinates(this),
@@ -2767,11 +2768,12 @@ var turtlefn = {
         top: 0,
         left: 0
       }).addClass('turtle').appendTo(getTurtleClipSurface());
+      // Mimic the current position and rotation and scale of the turtle.
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
             out.get(0), this.pagexy(), null, 0, 0),
-        turtleRotation: css('turtleRotation'),
-        turtleScale: css('turtleScale')
+        turtleRotation: this.css('turtleRotation'),
+        turtleScale: this.css('turtleScale')
       });
       if ($.isFunction(fn)) {
         out.direct(fn);
@@ -3047,19 +3049,56 @@ var turtlefn = {
     checkPredicate('notwithin', this);
     return withinOrNot(this, false, distance, x, y);
   },
+  nearest: function nearest(x, y) {
+    var pos, result = [], mind2 = Infinity, gbcr, j;
+    if ($.isNumeric(pos) && $.isNumeric(y)) {
+      pos = [x, y];
+    } else {
+      pos = x;
+    }
+    if ($.isArray(pos)) {
+      // [x, y]: local coordinates.
+      pos = convertLocalXyToPageCoordinates(this[0] || document.body, [pos])[0];
+    }
+    if (!isPageCoordinate(pos)) {
+      try { pos = $(pos).pagexy(); }
+      catch(e) { pos = null; }
+    }
+    for (j = 0; j < this.length; j++) {
+      gbcr = getPageGbcr(this[j]);
+      if (!result.length || !isGbcrOutside(pos, mind2, gbcr)) {
+        fixOriginIfWatching(this[j]);
+        var thispos = getCenterInPageCoordinates(this[j]),
+            dx = pos.pageX - thispos.pageX,
+            dy = pos.pageY - thispos.pageY,
+            d2 = dx * dx + dy * dy;
+        if (d2 <= mind2) {
+          if (d2 < mind2) {
+            mind2 = d2;
+            result.length = 0;
+          }
+          result.push(this[j]);
+        }
+      }
+    }
+    return $(result);
+  },
   done: wraphelp(
   ["<u>done(fn)</u> Calls fn when animation is complete. Use with await: " +
       "<mark>await done defer()</mark>"],
   function done(callback) {
-    var synchronous = true;
+    var sync = this;
     return this.promise().done(function() {
-      if (synchronous) {
-        setTimeout(function() { this.promise().done(callback); }, 0);
+      if (sync) {
+        // Never do callback synchronously.  Instead redo the promise
+        // callback after a zero setTimeout.
+        var async = sync;
+        setTimeout(function() { async.promise().done(callback); }, 0);
       } else {
         callback.apply(this, arguments);
       }
     });
-    synchronous = false;
+    sync = null;
   }),
   direct: function direct(qname, callback, args) {
     if ($.isFunction(qname)) {
@@ -3272,7 +3311,8 @@ var helpok = {};
 (function() {
   var specialstrings = [
     "none", "path", "up", "down",  // Pen modes.
-    "color", "position", "normal"  // Random modes.
+    "color", "position", "normal", // Random modes.
+    "touch" // Special Within distances.
   ];
   var colors = [
     "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
