@@ -94,6 +94,7 @@ $(q).shown()      // Shorthand for is(":visible")
 $(q).hidden()     // Shorthand for !is(":visible")
 $(q).touches(y)   // Collision tests elements (uses turtleHull if present).
 $(q).enclosedby(y)// Containment collision test.
+$(q).nearest(pos) // Filters to item (or items if tied) nearest pos.
 $(q).within(d, t) // Filters to items with centers within d of t.pagexy().
 $(q).notwithin()  // The negation of within.
 $(q).cell(y, x)   // Selects the yth row and xth column cell in a table.
