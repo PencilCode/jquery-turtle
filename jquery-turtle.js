@@ -3555,10 +3555,20 @@ function isCSSColor(color) {
 
 var colorCache = {};
 
+function isNamedColor(name) {
+  if (!/^[a-z]+$/.test(name)) {
+    return false;
+  }
+  for (var j = 0; j < colors.length; ++j) {
+    if (colors[j] == name) return true;
+  }
+  return false;
+}
+
 function rgbaForColor(color) {
-  if (!color ||
-      !/^[a-z]+$|^(?:rgb|hsl)a?\([^)]*\)$|^\#[a-f0-9]{3}(?:[a-f0-9]{3})?$/i
-      .exec(color)) {
+  if (!color || (!isNamedColor(color) &&
+      !/^(?:rgb|hsl)a?\([^)]*\)$|^\#[a-f0-9]{3}(?:[a-f0-9]{3})?$/i.test(
+          color))) {
     return null;
   }
   if (color in colorCache) {
