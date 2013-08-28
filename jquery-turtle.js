@@ -283,7 +283,8 @@ Underlying turtle motion are turtle-oriented 2d transform jQuery cssHooks,
 with animation support on all motion:
 
 <pre>
-$(q).css('turtleSpeed', '10');         // default speed in moves per second.
+$(q).css('turtleSpeed', '10');         // speed in moves per second.
+$(q).css('turtleEasing', 'linear');    // animation easing, defaults to swing.
 $(q).css('turtlePosition', '30 40');   // position in local coordinates.
 $(q).css('turtlePositionX', '30px');   // x component.
 $(q).css('turtlePositionY', '40px');   // y component.
@@ -1545,6 +1546,7 @@ function getTurtleData(elem) {
       path: [[]],
       down: true,
       speed: 'turtle',
+      easing: 'swing',
       turningRadius: 0,
       // Below: support for image loading without messing up origin.
       lastSeenOrigin: null,
@@ -1943,6 +1945,20 @@ function makeTurtleSpeedHook() {
   }
 }
 
+function makeTurtleEasingHook() {
+  return {
+    get: function(elem, computed, extra) {
+      return getTurtleData(elem).easing;
+    },
+    set: function(elem, value) {
+      if (!(value in $.easing)) {
+        return;
+      }
+      getTurtleData(elem).easing = value;
+    }
+  }
+}
+
 function animTime(elem) {
   var state = $.data(elem, 'turtleData');
   if (!state) return 'turtle';
@@ -1950,6 +1966,12 @@ function animTime(elem) {
     return 1000 / state.speed;
   }
   return state.speed;
+}
+
+function animEasing(elem) {
+  var state = $.data(elem, 'turtleData');
+  if (!state) return 'easing';
+  return state.easing;
 }
 
 function makeTurtleForwardHook() {
@@ -2301,6 +2323,7 @@ $.extend(true, $, {
     turtlePenStyle: makePenStyleHook(),
     turtlePenDown: makePenDownHook(),
     turtleSpeed: makeTurtleSpeedHook(),
+    turtleEasing: makeTurtleEasingHook(),
     turtleForward: makeTurtleForwardHook(),
     turtleTurningRadius: makeTurningRadiusHook(),
     turtlePosition: makeTurtleXYHook('turtlePosition', 'tx', 'ty', true),
@@ -2398,14 +2421,14 @@ var turtlefn = {
     if (!radius) {
       return this.direct(function(j, elem) {
         this.animate({turtleRotation: '+=' + cssNum(degrees || 0) + 'deg'},
-            animTime(elem));
+            animTime(elem), animEasing(elem));
       });
     } else {
       return this.direct(function(j, elem) {
         var oldRadius = this.css('turtleTurningRadius');
         this.css({turtleTurningRadius: (degrees < 0) ? -radius : radius});
         this.animate({turtleRotation: '+=' + cssNum(degrees) + 'deg'},
-            animTime(elem));
+            animTime(elem), animEasing(elem));
         this.direct(function() {
           this.css({turtleTurningRadius: oldRadius});
         });
@@ -2421,14 +2444,14 @@ var turtlefn = {
     if (!radius) {
       return this.direct(function(j, elem) {
         this.animate({turtleRotation: '-=' + cssNum(degrees || 0) + 'deg'},
-            animTime(elem));
+            animTime(elem), animEasing(elem));
       });
     } else {
       return this.direct(function(j, elem) {
         var oldRadius = this.css('turtleTurningRadius');
         this.css({turtleTurningRadius: (degrees < 0) ? -radius : radius});
         this.animate({turtleRotation: '-=' + cssNum(degrees) + 'deg'},
-            animTime(elem));
+            animTime(elem), animEasing(elem));
         this.direct(function() {
           this.css({turtleTurningRadius: oldRadius});
         });
@@ -2461,7 +2484,7 @@ var turtlefn = {
     return this.direct(function(j, elem) {
       fixOriginIfWatching(elem);
       this.animate({turtleForward: '+=' + cssNum(amount || 0) + 'px'},
-          animTime(elem));
+          animTime(elem), animEasing(elem));
     });
   }),
   bk: wraphelp(
@@ -2478,7 +2501,7 @@ var turtlefn = {
     if (!x) { x = 0; }
     return this.direct(function(j, elem) {
       this.animate({turtlePosition:
-          displacedPosition(elem, y, x)}, animTime(elem));
+          displacedPosition(elem, y, x)}, animTime(elem), animEasing(elem));
     });
   }),
   moveto: wraphelp(
@@ -2527,7 +2550,7 @@ var turtlefn = {
       }
       this.animate({turtlePosition:
           computeTargetAsTurtlePosition(elem, pos, limit, localx, localy)},
-          animTime(elem));
+          animTime(elem), animEasing(elem));
     });
   }),
   jumpto: wraphelp(
@@ -2592,7 +2615,7 @@ var turtlefn = {
         dir = limitRotation(ts.rot, dir, limit === null ? 360 : limit);
       }
       dir = ts.rot + normalizeRotation(dir - ts.rot);
-      this.animate({turtleRotation: dir}, animTime(elem));
+      this.animate({turtleRotation: dir}, animTime(elem), animEasing(elem));
     });
   }),
   home: wraphelp(
@@ -3004,8 +3027,8 @@ var turtlefn = {
   function touches(arg, y) {
     checkPredicate('touches', this);
     if (!this.is(':visible') || !this.length) { return false; }
-    if (arg == 'ink' || isCSSColor(arg)) {
-      return touchesPixel(this[0], arg == 'ink' ? null : arg);
+    if (arg == 'color' || isCSSColor(arg)) {
+      return touchesPixel(this[0], arg == 'color' ? null : arg);
     }
     if ($.isNumeric(arg) && $.isNumeric(y)) {
       arg = [arg, y];
@@ -3308,41 +3331,43 @@ var extrahelp = {
 
 var helpok = {};
 
+var colors = [
+  "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
+  "bisque", "black", "blanchedalmond", "blue", "blueviolet", "brown",
+  "burlywood", "cadetblue", "chartreuse", "chocolate", "coral",
+  "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
+  "darkgoldenrod", "darkgray", "darkgreen", "darkkhaki", "darkmagenta",
+  "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon",
+  "darkseagreen", "darkslateblue", "darkslategray", "darkturquoise",
+  "darkviolet", "deeppink", "deepskyblue", "dimgray", "dodgerblue",
+  "firebrick", "floralwhite", "forestgreen", "fuchsia", "gainsboro",
+  "ghostwhite", "gold", "goldenrod", "gray", "green", "greenyellow",
+  "honeydew", "hotpink", "indianred", "indigo", "ivory", "khaki",
+  "lavender", "lavenderblush", "lawngreen", "lemonchiffon", "lightblue",
+  "lightcoral", "lightcyan", "lightgoldenrodyellow", "lightgray",
+  "lightgreen", "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
+  "lightslategray", "lightsteelblue", "lightyellow", "lime", "limegreen",
+  "linen", "magenta", "maroon", "mediumaquamarine", "mediumblue",
+  "mediumorchid", "mediumpurple", "mediumseagreen", "mediumslateblue",
+  "mediumspringgreen", "mediumturquoise", "mediumvioletred", "midnightblue",
+  "mintcream", "mistyrose", "moccasin", "navajowhite", "navy", "oldlace",
+  "olive", "olivedrab", "orange", "orangered", "orchid", "palegoldenrod",
+  "palegreen", "paleturquoise", "palevioletred", "papayawhip", "peachpuff",
+  "peru", "pink", "plum", "powderblue", "purple", "red", "rosybrown",
+  "royalblue", "saddlebrown", "salmon", "sandybrown", "seagreen",
+  "seashell", "sienna", "silver", "skyblue", "slateblue", "slategray",
+  "snow", "springgreen", "steelblue", "tan", "teal", "thistle", "tomato",
+  "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow",
+  "yellowgreen"
+];
+
 (function() {
   var specialstrings = [
     "none", "path", "up", "down",  // Pen modes.
     "color", "position", "normal", // Random modes.
     "touch" // Special Within distances.
   ];
-  var colors = [
-    "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
-    "bisque", "black", "blanchedalmond", "blue", "blueviolet", "brown",
-    "burlywood", "cadetblue", "chartreuse", "chocolate", "coral",
-    "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
-    "darkgoldenrod", "darkgray", "darkgreen", "darkkhaki", "darkmagenta",
-    "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon",
-    "darkseagreen", "darkslateblue", "darkslategray", "darkturquoise",
-    "darkviolet", "deeppink", "deepskyblue", "dimgray", "dodgerblue",
-    "firebrick", "floralwhite", "forestgreen", "fuchsia", "gainsboro",
-    "ghostwhite", "gold", "goldenrod", "gray", "green", "greenyellow",
-    "honeydew", "hotpink", "indianred", "indigo", "ivory", "khaki",
-    "lavender", "lavenderblush", "lawngreen", "lemonchiffon", "lightblue",
-    "lightcoral", "lightcyan", "lightgoldenrodyellow", "lightgray",
-    "lightgreen", "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
-    "lightslategray", "lightsteelblue", "lightyellow", "lime", "limegreen",
-    "linen", "magenta", "maroon", "mediumaquamarine", "mediumblue",
-    "mediumorchid", "mediumpurple", "mediumseagreen", "mediumslateblue",
-    "mediumspringgreen", "mediumturquoise", "mediumvioletred", "midnightblue",
-    "mintcream", "mistyrose", "moccasin", "navajowhite", "navy", "oldlace",
-    "olive", "olivedrab", "orange", "orangered", "orchid", "palegoldenrod",
-    "palegreen", "paleturquoise", "palevioletred", "papayawhip", "peachpuff",
-    "peru", "pink", "plum", "powderblue", "purple", "red", "rosybrown",
-    "royalblue", "saddlebrown", "salmon", "sandybrown", "seagreen",
-    "seashell", "sienna", "silver", "skyblue", "slateblue", "slategray",
-    "snow", "springgreen", "steelblue", "tan", "teal", "thistle", "tomato",
-    "turquoise", "violet", "wheat", "white", "whitesmoke", "yellow",
-    "yellowgreen"
-  ], definedstrings = specialstrings.concat(colors), j = 0;
+  var definedstrings = specialstrings.concat(colors), j = 0;
   for (; j < definedstrings.length; j++) {
     dollar_turtle_methods[definedstrings[j]] = definedstrings[j];
   }

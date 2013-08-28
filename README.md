@@ -280,7 +280,8 @@ Underlying turtle motion are turtle-oriented 2d transform jQuery cssHooks,
 with animation support on all motion:
 
 <pre>
-$(q).css('turtleSpeed', '10');         // default speed in moves per second.
+$(q).css('turtleSpeed', '10');         // speed in moves per second.
+$(q).css('turtleEasing', 'linear');    // animation easing, defaults to swing.
 $(q).css('turtlePosition', '30 40');   // position in local coordinates.
 $(q).css('turtlePositionX', '30px');   // x component.
 $(q).css('turtlePositionY', '40px');   // y component.
