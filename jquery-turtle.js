@@ -3939,7 +3939,7 @@ function input(name, callback, numeric) {
     name = null;
   }
   name = $.isNumeric(name) || name ? name : '&rArr;';
-  var textbox = $('<input>'),
+  var textbox = $('<input>').css({margin:0, padding:0}),
       label = $(
       '<label style="display:block">' +
       name + '&nbsp;' +
