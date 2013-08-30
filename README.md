@@ -187,6 +187,10 @@ The hull of an element defaults to the bounding box of the element
 (as transformed) but can be overridden by the turtleHull CSS property,
 if present.  The default turtle is given a turtle-shaped hull.
 
+The touches() function can also test for collisions with a color
+on the canvas - use touches('red'), for example, or for collsisions
+with any nontransparent color, use touches('color').
+
 Turtle Teaching Environment
 ---------------------------
 
@@ -222,7 +226,9 @@ cs()                  // Clears the screen, both the canvas and the body text.
 cg()                  // Clears the graphics canvas without clearing the text.
 ct()                  // Clears the text without clearing the canvas.
 defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
-tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
+timer(secs, fn)       // Calls back fn once after secs seconds.
+tick([perSec,] fn)    // Repeatedly calls fn at the given rate (null clears).
+done(fn)              // Calls back fn after all turtle animation is complete.
 random(n)             // Returns a random number [0..n-1].
 random(list)          // Returns a random element of the list.
 random('normal')      // Returns a gaussian random (mean 0 stdev 1).

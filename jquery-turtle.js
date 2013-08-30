@@ -190,6 +190,10 @@ The hull of an element defaults to the bounding box of the element
 (as transformed) but can be overridden by the turtleHull CSS property,
 if present.  The default turtle is given a turtle-shaped hull.
 
+The touches() function can also test for collisions with a color
+on the canvas - use touches('red'), for example, or for collsisions
+with any nontransparent color, use touches('color').
+
 Turtle Teaching Environment
 ---------------------------
 
@@ -225,7 +229,9 @@ cs()                  // Clears the screen, both the canvas and the body text.
 cg()                  // Clears the graphics canvas without clearing the text.
 ct()                  // Clears the text without clearing the canvas.
 defaultspeed(mps)     // Sets $.fx.speeds.turtle to 1000 / mps.
-tick([perSec,] fn)    // Sets fn as the tick callback (null to clear).
+timer(secs, fn)       // Calls back fn once after secs seconds.
+tick([perSec,] fn)    // Repeatedly calls fn at the given rate (null clears).
+done(fn)              // Calls back fn after all turtle animation is complete.
 random(n)             // Returns a random number [0..n-1].
 random(list)          // Returns a random element of the list.
 random('normal')      // Returns a gaussian random (mean 0 stdev 1).
@@ -3230,6 +3236,12 @@ var dollar_turtle_methods = {
   ["<u>ct()</u> Clear text. Does not alter graphics canvas: " +
       "<mark>do ct</mark>"],
   function ct() { directIfGlobal(function() { clearField('text') }); }),
+  timer: wraphelp(
+  ["<u>timer(secs, fn)</u> Calls fn in secs seconds:" +
+      "<mark>timer 5, -> write('time is up')</mark>"],
+  function tick(secs, fn) {
+    directIfGlobal(function() { setTimeout(fn, secs * 1000); });
+  }),
   tick: wraphelp(
   ["<u>tick(fps, fn)</u> Calls fn fps times per second until " +
       "<u>tick</u> is called again: " +
@@ -3247,6 +3259,23 @@ var dollar_turtle_methods = {
       "ABC notation</a>. Also see <u>play</u>." +
       "<mark>sound \"cc/e/c/e/g2\"</mark>"],
   function sound() { playABC(null, arguments); }),
+  done: wraphelp(
+  ["<u>done(fn)</u> Calls fn when animation is complete. Use with await: " +
+      "<mark>await done defer()</mark>"],
+  function done(callback) {
+    var sync = $('.turtle');
+    return sync.promise().done(function() {
+      if (sync) {
+        // Never do callback synchronously.  Instead redo the promise
+        // callback after a zero setTimeout.
+        var async = sync;
+        setTimeout(function() { async.promise().done(callback); }, 0);
+      } else {
+        callback.apply(this, arguments);
+      }
+    });
+    sync = null;
+  }),
   write: wraphelp(
   ["<u>write(html)</u> Writes text output. Arbitrary HTML may be written: " +
       "<mark>write 'Hello, world!'</mark>"],
@@ -4121,10 +4150,20 @@ function parseABCNotes(str) {
 }
 function parseStem(tokens, index) {
   var pitch = [];
+  var duration = '';
   if (index < tokens.length && tokens[index] == '[') {
     index++;
-    while (index < tokens.length && /[A-Ga-g]/.test(tokens[index])) {
-      pitch.push(tokens[index++]);
+    while (index < tokens.length) {
+      if (/[A-Ga-g]/.test(tokens[index])) {
+        pitch.push(tokens[index++]);
+      } else if (/[xzXZ]/.test(tokens[index])) {
+        index++;
+      } else {
+        break;
+      }
+      if (index < tokens.length && /\d|\//.test(tokens[index])) {
+        duration = tokens[index++];
+      }
     }
     if (tokens[index] != ']') {
       return null;
@@ -4138,8 +4177,7 @@ function parseStem(tokens, index) {
   } else {
     return null;
   }
-  var duration = '';
-  if (tokens.length && /\d|\//.test(tokens[index])) {
+  if (index < tokens.length && /\d|\//.test(tokens[index])) {
     duration = tokens[index++];
   }
   return {
@@ -4161,11 +4199,18 @@ function pitchToFrequency(pitch) {
   return 440 * Math.pow(2, semitone / 12);
 }
 function durationToTime(duration) {
-  var m = /^(\d*)(?:\/(\d*))?$|^(\/+)$/.exec(duration), n, d;
+  var m = /^(\d*)(?:\/(\d*))?$|^(\/+)$/.exec(duration), n, d, i = 0, ilen;
   if (m[3]) return Math.pow(0.5, m[3].length);
-  n = (m[1] ? parseFloat(m[1]) : 1);
   d = (m[2] ? parseFloat(m[2]) : /\//.test(duration) ? 2 : 1);
-  return n / d;
+  // Handle mixed frations:
+  ilen = 0;
+  n = (m[1] ? parseFloat(m[1]) : 1);
+  while (ilen + 1 < m[1].length && n > d) {
+    ilen += 1
+    i = parseFloat(m[1].substring(0, ilen))
+    n = parseFloat(m[1].substring(ilen))
+  }
+  return i + (n / d);
 }
 function playABC(elem, args) {
   if (!isAudioPresent()) {
