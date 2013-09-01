@@ -59,9 +59,10 @@ the default turtle, if used):
 <pre>
 $(q).fd(100)      // Forward relative motion in local coordinates.
 $(q).bk(50)       // Back.
-$(q).rt(90)       // Right turn.  Optional turning radius second arg.
-$(q).lt(45)       // Left turn.  Optional turning radius second arg.
+$(q).rt(90)       // Right turn.  Optional second arg is turning radius.
+$(q).lt(45)       // Left turn.  Optional second arg is turning radius.
 $(q).slide(x, y)  // Slide right by x while sliding forward by y.
+$(q).jump(x, y)   // Like slide, but without drawing.
 $(q).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
 $(q).jumpto({pageX:x,pageY:y} | [x,y])  // Like moveto, without drawing.
 $(q).turnto(bearing || position)        // Absolute direction adjustment.
@@ -108,7 +109,7 @@ $(q).hatch([n,] [img]) // Creates and returns n turtles with the given img.
 Speed and Turtle Animation
 --------------------------
 
-When the speed of a turtle is nonzero, the first eight movement
+When the speed of a turtle is nonzero, the first nine movement
 functions animate at that speed (in moves per second), and the
 remaining mutators also participate in the animation queue.  The
 default turtle speed is a leisurely one move per second (as
@@ -147,9 +148,7 @@ by passing a options object as the first parameter setting tempo, e.g.,
 'square' or 'sawtooth' or 'triangle', and envelope: which defines
 an ADSR envelope e.g., { a: 0.01, d: 0.2, s: 0.1, r: 0.1 }.
 
-The turtle's motion will pause while it is playing notes.  To play
-notes without stalling turtle movement, use the global function sound()
-instead of the turtle method play().
+The turtle's motion will pause while it is playing notes.
 
 Directing Logic in the Animation Queue
 --------------------------------------
@@ -247,7 +246,7 @@ readnum([label,] fn)  // Like read, but restricted to numeric input.
 readstr([label,] fn)  // Like read, but never converts input to a number.
 button([label,] fn)   // Makes a clickable button, calls fn when clicked.
 table(m, n)           // Outputs a table with m rows and n columns.
-sound('[DFG][EGc]')   // Plays musical notes now, without queueing.
+play('[DFG][EGc]')    // Plays musical notes.
 </pre>
 
 Here is another CoffeeScript example that demonstrates some of
@@ -1351,19 +1350,34 @@ function normalizeRotationDelta(x) {
 var drawing = {
   attached: false,
   surface: null,
+  field: null,
   ctx: null,
   canvas: null,
   timer: null,
   subpixel: 1
 };
 
-function getTurtleClipSurface() {
-  if (drawing.surface) {
-    return drawing.surface;
+function getTurtleField() {
+  if (!drawing.field) {
+    createSurfaceAndField();
   }
-  var surface = document.createElement('samp');
+  return drawing.field;
+}
+
+function getTurtleClipSurface() {
+  if (!drawing.surface) {
+    createSurfaceAndField();
+  }
+  return drawing.surface;
+
+}
+
+function createSurfaceAndField() {
+  var surface = document.createElement('samp'),
+      field = document.createElement('samp'),
+      cw = Math.floor(ww() / 2),
+      ch = Math.floor(wh() / 2);
   $(surface)
-    .attr('id', '_turtlefield')
     .css({
       position: 'absolute',
       display: 'inline-block',
@@ -1373,13 +1387,23 @@ function getTurtleClipSurface() {
       // Setting transform origin for the turtle field
       // fixes a "center" point in page coordinates that
       // will not change even if the document resizes.
-      transformOrigin: Math.floor(ww() / 2) + "px " +
-                       Math.floor(wh() / 2) + "px",
+      transformOrigin: cw + "px " + ch + "px",
       overflow: 'hidden'
     });
+  $(field).attr('id', 'field')
+    .css({
+      position: 'absolute',
+      display: 'inline-block',
+      top: ch, left: cw,
+      font: 'inherit',
+      // Setting transform origin for the turtle field
+      // fixes a "center" point in page coordinates that
+      // will not change even if the document resizes.
+      transformOrigin: "0px 0px",
+    }).appendTo(surface);
   drawing.surface = surface;
+  drawing.field = field;
   attachClipSurface();
-  return surface;
 }
 
 function attachClipSurface() {
@@ -1394,7 +1418,7 @@ function attachClipSurface() {
         // touch a turtle directly within the turtlefield.
         var warn = $.turtle.nowarn;
         $.turtle.nowarn = true;
-        var sel = $('#_turtlefield > .turtle').within('touch', e).eq(0);
+        var sel = $(drawing.surface).find('.turtle').within('touch', e).eq(0);
         $.turtle.nowarn = warn;
         if (sel.length === 1) {
           // Erase portions of the event that are wrong for the turtle.
@@ -1762,14 +1786,20 @@ function clearField(arg) {
     eraseBox(document, {fillStyle: 'transparent'});
   }
   if (!arg || /\bturtles\b/.test(arg)) {
-    var sel = $('#_turtlefield .turtle');
-    if (global_turtle) {
-      sel = sel.not(global_turtle);
+    if (drawing.surface) {
+      var sel = $(drawing.surface).find('.turtle');
+      if (global_turtle) {
+        sel = sel.not(global_turtle);
+      }
+      sel.remove();
     }
-    sel.remove();
   }
   if (!arg || /\btext\b/.test(arg)) {
-    $('body').contents().not('samp#_testpanel,samp#_turtlefield').remove();
+    var keep = $('samp#_testpanel');
+    if (drawing.surface) {
+      keep = keep.add(drawing.surface);
+    }
+    $('body').contents().not(keep).remove();
   }
 }
 
@@ -1976,7 +2006,7 @@ function animTime(elem) {
 
 function animEasing(elem) {
   var state = $.data(elem, 'turtleData');
-  if (!state) return 'easing';
+  if (!state) return null;
   return state.easing;
 }
 
@@ -2559,6 +2589,20 @@ var turtlefn = {
           animTime(elem), animEasing(elem));
     });
   }),
+  jump: wraphelp(
+  ["<u>jump(x, y)</u> Move without drawing (compare to <u>slide</u>): " +
+      "<mark>jump 0, 50</mark>"],
+  function jump(x, y) {
+    var args = arguments;
+    return this.direct(function(j, elem) {
+      var down = this.css('turtlePenDown');
+      this.css({turtlePenDown: 'up'});
+      this.slide.apply(this, args);
+      this.direct(function() {
+        this.css({turtlePenDown: down});
+      });
+    });
+  }),
   jumpto: wraphelp(
   ["<u>jumpto(x, y)</u> Move without drawing (compare to <u>moveto</u>): " +
       "<mark>jumpto 50, 100</mark>"],
@@ -2747,7 +2791,7 @@ var turtlefn = {
   play: wraphelp(
   ["<u>play(notes)</u> Play notes. Notes are specified in " +
       "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
-      "ABC notation</a>.  Also see <u>sound</u>. " +
+      "ABC notation</a>.  " +
       "<mark>play \"de[dBFA]2[cGEC]4\"</mark>"],
   function play(notes) {
     var args = arguments;
@@ -2796,7 +2840,7 @@ var turtlefn = {
         display: 'inline-block',
         top: 0,
         left: 0
-      }).addClass('turtle').appendTo(getTurtleClipSurface());
+      }).addClass('turtle').appendTo(getTurtleField());
       // Mimic the current position and rotation and scale of the turtle.
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
@@ -2825,7 +2869,7 @@ var turtlefn = {
   },
   hatch: wraphelp(
   ["<u>hatch(count, color)</u> Hatches any number of new turtles. Optional " +
-      "color name. <mark>g = hatch 5; g.direct -> @fd random 500</mark>"],
+      "color name. <mark>g = hatch 5; g.direct -> this.fd random 500</mark>"],
   function(count, spec) {
     if (!this.length) return;
     if (spec === undefined && !$.isNumeric(count)) {
@@ -2835,7 +2879,7 @@ var turtlefn = {
     // Determine the container in which to hatch the turtle.
     var container = this[0], clone = null;
     if ($.isWindow(container) || container.nodeType === 9) {
-      container = getTurtleClipSurface();
+      container = getTurtleField();
     } else if (/^(?:br|img|input|hr)$/i.test(container.tagName)) {
       container = container.parentElement;
       clone = this[0];
@@ -3253,12 +3297,19 @@ var dollar_turtle_methods = {
   ["<u>defaultspeed(mps)</u> Sets default turtle speed for new turtles: " +
       "<mark>defaultspeed 60</mark>"],
   globaldefaultspeed),
-  sound: wraphelp(
-  ["<u>sound(notes)</u> Sound notes immediately. Notes are specified in " +
+  play: wraphelp(
+  ["<u>play(notes)</u> Play notes. Notes are specified in " +
       "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
-      "ABC notation</a>. Also see <u>play</u>." +
-      "<mark>sound \"cc/e/c/e/g2\"</mark>"],
-  function sound() { playABC(null, arguments); }),
+      "ABC notation</a>.  " +
+      "<mark>play \"de[dBFA]2[cGEC]4\"</mark>"],
+  function play() {
+    if (global_turtle) {
+      var sel = $(global_turtle);
+      sel.play.apply(sel, arguments);
+    } else {
+      playABC(null, arguments);
+    }
+  }),
   done: wraphelp(
   ["<u>done(fn)</u> Calls fn when animation is complete. Use with await: " +
       "<mark>await done defer()</mark>"],
@@ -3308,7 +3359,7 @@ var dollar_turtle_methods = {
   random),
   hatch: wraphelp(
   ["<u>hatch(count, color)</u> Hatches any number of new turtles. Optional " +
-      "color name. <mark>g = hatch 5; g.direct -> @fd random 500</mark>"],
+      "color name. <mark>g = hatch 5; g.direct -> this.fd random 500</mark>"],
   function hatch(count, spec) {
     if (global_turtle) return $(global_turtle).hatch(count, spec);
     else return $(document).hatch(count, spec);
@@ -3329,23 +3380,75 @@ var dollar_turtle_methods = {
   rgb: wraphelp(
   ["<u>rgb(r,g,b)</u> Makes a color out of red, green, and blue parts. " +
       "<mark>pen rgb(150,88,255)</mark>"],
-  function() { return componentColor('rgb', arguments); }),
+  function(r, g, b) { return componentColor('rgb', [
+      Math.max(0, Math.min(255, Math.floor(r))),
+      Math.max(0, Math.min(255, Math.floor(g))),
+      Math.max(0, Math.min(255, Math.floor(b))) ]); }),
   rgba: wraphelp(
   ["<u>rgba(r,g,b,a)</u> Makes a color out of red, green, blue, and alpha. " +
       "<mark>pen rgba(150,88,255,0.5)</mark>"],
-  function() { return componentColor('rgba', arguments); }),
+  function(r, g, b) { return componentColor('rgba', [
+      Math.max(0, Math.min(255, Math.floor(r))),
+      Math.max(0, Math.min(255, Math.floor(g))),
+      Math.max(0, Math.min(255, Math.floor(b))),
+      a ]); }),
   hsl: wraphelp(
   ["<u>hsl(h,s,l)</u> Makes a color out of hue, saturation, and lightness. " +
       "<mark>pen hsl(120,0.65,0.75)</mark>"],
-  function() { return componentColor('hsl', [arguments[0],
-     (arguments[1] * 100).toFixed(0) + '%',
-     (arguments[2] * 100).toFixed() + '%']); }),
+  function(h, s, l) { return componentColor('hsl', [
+     h,
+     (s * 100).toFixed(0) + '%',
+     (l * 100).toFixed() + '%']); }),
   hsla: wraphelp(
   ["<u>hsla(h,s,l,a)</u> Makes a color out of hue, saturation, lightness, " +
       "alpha. <mark>pen hsla(120,0.65,0.75,0.5)</mark>"],
-  function() { return componentColor('hsl', [arguments[0],
-     (arguments[1] * 100).toFixed(0) + '%',
-     (arguments[2] * 100).toFixed(0) + '%', arguments[3]]); }),
+  function(h, s, l, a) { return componentColor('hsl', [
+     h,
+     (s * 100).toFixed(0) + '%',
+     (l * 100).toFixed(0) + '%',
+     a]); }),
+  click: wraphelp(
+  ["<u>click(fn)</u> Calls fn(event) whenever the mouse is clicked. " +
+      "<mark>click (e) -> moveto e; label 'clicked'</mark>"],
+  function(fn) {
+    $(window).click(fn);
+  }),
+  mouseup: wraphelp(
+  ["<u>mouseup(fn)</u> Calls fn(event) whenever the mouse is released. " +
+      "<mark>mouseup (e) -> moveto e; label 'up'</mark>"],
+  function(fn) {
+    $(window).mouseup(fn);
+  }),
+  mousedown: wraphelp(
+  ["<u>mousedown(fn)</u> Calls fn(event) whenever the mouse is pressed. " +
+      "<mark>mousedown (e) -> moveto e; label 'down'</mark>"],
+  function(fn) {
+    $(window).mousedown(fn);
+  }),
+  mousemove: wraphelp(
+  ["<u>mousedown(fn)</u> Calls fn(event) whenever the mouse is moved. " +
+      "<mark>mousemove (e) -> moveto e</mark>"],
+  function(fn) {
+    $(window).mousemove(fn);
+  }),
+  keydown: wraphelp(
+  ["<u>keydown(fn)</u> Calls fn(event) whenever a key is pushed down. " +
+      "<mark>keydown (e) -> write 'down ' + e.which</mark>"],
+  function(fn) {
+    $(window).keydown(fn);
+  }),
+  keyup: wraphelp(
+  ["<u>keyup(fn)</u> Calls fn(event) whenever a key is released. " +
+      "<mark>keyup (e) -> write 'up ' + e.which</mark>"],
+  function(fn) {
+    $(window).keyup(fn);
+  }),
+  keypress: wraphelp(
+  ["<u>keypress(fn)</u> Calls fn(event) whenever a letter is typed. " +
+      "<mark>keypress (e) -> write 'press ' + e.which</mark>"],
+  function(fn) {
+    $(window).keypress(fn);
+  }),
   help: globalhelp
 };
 
@@ -3392,7 +3495,7 @@ var colors = [
 
 (function() {
   var specialstrings = [
-    "none", "path", "up", "down",  // Pen modes.
+    "none", "erase", "path", "up", "down",  // Pen modes.
     "color", "position", "normal", // Random modes.
     "touch" // Special Within distances.
   ];
@@ -3432,10 +3535,6 @@ $.turtle = function turtle(id, options) {
   if (!options.hasOwnProperty('events') || options.events) {
     turtleevents(options.eventprefix);
   }
-  // Set up global objects by id.
-  if (!options.hasOwnProperty('ids') || options.ids) {
-    turtleids(options.idprefix);
-  }
   // Set up global log function.
   if (!options.hasOwnProperty('see') || options.see) {
     exportsee();
@@ -3472,11 +3571,15 @@ $.turtle = function turtle(id, options) {
     var extraturtlefn = {
       css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
       animate:1, stop:1, toggle:1, finish:1, remove:1, promise:1 };
-    var globalfn = $.extend({}, turtlefn, eventfn, extraturtlefn);
+    var globalfn = $.extend({}, turtlefn, extraturtlefn);
     global_turtle_methods.push.apply(global_turtle_methods,
        globalizeMethods(selector, globalfn));
     global_turtle = selector[0];
     $(document).on('DOMNodeRemoved.turtle', onDOMNodeRemoved);
+  }
+  // Set up global objects by id.
+  if (!options.hasOwnProperty('ids') || options.ids) {
+    turtleids(options.idprefix);
   }
   // Set up test console.
   if (!options.hasOwnProperty('panel') || options.panel) {
@@ -3787,7 +3890,7 @@ function hatchone(name, container, clonepos) {
     left: 0
   });
   if (!container || container.nodeType == 9 || $.isWindow(container)) {
-    container = getTurtleClipSurface();
+    container = getTurtleField();
   }
   result.appendTo(container);
 
