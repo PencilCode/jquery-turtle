@@ -86,7 +86,7 @@ $(q).twist(180)   // Changes which direction is considered "forward".
 $(q).mirror(true) // Flips the turtle across its main axis.
 $(q).reload()     // Reloads the turtle's image (restarting animated gifs)
 $(q).done(fn)     // Like $(q).promise().done(fn). Calls after all animation.
-$(q).direct(fn)   // Like each, but this is set to $(elt) instead of elt,
+$(q).plan(fn)     // Like each, but this is set to $(elt) instead of elt,
                   // and the callback fn can insert into the animation queue.
 
 // Methods below this line do not queue for animation.
@@ -150,12 +150,12 @@ an ADSR envelope e.g., { a: 0.01, d: 0.2, s: 0.1, r: 0.1 }.
 
 The turtle's motion will pause while it is playing notes.
 
-Directing Logic in the Animation Queue
---------------------------------------
+Planning Logic in the Animation Queue
+-------------------------------------
 
-The direct method can be used to queue logic (including synchronous
+The plan method can be used to queue logic (including synchronous
 tests or actions) by running a function in the animation queue.  Unlike
-jquery queue(), direct arranges things so that if further animations
+jquery queue(), plan arranges things so that if further animations
 are queued by the callback function, they are inserted (in natural
 recursive functional execution order) instead of being appended.
 
@@ -2455,17 +2455,17 @@ var turtlefn = {
       "<mark>rt 90, 50</mark>"],
   function rt(degrees, radius) {
     if (!radius) {
-      return this.direct(function(j, elem) {
+      return this.plan(function(j, elem) {
         this.animate({turtleRotation: '+=' + cssNum(degrees || 0) + 'deg'},
             animTime(elem), animEasing(elem));
       });
     } else {
-      return this.direct(function(j, elem) {
+      return this.plan(function(j, elem) {
         var oldRadius = this.css('turtleTurningRadius');
         this.css({turtleTurningRadius: (degrees < 0) ? -radius : radius});
         this.animate({turtleRotation: '+=' + cssNum(degrees) + 'deg'},
             animTime(elem), animEasing(elem));
-        this.direct(function() {
+        this.plan(function() {
           this.css({turtleTurningRadius: oldRadius});
         });
       });
@@ -2478,17 +2478,17 @@ var turtlefn = {
       "<mark>lt 90, 50</mark>"],
   function lt(degrees, radius) {
     if (!radius) {
-      return this.direct(function(j, elem) {
+      return this.plan(function(j, elem) {
         this.animate({turtleRotation: '-=' + cssNum(degrees || 0) + 'deg'},
             animTime(elem), animEasing(elem));
       });
     } else {
-      return this.direct(function(j, elem) {
+      return this.plan(function(j, elem) {
         var oldRadius = this.css('turtleTurningRadius');
         this.css({turtleTurningRadius: (degrees < 0) ? -radius : radius});
         this.animate({turtleRotation: '-=' + cssNum(degrees) + 'deg'},
             animTime(elem), animEasing(elem));
-        this.direct(function() {
+        this.plan(function() {
           this.css({turtleTurningRadius: oldRadius});
         });
       });
@@ -2517,7 +2517,7 @@ var turtlefn = {
       }
       return this;
     }
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       fixOriginIfWatching(elem);
       this.animate({turtleForward: '+=' + cssNum(amount || 0) + 'px'},
           animTime(elem), animEasing(elem));
@@ -2535,7 +2535,7 @@ var turtlefn = {
   function slide(x, y) {
     if (!y) { y = 0; }
     if (!x) { x = 0; }
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       this.animate({turtlePosition:
           displacedPosition(elem, y, x)}, animTime(elem), animEasing(elem));
     });
@@ -2565,7 +2565,7 @@ var turtlefn = {
       limit = y;
     }
     // Otherwise moveto {pos}, limit: absolute motion with optional limit.
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       var pos = position;
       if (pos === null) {
         pos = $(homeContainer(elem)).pagexy();
@@ -2594,11 +2594,11 @@ var turtlefn = {
       "<mark>jump 0, 50</mark>"],
   function jump(x, y) {
     var args = arguments;
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       var down = this.css('turtlePenDown');
       this.css({turtlePenDown: 'up'});
       this.slide.apply(this, args);
-      this.direct(function() {
+      this.plan(function() {
         this.css({turtlePenDown: down});
       });
     });
@@ -2608,11 +2608,11 @@ var turtlefn = {
       "<mark>jumpto 50, 100</mark>"],
   function jumpto(x, y) {
     var args = arguments;
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       var down = this.css('turtlePenDown');
       this.css({turtlePenDown: 'up'});
       this.moveto.apply(this, args);
-      this.direct(function() {
+      this.plan(function() {
         this.css({turtlePenDown: down});
       });
     });
@@ -2630,7 +2630,7 @@ var turtlefn = {
       bearing = [bearing, y];
       y = null;
     }
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       // turnto bearing: just use the given absolute.
       var limit = null, ts, r,
@@ -2672,7 +2672,7 @@ var turtlefn = {
   ["<u>home()</u> Goes home. " +
       "Jumps to the center without drawing: <mark>do home</mark>"],
   function home(container) {
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       var down = this.css('turtlePenDown'),
           radius = this.css('turtleTurningRadius'),
           hc = container || homeContainer(elem);
@@ -2694,7 +2694,7 @@ var turtlefn = {
     if (penstyle && ((penstyle.method || penstyle) === turtlefn.fill)) {
       penstyle = 'fill';
     }
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       if (penstyle === undefined) {
         penstyle = 'black';
       } else if (penstyle === null) {
@@ -2718,7 +2718,7 @@ var turtlefn = {
   function fill(style) {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       endAndFillPenPath(elem, ps);
     });
   }),
@@ -2736,7 +2736,7 @@ var turtlefn = {
     if (diameter === undefined) { diameter = 8.8; }
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       var c = this.pagexy(),
           ts = readTurtleTransform(elem, true),
           extraDiam = (ps.eraseMode ? 2 : 0);
@@ -2756,13 +2756,13 @@ var turtlefn = {
   ["<u>st()</u> Show turtle. The reverse of " +
       "<u>ht()</u>. <mark>do st</mark>"],
   function st() {
-    return this.direct(function() { this.show(); });
+    return this.plan(function() { this.show(); });
   }),
   ht: wraphelp(
   ["<u>ht()</u> Hide turtle. The turtle can be shown again with " +
       "<u>st()</u>. <mark>do ht</mark>"],
   function ht() {
-    return this.direct(function() { this.hide(); });
+    return this.plan(function() { this.hide(); });
   }),
   pu: wraphelp(
   ["<u>pu()</u> Pen up. Tracing can be resumed with " +
@@ -2804,7 +2804,7 @@ var turtlefn = {
   ["<u>speed(persec)</u> Set turtle speed in moves per second: " +
       "<mark>speed Infinity</mark>"],
   function speed(mps) {
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       this.css('turtleSpeed', mps);
     });
   }),
@@ -2816,7 +2816,7 @@ var turtlefn = {
   function wear(name) {
     var img = nameToImg(name);
     if (!img) return this;
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       // Bug workaround - if backgroudnImg isn't cleared early enough,
       // the turtle image doesn't update.  (Even though this is done
       // later in applyImg.)
@@ -2834,7 +2834,7 @@ var turtlefn = {
   ["<u>label(text)</u> Labels the current position with HTML: " +
       "<mark>label 'remember'</mark>"],
   function label(html, fn) {
-    return this.direct(function() {
+    return this.plan(function() {
       var out = output(html, 'label').css({
         position: 'absolute',
         display: 'inline-block',
@@ -2849,13 +2849,13 @@ var turtlefn = {
         turtleScale: this.css('turtleScale')
       });
       if ($.isFunction(fn)) {
-        out.direct(fn);
+        out.plan(fn);
       }
     });
   }),
   reload: function reload() {
     // Used to reload images to cycle animated gifs.
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) {
         window.location.reload();
         return;
@@ -2869,7 +2869,7 @@ var turtlefn = {
   },
   hatch: wraphelp(
   ["<u>hatch(count, color)</u> Hatches any number of new turtles. Optional " +
-      "color name. <mark>g = hatch 5; g.direct -> this.fd random 500</mark>"],
+      "color name. <mark>g = hatch 5; g.plan -> this.fd random 500</mark>"],
   function(count, spec) {
     if (!this.length) return;
     if (spec === undefined && !$.isNumeric(count)) {
@@ -2914,7 +2914,7 @@ var turtlefn = {
     return computePositionAsLocalOffset(this[0]);
   }),
   bearing: wraphelp(
-  ["<u>bearing()</u> Turtle bearing. North is 0; East is 90: " +
+  ["<u>bearing()</u> Current turtle bearing. North is 0; East is 90: " +
       "<mark>bearing()</mark>",
    "<u>bearing(obj)</u> <u>bearing(x, y)</u> Returns the direction " +
       "from the turtle towards an object or coordinate. " +
@@ -2968,7 +2968,7 @@ var turtlefn = {
           p = c[0] * (c.length > 1 ? c[1] : c[0]);
       return (p < 0);
     }
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       var c = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
       if (c.length === 1) { c.push(c[0]); }
       if ((c[0] * c[1] < 0) === (!val)) {
@@ -2985,7 +2985,7 @@ var turtlefn = {
     if (val === undefined) {
       return parseFloat(this.css('turtleTwist'));
     }
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       this.css('turtleTwist', val);
     });
@@ -2997,7 +2997,7 @@ var turtlefn = {
     if (valy === undefined) { valy = valx; }
     // Disallow scaling to zero using this method.
     if (!valx || !valy) { return this; }
-    return this.direct(function(j, elem) {
+    return this.plan(function(j, elem) {
       if ($.isWindow(elem) || elem.nodeType === 9) return;
       var c = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
       if (c.length === 1) { c.push(c[0]); }
@@ -3173,7 +3173,10 @@ var turtlefn = {
     });
     sync = null;
   }),
-  direct: function direct(qname, callback, args) {
+  plan: wraphelp(
+  ["<u>plan(fn)</u> Runs fn in the animation queue. For planning logic: " +
+      "<mark>write getxy(); fd 50; plan -> write getxy(); bk 50"],
+  function plan(qname, callback, args) {
     if ($.isFunction(qname)) {
       args = callback;
       callback = qname;
@@ -3216,7 +3219,7 @@ var turtlefn = {
       }
     }
     return this;
-  }
+  })
 };
 
 // It is unreasonable (and a common error) to queue up motions to try to
@@ -3246,6 +3249,17 @@ function checkPredicate(fname, sel) {
 
 $.fn.extend(turtlefn);
 
+// LEGACY NAMES
+function deprecate(oldname, newname) {
+  $.fn[oldname] = function() {
+    see.html('<span style="color:red;">' + oldname + ' deprecated.  Use ' +
+        newname + '.</span>');
+    $.fn[oldname] = $.fn[newname];
+    $.fn[newname].apply(this, arguments);
+  }
+}
+deprecate('direct', 'plan');
+
 //////////////////////////////////////////////////////////////////////////
 // TURTLE GLOBAL ENVIRONMENT
 // Implements educational support when $.turtle() is called:
@@ -3271,27 +3285,27 @@ var dollar_turtle_methods = {
   cs: wraphelp(
   ["<u>cs()</u> Clear screen. Erases both graphics canvas and " +
       "body text: <mark>do cs</mark>"],
-  function cs() { directIfGlobal(function() { clearField() }); }),
+  function cs() { planIfGlobal(function() { clearField() }); }),
   cg: wraphelp(
   ["<u>cg()</u> Clear graphics. Does not alter body text: " +
       "<mark>do cg</mark>"],
-  function cg() { directIfGlobal(function() {clearField('canvas turtles') });}),
+  function cg() { planIfGlobal(function() {clearField('canvas turtles') });}),
   ct: wraphelp(
   ["<u>ct()</u> Clear text. Does not alter graphics canvas: " +
       "<mark>do ct</mark>"],
-  function ct() { directIfGlobal(function() { clearField('text') }); }),
+  function ct() { planIfGlobal(function() { clearField('text') }); }),
   timer: wraphelp(
   ["<u>timer(secs, fn)</u> Calls fn in secs seconds:" +
       "<mark>timer 5, -> write('time is up')</mark>"],
   function tick(secs, fn) {
-    directIfGlobal(function() { setTimeout(fn, secs * 1000); });
+    planIfGlobal(function() { setTimeout(fn, secs * 1000); });
   }),
   tick: wraphelp(
   ["<u>tick(fps, fn)</u> Calls fn fps times per second until " +
       "<u>tick</u> is called again: " +
       "<mark>c = 10; tick 1, -> c and write(c--) or tick()</mark>"],
   function tick(tps, fn) {
-    directIfGlobal(function() { globaltick(tps, fn); });
+    planIfGlobal(function() { globaltick(tps, fn); });
   }),
   defaultspeed: wraphelp(
   ["<u>defaultspeed(mps)</u> Sets default turtle speed for new turtles: " +
@@ -3359,7 +3373,7 @@ var dollar_turtle_methods = {
   random),
   hatch: wraphelp(
   ["<u>hatch(count, color)</u> Hatches any number of new turtles. Optional " +
-      "color name. <mark>g = hatch 5; g.direct -> this.fd random 500</mark>"],
+      "color name. <mark>g = hatch 5; g.plan -> this.fd random 500</mark>"],
   function hatch(count, spec) {
     if (global_turtle) return $(global_turtle).hatch(count, spec);
     else return $(document).hatch(count, spec);
@@ -3453,9 +3467,6 @@ var dollar_turtle_methods = {
 };
 
 var extrahelp = {
-  remove: {helptext: ["<u>remove()</u> Removes main turtle completely. " +
-      "Also removes <u>fd</u>, <u>bk</u>, <u>rt</u>, etc: " +
-      "<mark>do remove</mark>"]},
   finish: {helptext: ["<u>finish()</u> Finishes turtle animation. " +
       "Does not pause for effect: " +
       "<mark>do finish</mark>"]}
@@ -3570,7 +3581,7 @@ $.turtle = function turtle(id, options) {
       (!options.hasOwnProperty('global') || options.global)) {
     var extraturtlefn = {
       css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
-      animate:1, stop:1, toggle:1, finish:1, remove:1, promise:1 };
+      animate:1, stop:1, toggle:1, finish:1, promise:1, direct:1 };
     var globalfn = $.extend({}, turtlefn, extraturtlefn);
     global_turtle_methods.push.apply(global_turtle_methods,
        globalizeMethods(selector, globalfn));
@@ -3661,9 +3672,9 @@ function clearGlobalTurtle() {
   global_turtle_methods.length = 0;
 }
 
-function directIfGlobal(fn) {
+function planIfGlobal(fn) {
   if (global_turtle) {
-    $(global_turtle).direct(fn);
+    $(global_turtle).plan(fn);
   } else {
     fn();
   }
