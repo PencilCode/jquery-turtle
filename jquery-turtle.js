@@ -2746,10 +2746,10 @@ var turtlefn = {
       watchImageToFixOriginOnLoad(elem);
     });
   }),
-  wait: wraphelp(
-  ["<u>wait(seconds)</u> Waits some seconds before proceeding. " +
+  pause: wraphelp(
+  ["<u>pause(seconds)</u> Pauses some seconds before proceeding. " +
       "<mark>fd 100; wait 2.5; bk 100</mark>"],
-  function wait(seconds) {
+  function pause(seconds) {
     return this.delay(seconds * 1000);
   }),
   st: wraphelp(
@@ -4445,7 +4445,7 @@ var see;  // defined below.
 var paneltitle = '';
 var logconsole = null;
 var uselocalstorage = '_loghistory';
-var panelheight = 100;
+var panelheight = 200;
 var currentscope = '';
 var scopes = {
   '':  { e: window.eval, t: window },
@@ -4613,7 +4613,7 @@ function pulljQuery(callback) {
 // ---------------------------------------------------------------------
 // LOG FUNCTION SUPPORT
 // ---------------------------------------------------------------------
-var logcss = "input._log:focus{outline:none;}label._log > span:first-of-type:hover{text-decoration:underline;}samp._log > label._log,samp_.log > span > label._log{display:inline-block;vertical-align:top;}label._log > span:first-of-type{margin-left:2em;text-indent:-1em;}label._log > ul{display:none;padding-left:14px;margin:0;}label._log > span:before{content:'';font-size:70%;font-style:normal;display:inline-block;width:0;text-align:center;}label._log > span:first-of-type:before{content:'\\0025B6';}label._log > ul > li{display:block;white-space:pre-line;margin-left:2em;text-indent:-1em}label._log > ul > li > samp{margin-left:-1em;text-indent:0;white-space:pre;}label._log > input[type=checkbox]:checked ~ span{margin-left:2em;text-indent:-1em;}label._log > input[type=checkbox]:checked ~ span:first-of-type:before{content:'\\0025BC';}label._log > input[type=checkbox]:checked ~ span:before{content:'';}label._log,label._log > input[type=checkbox]:checked ~ ul{display:block;}label._log > span:first-of-type,label._log > input[type=checkbox]:checked ~ span{display:inline-block;}label._log > input[type=checkbox],label._log > input[type=checkbox]:checked ~ span > span{display:none;}";
+var logcss = "input._log:focus{outline:none;}samp._logcaret{position:absolute;left:0;font-size:120%;}samp._logcaret:before{content: '>'}label._log > span:first-of-type:hover{text-decoration:underline;}samp._log > label._log,samp_.log > span > label._log{display:inline-block;vertical-align:top;}label._log > span:first-of-type{margin-left:2em;text-indent:-1em;}label._log > ul{display:none;padding-left:14px;margin:0;}label._log > span:before{content:'';font-size:70%;font-style:normal;display:inline-block;width:0;text-align:center;}label._log > span:first-of-type:before{content:'\\0025B6';}label._log > ul > li{display:block;white-space:pre-line;margin-left:2em;text-indent:-1em}label._log > ul > li > samp{margin-left:-1em;text-indent:0;white-space:pre;}label._log > input[type=checkbox]:checked ~ span{margin-left:2em;text-indent:-1em;}label._log > input[type=checkbox]:checked ~ span:first-of-type:before{content:'\\0025BC';}label._log > input[type=checkbox]:checked ~ span:before{content:'';}label._log,label._log > input[type=checkbox]:checked ~ ul{display:block;}label._log > span:first-of-type,label._log > input[type=checkbox]:checked ~ span{display:inline-block;}label._log > input[type=checkbox],label._log > input[type=checkbox]:checked ~ span > span{display:none;}";
 var addedcss = false;
 var cescapes = {
   '\0': '\\0', '\b': '\\b', '\f': '\\f', '\n': '\\n', '\r': '\\r',
@@ -5076,8 +5076,7 @@ function seeclear() {
   $('#_testlog').find('._log').not('#_testpaneltitle').remove();
 }
 function promptcaret(color) {
-  return '<samp style="position:absolute;left:0;font-size:120%;color:' + color +
-      ';">&gt;</samp>';
+  return '<samp class="_logcaret" style="color:' + color + ';"></samp>';
 }
 function getSelectedText(){
     if(window.getSelection) { return window.getSelection().toString(); }
