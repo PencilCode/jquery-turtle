@@ -1394,7 +1394,7 @@ function createSurfaceAndField() {
     .css({
       position: 'absolute',
       display: 'inline-block',
-      top: ch, left: cw,
+      top: ch, left: cw, width: '100%', height: '100%',
       font: 'inherit',
       // Setting transform origin for the turtle field
       // fixes a "center" point in page coordinates that
@@ -2748,7 +2748,7 @@ var turtlefn = {
   }),
   pause: wraphelp(
   ["<u>pause(seconds)</u> Pauses some seconds before proceeding. " +
-      "<mark>fd 100; wait 2.5; bk 100</mark>"],
+      "<mark>fd 100; pause 2.5; bk 100</mark>"],
   function pause(seconds) {
     return this.delay(seconds * 1000);
   }),
@@ -2801,8 +2801,8 @@ var turtlefn = {
     });
   }),
   speed: wraphelp(
-  ["<u>speed(persec)</u> Set turtle speed in moves per second: " +
-      "<mark>speed Infinity</mark>"],
+  ["<u>speed(persec)</u> Set one turtle's speed in moves per second: " +
+      "<mark>turtle.speed 60</mark>"],
   function speed(mps) {
     return this.plan(function(j, elem) {
       this.css('turtleSpeed', mps);
@@ -3249,17 +3249,6 @@ function checkPredicate(fname, sel) {
 
 $.fn.extend(turtlefn);
 
-// LEGACY NAMES
-function deprecate(oldname, newname) {
-  $.fn[oldname] = function() {
-    see.html('<span style="color:red;">' + oldname + ' deprecated.  Use ' +
-        newname + '.</span>');
-    $.fn[oldname] = $.fn[newname];
-    $.fn[newname].apply(this, arguments);
-  }
-}
-deprecate('direct', 'plan');
-
 //////////////////////////////////////////////////////////////////////////
 // TURTLE GLOBAL ENVIRONMENT
 // Implements educational support when $.turtle() is called:
@@ -3307,9 +3296,9 @@ var dollar_turtle_methods = {
   function tick(tps, fn) {
     planIfGlobal(function() { globaltick(tps, fn); });
   }),
-  defaultspeed: wraphelp(
-  ["<u>defaultspeed(mps)</u> Sets default turtle speed for new turtles: " +
-      "<mark>defaultspeed 60</mark>"],
+  speed: wraphelp(
+  ["<u>speed(mps)</u> Sets default turtle speed in moves per second: " +
+      "<mark>speed Infinity</mark>"],
   globaldefaultspeed),
   play: wraphelp(
   ["<u>play(notes)</u> Play notes. Notes are specified in " +
@@ -3471,6 +3460,23 @@ var extrahelp = {
       "Does not pause for effect: " +
       "<mark>do finish</mark>"]}
 };
+
+// LEGACY NAMES
+deprecation_shown = {}
+
+function deprecate(map, oldname, newname) {
+  map[oldname] = function() {
+    if (!(oldname in deprecation_shown)) {
+      see.html('<span style="color:red;">' + oldname + ' deprecated.  Use ' +
+          newname + '.</span>');
+      deprecation_shown[oldname] = 1;
+    }
+    // map[oldname] = map[newname];
+    map[newname].apply(this, arguments);
+  }
+}
+deprecate($.fn, 'direct', 'plan');
+deprecate(dollar_turtle_methods, 'defaultspeed', 'speed');
 
 var helpok = {};
 
