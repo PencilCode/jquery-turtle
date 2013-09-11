@@ -1852,15 +1852,16 @@ function touchesPixel(elem, color) {
   var c = getCornersInPageCoordinates(elem),
       canvas = drawing.canvas,
       bb = getBoundingBoxOfCorners(c, true),
-      w = bb.right - bb.left,
-      h = bb.bottom - bb.top,
+      w = (bb.right - bb.left) * drawing.subpixel,
+      h = (bb.bottom - bb.top) * drawing.subpixel,
       osc = getOffscreenCanvas(w, h),
       octx = osc.getContext('2d'),
       rgba = rgbaForColor(color),
       j = 1, k, data;
   if (!c || c.length < 3 || !w || !h) { return false; }
   octx.clearRect(0, 0, w, h);
-  octx.drawImage(canvas, bb.left, bb.top, w, h, 0, 0, w, h);
+  octx.drawImage(canvas,
+      bb.left * drawing.subpixel, bb.top * drawing.subpixel, w, h, 0, 0, w, h);
   octx.save();
   // Erase everything outside clipping region.
   octx.beginPath();
@@ -1869,9 +1870,11 @@ function touchesPixel(elem, color) {
   octx.lineTo(w, h);
   octx.lineTo(0, h);
   octx.closePath();
-  octx.moveTo(c[0].pageX - bb.left, c[0].pageY - bb.top);
+  octx.moveTo((c[0].pageX - bb.left) * drawing.subpixel,
+              (c[0].pageY - bb.top) * drawing.subpixel);
   for (; j < c.length; j += 1) {
-    octx.lineTo(c[j].pageX - bb.left, c[j].pageY - bb.top);
+    octx.lineTo((c[j].pageX - bb.left) * drawing.subpixel,
+                (c[j].pageY - bb.top) * drawing.subpixel);
   }
   octx.closePath();
   octx.clip();
@@ -3283,12 +3286,6 @@ var dollar_turtle_methods = {
   ["<u>ct()</u> Clear text. Does not alter graphics canvas: " +
       "<mark>do ct</mark>"],
   function ct() { planIfGlobal(function() { clearField('text') }); }),
-  timer: wraphelp(
-  ["<u>timer(secs, fn)</u> Calls fn in secs seconds:" +
-      "<mark>timer 5, -> write('time is up')</mark>"],
-  function tick(secs, fn) {
-    planIfGlobal(function() { setTimeout(fn, secs * 1000); });
-  }),
   tick: wraphelp(
   ["<u>tick(fps, fn)</u> Calls fn fps times per second until " +
       "<u>tick</u> is called again: " +
@@ -3364,8 +3361,7 @@ var dollar_turtle_methods = {
   ["<u>hatch(count, color)</u> Hatches any number of new turtles. Optional " +
       "color name. <mark>g = hatch 5; g.plan -> this.fd random 500</mark>"],
   function hatch(count, spec) {
-    if (global_turtle) return $(global_turtle).hatch(count, spec);
-    else return $(document).hatch(count, spec);
+    return $(document).hatch(count, spec);
   }),
   button: wraphelp(
   ["<u>button(text, fn)</u> Writes a button. Calls " +
