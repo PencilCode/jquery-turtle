@@ -103,6 +103,8 @@ $(q).within(d, t) // Filters to items with centers within d of t.pagexy().
 $(q).notwithin()  // The negation of within.
 $(q).cell(y, x)   // Selects the yth row and xth column cell in a table.
 $(q).hatch([n,] [img]) // Creates and returns n turtles with the given img.
+$(q).send(m, arg) // Sends an async message to be received by recv(m, fn).
+$(q).recv(m, fn)  // Calls fn once to receive a message sent by send.
 </pre>
 
 
@@ -1578,6 +1580,10 @@ function getTurtleData(elem) {
       speed: 'turtle',
       easing: 'swing',
       turningRadius: 0,
+      // message passing support
+      sent: {},
+      waiting: {},
+      pollTimer: null,
       // Below: support for image loading without messing up origin.
       lastSeenOrigin: null,
       lastSeenOriginTime: null,
@@ -3222,8 +3228,53 @@ var turtlefn = {
       }
     }
     return this;
+  }),
+  send: wraphelp(
+  ["<u>send(name)</u> Sends a message to be received by recv. " +
+      "<mark>send 'go'; recv 'go', -> fd 100</mark>"],
+  function send(name) {
+    this.each(function(j, elem) {
+      var args = Array.prototype.slice.call(arguments, 1),
+          state = getTurtleData(elem),
+          sq = state.sent[name];
+      if (!sq) { sq = state.sent[name] = []; }
+      sq.push(args);
+      pollmessages(elem, name);
+    });
+  }),
+  recv: wraphelp(
+  ["<u>recv(name, fn)</u> Calls fn once when a sent message is received. " +
+      "<mark>recv 'go', (-> fd 100); send 'go'</mark>"],
+  function recv(name, cb) {
+    if (this.length < 1) return;
+    var elem = this[0],
+        state = getTurtleData(elem),
+        wq = state.waiting[name];
+    if (!wq) { wq = state.waiting[name] = []; }
+    wq.push(cb);
+    pollmessages(elem, name);
   })
 };
+
+function pollmessages(elem, name) {
+  var state = getTurtleData(elem),
+      timer = state.pollTimer,
+      sq = state.sent[name],
+      wq = state.waiting[name];
+  if (timer === null && wq && wq.length && sq && sq.length) {
+    state.pollTimer = setTimeout(function() {
+      var state = getTurtleData(elem),
+          timer = state.pollTimer,
+          sq = state.sent[name],
+          wq = state.waiting[name];
+      state.pollTimer = null;
+      if (wq && wq.length && sq && sq.length) {
+        wq.shift().apply(null, sq.shift())
+        pollmessages(elem, name);
+      }
+    }, 0);
+  }
+}
 
 // It is unreasonable (and a common error) to queue up motions to try to
 // change the value of a predicate.  The problem is that queuing will not

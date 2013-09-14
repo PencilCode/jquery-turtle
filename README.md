@@ -56,9 +56,10 @@ the default turtle, if used):
 <pre>
 $(q).fd(100)      // Forward relative motion in local coordinates.
 $(q).bk(50)       // Back.
-$(q).rt(90)       // Right turn.  Optional turning radius second arg.
-$(q).lt(45)       // Left turn.  Optional turning radius second arg.
+$(q).rt(90)       // Right turn.  Optional second arg is turning radius.
+$(q).lt(45)       // Left turn.  Optional second arg is turning radius.
 $(q).slide(x, y)  // Slide right by x while sliding forward by y.
+$(q).jump(x, y)   // Like slide, but without drawing.
 $(q).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
 $(q).jumpto({pageX:x,pageY:y} | [x,y])  // Like moveto, without drawing.
 $(q).turnto(bearing || position)        // Absolute direction adjustment.
@@ -82,7 +83,7 @@ $(q).twist(180)   // Changes which direction is considered "forward".
 $(q).mirror(true) // Flips the turtle across its main axis.
 $(q).reload()     // Reloads the turtle's image (restarting animated gifs)
 $(q).done(fn)     // Like $(q).promise().done(fn). Calls after all animation.
-$(q).direct(fn)   // Like each, but this is set to $(elt) instead of elt,
+$(q).plan(fn)     // Like each, but this is set to $(elt) instead of elt,
                   // and the callback fn can insert into the animation queue.
 
 // Methods below this line do not queue for animation.
@@ -99,13 +100,15 @@ $(q).within(d, t) // Filters to items with centers within d of t.pagexy().
 $(q).notwithin()  // The negation of within.
 $(q).cell(y, x)   // Selects the yth row and xth column cell in a table.
 $(q).hatch([n,] [img]) // Creates and returns n turtles with the given img.
+$(q).send(m, arg) // Sends an async message to be received by recv(m, fn).
+$(q).recv(m, fn)  // Calls fn once to receive a message sent by send.
 </pre>
 
 
 Speed and Turtle Animation
 --------------------------
 
-When the speed of a turtle is nonzero, the first eight movement
+When the speed of a turtle is nonzero, the first nine movement
 functions animate at that speed (in moves per second), and the
 remaining mutators also participate in the animation queue.  The
 default turtle speed is a leisurely one move per second (as
@@ -144,16 +147,14 @@ by passing a options object as the first parameter setting tempo, e.g.,
 'square' or 'sawtooth' or 'triangle', and envelope: which defines
 an ADSR envelope e.g., { a: 0.01, d: 0.2, s: 0.1, r: 0.1 }.
 
-The turtle's motion will pause while it is playing notes.  To play
-notes without stalling turtle movement, use the global function sound()
-instead of the turtle method play().
+The turtle's motion will pause while it is playing notes.
 
-Directing Logic in the Animation Queue
---------------------------------------
+Planning Logic in the Animation Queue
+-------------------------------------
 
-The direct method can be used to queue logic (including synchronous
+The plan method can be used to queue logic (including synchronous
 tests or actions) by running a function in the animation queue.  Unlike
-jquery queue(), direct arranges things so that if further animations
+jquery queue(), plan arranges things so that if further animations
 are queued by the callback function, they are inserted (in natural
 recursive functional execution order) instead of being appended.
 
@@ -244,7 +245,7 @@ readnum([label,] fn)  // Like read, but restricted to numeric input.
 readstr([label,] fn)  // Like read, but never converts input to a number.
 button([label,] fn)   // Makes a clickable button, calls fn when clicked.
 table(m, n)           // Outputs a table with m rows and n columns.
-sound('[DFG][EGc]')   // Plays musical notes now, without queueing.
+play('[DFG][EGc]')    // Plays musical notes.
 </pre>
 
 Here is another CoffeeScript example that demonstrates some of
