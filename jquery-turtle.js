@@ -103,8 +103,6 @@ $(q).within(d, t) // Filters to items with centers within d of t.pagexy().
 $(q).notwithin()  // The negation of within.
 $(q).cell(y, x)   // Selects the yth row and xth column cell in a table.
 $(q).hatch([n,] [img]) // Creates and returns n turtles with the given img.
-$(q).send(m, arg) // Sends an async message to be received by recv(m, fn).
-$(q).recv(m, fn)  // Calls fn once to receive a message sent by send.
 </pre>
 
 
@@ -249,6 +247,8 @@ readstr([label,] fn)  // Like read, but never converts input to a number.
 button([label,] fn)   // Makes a clickable button, calls fn when clicked.
 table(m, n)           // Outputs a table with m rows and n columns.
 play('[DFG][EGc]')    // Plays musical notes.
+send(m, arg)          // Sends an async message to be received by recv(m, fn).
+recv(m, fn)           // Calls fn once to receive one message sent by send.
 </pre>
 
 Here is another CoffeeScript example that demonstrates some of
@@ -1580,10 +1580,6 @@ function getTurtleData(elem) {
       speed: 'turtle',
       easing: 'swing',
       turningRadius: 0,
-      // message passing support
-      sent: {},
-      waiting: {},
-      pollTimer: null,
       // Below: support for image loading without messing up origin.
       lastSeenOrigin: null,
       lastSeenOriginTime: null,
@@ -3228,53 +3224,8 @@ var turtlefn = {
       }
     }
     return this;
-  }),
-  send: wraphelp(
-  ["<u>send(name)</u> Sends a message to be received by recv. " +
-      "<mark>send 'go'; recv 'go', -> fd 100</mark>"],
-  function send(name) {
-    this.each(function(j, elem) {
-      var args = Array.prototype.slice.call(arguments, 1),
-          state = getTurtleData(elem),
-          sq = state.sent[name];
-      if (!sq) { sq = state.sent[name] = []; }
-      sq.push(args);
-      pollmessages(elem, name);
-    });
-  }),
-  recv: wraphelp(
-  ["<u>recv(name, fn)</u> Calls fn once when a sent message is received. " +
-      "<mark>recv 'go', (-> fd 100); send 'go'</mark>"],
-  function recv(name, cb) {
-    if (this.length < 1) return;
-    var elem = this[0],
-        state = getTurtleData(elem),
-        wq = state.waiting[name];
-    if (!wq) { wq = state.waiting[name] = []; }
-    wq.push(cb);
-    pollmessages(elem, name);
   })
 };
-
-function pollmessages(elem, name) {
-  var state = getTurtleData(elem),
-      timer = state.pollTimer,
-      sq = state.sent[name],
-      wq = state.waiting[name];
-  if (timer === null && wq && wq.length && sq && sq.length) {
-    state.pollTimer = setTimeout(function() {
-      var state = getTurtleData(elem),
-          timer = state.pollTimer,
-          sq = state.sent[name],
-          wq = state.waiting[name];
-      state.pollTimer = null;
-      if (wq && wq.length && sq && sq.length) {
-        wq.shift().apply(null, sq.shift())
-        pollmessages(elem, name);
-      }
-    }, 0);
-  }
-}
 
 // It is unreasonable (and a common error) to queue up motions to try to
 // change the value of a predicate.  The problem is that queuing will not
@@ -3499,6 +3450,26 @@ var dollar_turtle_methods = {
   function(fn) {
     $(window).keypress(fn);
   }),
+  send: wraphelp(
+  ["<u>send(name)</u> Sends a message to be received by recv. " +
+      "<mark>send 'go'; recv 'go', -> fd 100</mark>"],
+  function send(name) {
+    var args = arguments;
+    var message = Array.prototype.slice.call(args, 1),
+        sq = sendRecvData.sent[name];
+    if (!sq) { sq = sendRecvData.sent[name] = []; }
+    sq.push(message);
+    pollSendRecv(name);
+  }),
+  recv: wraphelp(
+  ["<u>recv(name, fn)</u> Calls fn once when a sent message is received. " +
+      "<mark>recv 'go', (-> fd 100); send 'go'</mark>"],
+  function recv(name, cb) {
+    var wq = sendRecvData.waiting[name];
+    if (!wq) { wq = sendRecvData.waiting[name] = []; }
+    wq.push(cb);
+    pollSendRecv(name);
+  }),
   help: globalhelp
 };
 
@@ -3507,6 +3478,30 @@ var extrahelp = {
       "Does not pause for effect: " +
       "<mark>do finish</mark>"]}
 };
+
+var sendRecvData = {
+  // message passing support
+  sent: {},
+  waiting: {},
+  pollTimer: null
+};
+
+function pollSendRecv(name) {
+  if (sendRecvData.pollTimer === null) {
+    var sq = sendRecvData.sent[name],
+        wq = sendRecvData.waiting[name];
+    if (wq && wq.length && sq && sq.length) {
+      sendRecvData.pollTimer = setTimeout(function() {
+        sendRecvData.pollTimer = null;
+        if (wq && wq.length && sq && sq.length) {
+          wq.shift().apply(null, sq.shift())
+          pollSendRecv(name);
+        }
+      }, 0);
+    }
+  }
+}
+
 
 // LEGACY NAMES
 deprecation_shown = {}

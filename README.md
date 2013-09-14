@@ -94,14 +94,12 @@ $(q).distance(p)  // Distance to p in page coordinates.
 $(q).shown()      // Shorthand for is(":visible")
 $(q).hidden()     // Shorthand for !is(":visible")
 $(q).touches(y)   // Collision tests elements (uses turtleHull if present).
-$(q).enclosedby(y)// Containment collision test.
+$(q).inside(y)// Containment collision test.
 $(q).nearest(pos) // Filters to item (or items if tied) nearest pos.
 $(q).within(d, t) // Filters to items with centers within d of t.pagexy().
 $(q).notwithin()  // The negation of within.
 $(q).cell(y, x)   // Selects the yth row and xth column cell in a table.
 $(q).hatch([n,] [img]) // Creates and returns n turtles with the given img.
-$(q).send(m, arg) // Sends an async message to be received by recv(m, fn).
-$(q).recv(m, fn)  // Calls fn once to receive a message sent by send.
 </pre>
 
 
@@ -182,7 +180,7 @@ page to the center (or transform-origin) of the given object.
 Hit Testing
 -----------
 
-The hit-testing functions touches() and enclosedby() will test for
+The hit-testing functions touches() and inside() will test for
 collisions using the convex hulls of the objects in question.
 The hull of an element defaults to the bounding box of the element
 (as transformed) but can be overridden by the turtleHull CSS property,
@@ -246,6 +244,8 @@ readstr([label,] fn)  // Like read, but never converts input to a number.
 button([label,] fn)   // Makes a clickable button, calls fn when clicked.
 table(m, n)           // Outputs a table with m rows and n columns.
 play('[DFG][EGc]')    // Plays musical notes.
+send(m, arg)          // Sends an async message to be received by recv(m, fn).
+recv(m, fn)           // Calls fn once to receive one message sent by send.
 </pre>
 
 Here is another CoffeeScript example that demonstrates some of
@@ -272,7 +272,7 @@ tick 10, ->
   else if r.touches(turtle)
     write "Red got you!"
     tick off
-  else if not b.enclosedby(document)
+  else if not b.inside(document)
     write "Blue got away!"
     tick off
 </pre>
@@ -323,7 +323,7 @@ used; pen styles include canvas style properties such as lineWidth
 and lineCap.
 
 A convex hull polygon can be set to be used by the collision detection
-and hit-testing functions (enclosedby, touches).  The turtleHull is a list
+and hit-testing functions (inside, touches).  The turtleHull is a list
 of (unrotated) x-y coordinates relative to the object's transformOrigin.
 If set to 'auto' (the default) the hull is just the bounding box for the
 element.
