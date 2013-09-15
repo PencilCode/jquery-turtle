@@ -3869,7 +3869,7 @@ function nameToImg(name) {
       width: 20,
       height: 24,
       turtleHull: "-8 -5 -8 6 0 -13 8 6 8 -5 0 9",
-      transformOrigin: '10px 13px',
+      transformOrigin: '9px 13px',
       opacity: 0.5,
       backgroundImage: 'url(' + turtleGIFUrl + ')',
       backgroundSize: 'contain'
