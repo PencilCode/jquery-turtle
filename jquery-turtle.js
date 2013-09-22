@@ -2393,7 +2393,7 @@ $.extend(true, $.fx, {
   step: {
     turtlePosition: makePairStep('turtlePosition', true),
     turtleRotation: makeRotationStep('turtleRotation'),
-    turtleScale: makePairStep('turtlePosition', false),
+    turtleScale: makePairStep('turtleScale', false),
     turtleTwist: makeRotationStep('turtleTwist')
   },
   speeds: {
