@@ -2842,7 +2842,7 @@ var turtlefn = {
     return this.plan(function() {
       var out = output(html, 'label').css({
         position: 'absolute',
-        display: 'inline-block',
+        display: 'table',
         top: 0,
         left: 0
       }).addClass('turtle').appendTo(getTurtleField());
@@ -3945,7 +3945,7 @@ function hatchone(name, container, clonepos) {
   // Position the turtle inside the container.
   result.css({
     position: 'absolute',
-    display: 'inline-block',
+    display: 'table',
     top: 0,
     left: 0
   });
@@ -4093,16 +4093,13 @@ function output(html, defaulttag) {
     // to trust a surrounding tag but found multiple bits.
     if (html.charAt(0) != '<' || html.charAt(html.length - 1) != '>' ||
         (result !== null && result.length != 1)) {
-      html = '<' + defaulttag + ' style="display:inline-block">' +
+      html = '<' + defaulttag + ' style="display:table;">' +
           html + '</' + defaulttag + '>';
       wrapped = true;
     }
     result = $(html);
   }
   result.appendTo('body');
-  if (wrapped && defaulttag == 'div') {
-    result.after('<br>');
-  }
   return result;
 }
 
