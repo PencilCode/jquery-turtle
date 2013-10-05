@@ -65,11 +65,11 @@ $(q).slide(x, y)  // Slide right by x while sliding forward by y.
 $(q).jump(x, y)   // Like slide, but without drawing.
 $(q).moveto({pageX:x,pageY:y} | [x,y])  // Absolute motion on page.
 $(q).jumpto({pageX:x,pageY:y} | [x,y])  // Like moveto, without drawing.
-$(q).turnto(bearing || position)        // Absolute direction adjustment.
+$(q).turnto(direction || position)      // Absolute direction adjustment.
 $(q).play("ccgg") // Plays notes using ABC notation and waits until done.
 
 // Methods below happen in an instant, but line up in the animation queue.
-$(q).home()       // Jumps to the center of the document, with bearing 0.
+$(q).home()       // Jumps to the center of the document, with direction 0.
 $(q).pen('red')   // Sets a pen style, or 'none' for no drawing.
 $(q).pu()         // Pen up - temporarily disables the pen (also pen(false)).
 $(q).pd()         // Pen down - starts a new pen path.
@@ -92,7 +92,7 @@ $(q).plan(fn)     // Like each, but this is set to $(elt) instead of elt,
 // Methods below this line do not queue for animation.
 $(q).getxy()      // Local (center-y-up [x, y]) coordinates of the turtle.
 $(q).pagexy()     // Page (topleft-y-down {pageX:x, pageY:y}) coordinates.
-$(q).bearing([p]) // The turtles absolute direction (or direction towards p).
+$(q).direction([p]) // The turtles absolute direction (or direction towards p).
 $(q).distance(p)  // Distance to p in page coordinates.
 $(q).shown()      // Shorthand for is(":visible")
 $(q).hidden()     // Shorthand for !is(":visible")
@@ -162,7 +162,7 @@ recursive functional execution order) instead of being appended.
 Turnto and Absolute Bearings
 ----------------------------
 
-The turnto method can turn to an absolute bearing (if called with a
+The turnto method can turn to an absolute direction (if called with a
 single numeric argument) or towards an absolute position on the
 screen.  The methods moveto and turnto accept either page or
 graphing coordinates.
@@ -267,7 +267,7 @@ tick 10, ->
   fd 6
   r.turnto turtle
   r.fd 4
-  b.turnto bearing b
+  b.turnto direction b
   b.fd 3
   if b.touches(turtle)
     write "You win!"
@@ -2623,7 +2623,7 @@ var turtlefn = {
     });
   }),
   turnto: wraphelp(
-  ["<u>turnto(degrees)</u> Turn to a bearing. " +
+  ["<u>turnto(degrees)</u> Turn to a direction. " +
       "North is 0, East is 90: <mark>turnto 270</turnto>",
    "<u>turnto(x, y)</u> Turn to graphing coordinates: " +
       "<mark>turnto 50, 100</mark>",
@@ -2918,14 +2918,14 @@ var turtlefn = {
     if (!this.length) return;
     return computePositionAsLocalOffset(this[0]);
   }),
-  bearing: wraphelp(
-  ["<u>bearing()</u> Current turtle bearing. North is 0; East is 90: " +
-      "<mark>bearing()</mark>",
-   "<u>bearing(obj)</u> <u>bearing(x, y)</u> Returns the direction " +
+  direction: wraphelp(
+  ["<u>direction()</u> Current turtle direction. North is 0; East is 90: " +
+      "<mark>direction()</mark>",
+   "<u>direction(obj)</u> <u>direction(x, y)</u> Returns the direction " +
       "from the turtle towards an object or coordinate. " +
       "Also see <u>turnto</u>: " +
-      "<mark>bearing lastclick</mark>"],
-  function bearing(x, y) {
+      "<mark>direction lastclick</mark>"],
+  function direction(x, y) {
     if (!this.length) return;
     var elem = this[0], pos = x, dir, cur;
     if (pos !== undefined) {
@@ -3252,6 +3252,24 @@ function checkPredicate(fname, sel) {
   }
 }
 
+// LEGACY NAMES
+deprecation_shown = {}
+
+function deprecate(map, oldname, newname) {
+  map[oldname] = function() {
+    if (!(oldname in deprecation_shown)) {
+      see.html('<span style="color:red;">' + oldname + ' deprecated.  Use ' +
+          newname + '.</span>');
+      deprecation_shown[oldname] = 1;
+    }
+    // map[oldname] = map[newname];
+    map[newname].apply(this, arguments);
+  }
+}
+deprecate(turtlefn, 'direct', 'plan');
+deprecate(turtlefn, 'enclosedby', 'inside');
+deprecate(turtlefn, 'bearing', 'direction');
+
 $.fn.extend(turtlefn);
 
 //////////////////////////////////////////////////////////////////////////
@@ -3503,22 +3521,6 @@ function pollSendRecv(name) {
 }
 
 
-// LEGACY NAMES
-deprecation_shown = {}
-
-function deprecate(map, oldname, newname) {
-  map[oldname] = function() {
-    if (!(oldname in deprecation_shown)) {
-      see.html('<span style="color:red;">' + oldname + ' deprecated.  Use ' +
-          newname + '.</span>');
-      deprecation_shown[oldname] = 1;
-    }
-    // map[oldname] = map[newname];
-    map[newname].apply(this, arguments);
-  }
-}
-deprecate($.fn, 'direct', 'plan');
-deprecate($.fn, 'enclosedby', 'inside');
 deprecate(dollar_turtle_methods, 'defaultspeed', 'speed');
 
 var helpok = {};
