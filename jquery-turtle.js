@@ -1664,6 +1664,14 @@ function isBezierTiny(a, b) {
          Math.round(b.pageY2 - b.pageY) === 0;
 }
 
+function roundEpsilon(x) {
+  var dig3 = x * 1000, tru3 = Math.round(dig3);
+  if (Math.abs(tru3 - dig3) < Math.abs(5e-15 * dig3)) {
+    return tru3 / 1000;
+  }
+  return x;
+}
+
 function applyPenStyle(ctx, ps, scale) {
   scale = scale || 1;
   var extraWidth = ps.eraseMode ? 1 : 0;
@@ -2696,8 +2704,9 @@ var turtlefn = {
    "<u>pen(color, size)</u> " +
       "Chooses a color and size for the pen: <mark>pen blue, 5</mark>."],
   function pen(penstyle, lineWidth) {
-    if (penstyle && ((penstyle.method || penstyle) === turtlefn.fill)) {
-      penstyle = 'fill';
+    if (penstyle && (typeof(penstyle) == "function") && penstyle.name) {
+      // Deal with "tan" and "fill".
+      penstyle = penstyle.name;
     }
     return this.plan(function(j, elem) {
       if (penstyle === undefined) {
@@ -2816,6 +2825,7 @@ var turtlefn = {
   wear: wraphelp(
   ["<u>wear(color)</u> Sets the turtle shell color: " +
       "<mark>wear turquoise</mark>",
+      // Deal with "tan" and "fill".
    "<u>wear(url)</u> Sets the turtle image url: " +
       "<mark>wear 'http://bit.ly/1bgrQ0p'</mark>"],
   function wear(name) {
@@ -3263,7 +3273,7 @@ function deprecate(map, oldname, newname) {
       deprecation_shown[oldname] = 1;
     }
     // map[oldname] = map[newname];
-    map[newname].apply(this, arguments);
+    return map[newname].apply(this, arguments);
   }
 }
 deprecate(turtlefn, 'direct', 'plan');
@@ -3488,6 +3498,78 @@ var dollar_turtle_methods = {
     wq.push(cb);
     pollSendRecv(name);
   }),
+  abs: wraphelp(
+  ["<u>abs(x)</u> The absolute value of x. " +
+      "<mark>see abs -5</mark>"], Math.abs),
+  acos: wraphelp(
+  ["<u>acos(degreees)</u> Trigonometric arccosine, in degrees. " +
+      "<mark>see acos 0.5</mark>"],
+  function acos(x) { return roundEpsilon(Math.acos(x) * 180 / Math.PI); }
+  ),
+  asin: wraphelp(
+  ["<u>asin(degreees)</u> Trigonometric arcsine, in degrees. " +
+      "<mark>see asin 0.5</mark>"],
+  function asin(x) { return roundEpsilon(Math.asin(x) * 180 / Math.PI); }
+  ),
+  atan: wraphelp(
+  ["<u>atan(degreees)</u> Trigonometric arctangent, in degrees. " +
+      "<mark>see atan 0.5</mark>"],
+  function atan(x) { return roundEpsilon(Math.atan(x) * 180 / Math.PI); }
+  ),
+  atan2: wraphelp(
+  ["<u>atan2(degreees)</u> Trigonometric two-argument arctangent, in degrees. " +
+      "<mark>see atan -1, 0</mark>"],
+  function atan2(x, y) {
+    return roundEpsilon(Math.atan2(x, y) * 180 / Math.PI);
+  }),
+  cos: wraphelp(
+  ["<u>cos(degreees)</u> Trigonometric cosine, in degrees. " +
+      "<mark>see cos 45</mark>"],
+  function cos(x) { return roundEpsilon(Math.cos((x % 360) * Math.PI / 180)); }
+  ),
+  sin: wraphelp(
+  ["<u>sin(degreees)</u> Trigonometric sine, in degrees. " +
+      "<mark>see sin 45</mark>"],
+  function sin(x) { return roundEpsilon(Math.sin((x % 360) * Math.PI / 180)); }
+  ),
+  tan: wraphelp(
+  ["<u>tan(degreees)</u> Trigonometric tangent, in degrees. " +
+      "<mark>see tan 45</mark>"],
+  function tan(x) { return roundEpsilon(Math.tan((x % 360) * Math.PI / 180)); }
+  ),
+  ceil: wraphelp(
+  ["<u>ceil(x)</u> Round up. " +
+      "<mark>see ceil 1.9</mark>"], Math.ceil),
+  floor: wraphelp(
+  ["<u>floor(x)</u> Round down. " +
+      "<mark>see floor 1.9</mark>"], Math.floor),
+  round: wraphelp(
+  ["<u>round(x)</u> Round to the nearest integer. " +
+      "<mark>see round 1.9</mark>"], Math.round),
+  exp: wraphelp(
+  ["<u>exp(x)</u> Raise e to the power x. " +
+      "<mark>see exp 2</mark>"], Math.exp),
+  ln: wraphelp(
+  ["<u>ln(x)</u> The natural logarithm of x. " +
+      "<mark>see ln 2</mark>"], Math.log),
+  log10: wraphelp(
+  ["<u>log10(x)</u> The base 10 logarithm of x. " +
+      "<mark>see log10 0.01</mark>"],
+  function log10(x) { return roundEpsilon(Math.log(x) * Math.LOG10E); }),
+  pow: wraphelp(
+  ["<u>pow(x, y)</u> Raise x to the power y. " +
+      "<mark>see pow 4, 1.5</mark>"],
+  function pow(x, y) { return roundEpsilon(Math.pow(x, y)); }),
+  sqrt: wraphelp(
+  ["<u>sqrt(x)</u> The square root of x. " +
+      "<mark>see sqrt 25</mark>"], Math.sqrt),
+  max: wraphelp(
+  ["<u>max(x, y, ...)</u> The maximum of a set of values. " +
+      "<mark>see max -5, 2, 1</mark>"], Math.max),
+  min: wraphelp(
+  ["<u>min(x, y, ...)</u> The minimum of a set of values. " +
+      "<mark>see min 2, -5, 1</mark>"], Math.min),
+
   help: globalhelp
 };
 
@@ -3563,8 +3645,12 @@ var colors = [
   ];
   var definedstrings = specialstrings.concat(colors), j = 0;
   for (; j < definedstrings.length; j++) {
-    dollar_turtle_methods[definedstrings[j]] = definedstrings[j];
+    if (!dollar_turtle_methods.hasOwnProperty(definedstrings[j])) {
+      dollar_turtle_methods[definedstrings[j]] = definedstrings[j];
+    }
   }
+  dollar_turtle_methods.PI = Math.PI;
+  dollar_turtle_methods.E = Math.E;
   extrahelp.colors = {helptext:
       ["Defined colors: " + colors.join(" ")]};
 })();
