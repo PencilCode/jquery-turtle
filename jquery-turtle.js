@@ -3326,7 +3326,9 @@ var dollar_turtle_methods = {
   speed: wraphelp(
   ["<u>speed(mps)</u> Sets default turtle speed in moves per second: " +
       "<mark>speed Infinity</mark>"],
-  globaldefaultspeed),
+  function globalspeed(mps) {
+    planIfGlobal(function() { globaldefaultspeed(mps); });
+  }),
   play: wraphelp(
   ["<u>play(notes)</u> Play notes. Notes are specified in " +
       "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
