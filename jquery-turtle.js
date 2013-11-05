@@ -3043,7 +3043,7 @@ var turtlefn = {
       "<mark>do ht; write hidden()</mark>"],
   function hidden() {
     checkPredicate('hidden', this);
-    return this.is(':hidden');
+    return !this.is(':visible');
   }),
   inside: wraphelp(
   ["<u>inside(obj)</u> True if the turtle is encircled by obj: " +
@@ -3735,7 +3735,7 @@ $.turtle = function turtle(id, options) {
   if (!options.hasOwnProperty('panel') || options.panel) {
     var retval = null,
         seeopt = {
-      title: 'turtle test panel - enter commands or type help for help',
+      title: 'turtle test panel (type help for help)',
       abbreviate: [undefined, helpok],
       consolehook: seehelphook
     };
@@ -4583,7 +4583,7 @@ var version = '0.2';
 var oldvalue = noteoldvalue(seepkg);
 // Option defaults
 var linestyle = 'position:relative;display:block;font-family:monospace;' +
-  'word-break:break-all;margin-bottom:3px;padding-left:1em;';
+  'font-size:16px;word-break:break-all;margin-bottom:3px;padding-left:1em;';
 var logdepth = 5;
 var autoscroll = false;
 var logelement = 'body';
@@ -4592,7 +4592,7 @@ var see;  // defined below.
 var paneltitle = '';
 var logconsole = null;
 var uselocalstorage = '_loghistory';
-var panelheight = 200;
+var panelheight = 250;
 var currentscope = '';
 var scopes = {
   '':  { e: window.eval, t: window },
@@ -5309,10 +5309,10 @@ function tryinitpanel() {
              'display:block;width:100%;height:' + (state.height - 6) + 'px;">' +
             '<samp id="_testlog" style="display:block">' +
             titlehtml + '</samp>' +
-            '<samp style="position:relative;display:block;">' +
+            '<samp class="_log" style="position:relative;display:block;">' +
             promptcaret('blue') +
             '<input id="_testinput" class="_log" style="width:100%;' +
-                'padding-left:1em;margin:0;border:0;font:inherit;' +
+                'margin:0;border:0;font:inherit;' +
                 'background:rgba(255,255,255,0.8);">' +
            '</samp>' +
         '</samp>');
