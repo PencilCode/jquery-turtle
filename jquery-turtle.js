@@ -2699,21 +2699,35 @@ var turtlefn = {
     });
   }),
   pen: wraphelp(
-  ["<u>pen(color)</u> Selects a pen. " +
-      "Chooses a color or style for the pen: <mark>pen red</mark>.",
-   "<u>pen(color, size)</u> " +
-      "Chooses a color and size for the pen: <mark>pen blue, 5</mark>."],
+  ["<u>pen(color, size)</u> Selects a pen. " +
+      "Chooses a color and/or size for the pen: " +
+      "<mark>pen red</mark>; <mark>pen 0</mark>; " +
+      "<mark>pen erase</mark>; " +
+      "<mark>pen blue, 5</mark>.",
+   "<u>pen(on-or-off)</u> " +
+      "Turns the pen on or off: " +
+      "<mark>pen off</mark>; <mark>pen on</mark>."
+  ],
   function pen(penstyle, lineWidth) {
     if (penstyle && (typeof(penstyle) == "function") && penstyle.name) {
       // Deal with "tan" and "fill".
       penstyle = penstyle.name;
     }
+    if (typeof(penstyle) == "number" && typeof(lineWidth) != "number") {
+      // Deal with swapped argument order.
+      var swap = penstyle;
+      penstyle = lineWidth;
+      lineWidth = swap;
+    }
+    if (lineWidth === 0) {
+      penstyle = "none";
+    }
+    if (penstyle === undefined) {
+      penstyle = 'black';
+    } else if (penstyle === null) {
+      penstyle = 'none';
+    }
     return this.plan(function(j, elem) {
-      if (penstyle === undefined) {
-        penstyle = 'black';
-      } else if (penstyle === null) {
-        penstyle = 'none';
-      }
       if (penstyle === false || penstyle === true ||
           penstyle == 'down' || penstyle == 'up') {
         this.css('turtlePenDown', penstyle);
@@ -2727,8 +2741,8 @@ var turtlefn = {
   }),
   fill: wraphelp(
   ["<u>fill(color)</u> Fills a path traced using " +
-      "<u>pf()</u>: " +
-      "<mark>do pf; rt 100, 90; fill blue</mark>"],
+      "<u>pen path</u>: " +
+      "<mark>pen path; rt 100, 90; fill blue</mark>"],
   function fill(style) {
     if (!style) { style = 'black'; }
     var ps = parsePenStyle(style, 'fillStyle');
@@ -2778,30 +2792,22 @@ var turtlefn = {
   function ht() {
     return this.plan(function() { this.hide(); });
   }),
-  pu: wraphelp(
-  ["<u>pu()</u> Pen up. Tracing can be resumed with " +
-      "<u>pd()</u>. <mark>do pu</mark>"],
+  pu:
   function pu() {
     return this.pen(false);
-  }),
-  pd: wraphelp(
-  ["<u>pd()</u> Pen down. Resumes tracing a path that was paused with " +
-      "<u>pu()</u>. <mark>do pd</mark>"],
+  },
+  pd:
   function pd() {
     return this.pen(true);
-  }),
-  pe: wraphelp(
-  ["<u>pe()</u> Pen erase. Can overtrace old " +
-      "lines to erase them.  <mark>pen red; fd 100; do pe; bk 100</mark>"],
+  },
+  pe:
   function pe() {
     return this.pen('erase');
-  }),
-  pf: wraphelp(
-  ["<u>pf()</u> Pen fill. Traces an invisible path to fill. " +
-      "<mark>do pf; rt 100, 90; fill blue</mark>"],
+  },
+  pf:
   function pf() {
     return this.pen('path');
-  }),
+  },
   play: wraphelp(
   ["<u>play(notes)</u> Play notes. Notes are specified in " +
       "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
@@ -3234,6 +3240,16 @@ var turtlefn = {
       }
     }
     return this;
+  }),
+  loadscript: wraphelp(
+  ["<u>loadscript(url, callback)</u> Loads Javascript or Coffeescript from " +
+       "the given URL, calling callback when done."],
+  function loadscript(url, callback) {
+    if (window.CoffeeScript && /\.(?:coffee|cs)$/.test(url)) {
+      CoffeeScript.load(url, callback);
+    } else {
+      $.getScript(url, callback);
+    }
   })
 };
 
