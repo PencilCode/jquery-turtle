@@ -3007,11 +3007,6 @@ var turtlefn = {
   },
   hatch: 
   function(count, spec) {
-    if (!deprecation_shown['hatch']) {
-      see.html('<span style="color:red;">hatch deprecated.  ' +
-               'Use "new Turtle" instead.</span>');
-      deprecation_shown['hatch'] = 1;
-    }
     if (!this.length) return;
     if (spec === undefined && !$.isNumeric(count)) {
       spec = count;
