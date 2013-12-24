@@ -1,0 +1,33 @@
+Short version
+-------------
+npm install
+grunt
+
+
+Long version
+------------
+jQuery-turtle's minifier and unit tests use "grunt", running under node.js.
+
+So the basic steps to get a working environment are:
+
+(1) Install node.js on your system (various routes to do this).
+(2) Use npm to install the grunt command, e.g., sudo npm install -g grunt-cli
+(3) Grab the source: git clone git://github.com/PenciCode/jquery-turtle.git
+(4) cd jquery-turtle and pull in dependencies locally: npm install
+(5) Now build (minify) and test: grunt
+
+
+Dependencies
+------------
+The project includes snapshots of some dependencies.  To update these
+dependencies, "grunt bowercopy".
+
+
+Testing
+-------
+
+Unit tests use a headless webkit.  When setting it up on a system without
+GUI, you may find that you need to install font support.  On debian.
+"apt-get libfontconfig1" provides enough font support.
+
+
