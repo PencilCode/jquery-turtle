@@ -1,0 +1,35 @@
+<script src="../node_modules/grunt-contrib-qunit/test/libs/qunit.js"></script>
+<link href="../node_modules/grunt-contrib-qunit/test/libs/qunit.js" rel="stylesheet">
+<script src="../node_modules/jquery/dist/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+  <div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Drawing test.");
+asyncTest("Draws a circle and verifies its presence.", function() {
+  speed(10);
+  pen(red);
+  rt(360,100);
+  pen(null);
+  var count = 4;
+  function recurse() {
+    if (!count--) {
+      start();
+    } else {
+      ok(touches(red));
+      fd(100);
+      done(function() {
+        ok(!touches(red));
+        rt(90);
+        fd(100);
+        done(recurse);
+      });
+    }
+  }
+  done(recurse);
+});
+</script>
+
+
+

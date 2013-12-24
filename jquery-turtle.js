@@ -2571,7 +2571,7 @@ var turtlefn = {
     if (degrees === undefined || degrees === null) {
       degrees = 90;  // zero-argument default.
     }
-    if (!radius) {
+    if (radius === undefined || radius === null) {
       return this.plan(function(j, elem) {
         this.animate({turtleRotation: '+=' + cssNum(degrees || 0) + 'deg'},
             animTime(elem), animEasing(elem));
@@ -2597,7 +2597,7 @@ var turtlefn = {
     if (degrees === undefined || degrees === null) {
       degrees = 90;  // zero-argument default.
     }
-    if (!radius) {
+    if (radius === undefined || radius === null) {
       return this.plan(function(j, elem) {
         this.animate({turtleRotation: '-=' + cssNum(degrees || 0) + 'deg'},
             animTime(elem), animEasing(elem));
@@ -3862,9 +3862,15 @@ $.turtle = function turtle(id, options) {
   } catch (e) { }
   // Find or create a singleton turtle if one does not exist.
   var selector = null;
+  var wrotebody = false;
   if (id) {
     selector = $('#' + id);
     if (!selector.length) {
+      if (!$('body').length) {
+        // Initializing without a body?  Force one in!
+        document.write('<body>');
+        wrotebody = true;
+      }
       selector = new Turtle(id);
     }
   }
@@ -3904,6 +3910,10 @@ $.turtle = function turtle(id, options) {
       seeopt.height = options.panelheight;
     }
     see.init(seeopt);
+    if (wrotebody) {
+       see.html('<span style="color:red">Turtle script should be inside body ' +
+                '- wrote a &lt;body&gt;</span>');
+    }
     // Return an eval loop hook string if 'see' is exported.
     if (exportedsee) {
       if (window.CoffeeScript) {
@@ -4744,7 +4754,12 @@ var linestyle = 'position:relative;display:block;font-family:monospace;' +
 var logdepth = 5;
 var autoscroll = false;
 var logelement = 'body';
-var panel = (window.self !== window.top);  // show panel by default if framed.
+var panel = false;
+try {
+  // show panel by default if framed inside a top url with /edit/.
+  panel = (window.self !== window.top &&
+      /^\/edit\//.test(window.top.window.location.pathname));
+} catch(e) {}
 var see;  // defined below.
 var paneltitle = '';
 var logconsole = null;

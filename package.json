@@ -1,0 +1,30 @@
+{
+  "name": "jquery-turtle",
+  "version": "2.3.1",
+  "description": "Turtle graphics plugin for jQuery.",
+  "main": "jquery-turtle.js",
+  "scripts": {
+    "test": "grunt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/PenciCode/jquery-turtle.git"
+  },
+  "author": "David Bau",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PencilCode/jquery-turtle/issues"
+  },
+  "homepage": "https://github.com/PencilCode/jquery-turtle",
+  "dependencies": {
+    "jquery": "2.1.0-beta3"
+  },
+  "devDependencies": {
+    "grunt": "0.4.2",
+    "grunt-cli": "0.1.11",
+    "grunt-contrib-uglify": "0.2.7",
+    "grunt-contrib-qunit": "0.3.0",
+    "grunt-release": "0.6.0",
+    "phantomjs": "1.9.2-6"
+  }
+}

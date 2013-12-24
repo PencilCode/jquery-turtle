@@ -22,13 +22,13 @@
     "licenses": [
         {
             "type": "MIT",
-            "url": "https://github.com/davidbau/jquery-turtle/blob/master/LICENSE.txt"
+            "url": "https://github.com/PencilCode/jquery-turtle/blob/master/LICENSE.txt"
         }
     ],
-    "bugs": "https://github.com/davidbau/jquery-turtle/issues",
-    "homepage": "http://davidbau.github.io/jquery-turtle/",
-    "demo": "http://davidbau.github.io/jquery-turtle/demo.html",
-    "docs": "http://davidbau.github.io/jquery-turtle/",
+    "bugs": "https://github.com/PencilCode/jquery-turtle/issues",
+    "homepage": "http://pencilcode.github.io/jquery-turtle/",
+    "demo": "http://pencilcode.github.io/jquery-turtle/demo.html",
+    "docs": "http://pencilcode.github.io/jquery-turtle/",
     "dependencies": {
         "jquery": ">=1.7"
     }
