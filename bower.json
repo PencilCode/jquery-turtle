@@ -1,0 +1,9 @@
+{
+  "name": "jquery-turtle",
+  "version": "2.0.8",
+  "description": "Turtle graphics plugin for jQuery.",
+  "devDependencies": {
+    "jquery": "latest",
+    "qunit": "latest"
+  }
+}
