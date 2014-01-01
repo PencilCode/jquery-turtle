@@ -4758,8 +4758,9 @@ var autoscroll = false;
 var logelement = 'body';
 var panel = false;
 try {
-  // show panel by default if framed inside a top url with /edit/.
-  panel = (window.self !== window.top &&
+  // show panel by default if framed inside a top url with /edit/,
+  // and if the screen is wide enough (i.e., omit mobile clients).
+  panel = (window.self !== window.top && screen.width >= 800 &&
       /^\/edit\//.test(window.top.window.location.pathname));
 } catch(e) {}
 var see;  // defined below.
