@@ -1,0 +1,44 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Fern test.");
+asyncTest("Draws a circle and verifies its presence.", function() {
+  speed(Infinity);
+  function fern(x) {
+    if (x > 1) {
+      fd(x);
+      rt(95);
+      fern(x * .4);
+      lt(190);
+      fern(x * .4);
+      rt(100);
+      fern(x * .8);
+      lt(5);
+      bk(x);
+    }
+  }
+  pen(green);
+  bk(100);
+  fern(50);
+  pen(null);
+  ok(touches(green));
+  fd(200);
+  ok(touches(green));
+  fd(10);
+  ok(!touches(green));
+  rt(90);
+  fd(70);
+  ok(touches(green));
+  fd(5);
+  ok(!touches(green));
+  done(start);
+});
+</script>
+
+
+
