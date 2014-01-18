@@ -3496,7 +3496,7 @@ $.fn.extend(turtlefn);
 // * Sets up a global "hatch" function to make a new turtle.
 //////////////////////////////////////////////////////////////////////////
 
-var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPIFAAAAAAFsOEBAQACSRTCuSP///wAAAAAAACH5BAlkAAYAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAKAAwAAAD7mi6zPJGhCAibDhrUUARA0EMnFdp6FasgihybCpjT+u+16wH4e0PAd3ORyQEhTJe0QVEziajgVRqPDqT02zzutNunZMwiqe1CpWiLwPqm4ADN/WkRwSasbfwfBnX++8GaHF8RXR9GIKEioWAiYuPIoCBjpB8ag2UlXZ6AylwlYdgoHlcn6NGpaeRqaqSSaqoV6ajrp6wtWO3rKe4GrOgvRm/lcGIumCGoJd4sJtivsOwaZJs0kXU1nyNdM7JTJzey7Nm1S5ua3/nC9U8iD3LSOO+q1wKgu3C9PV/ubH18SOK/bMnReDASQYPKlzoJAEAIfkECWQABgAsAAAAACgAMAAAA+1ouszyRoQgImw4a1FAEQNBDJxXaehWrIIocmwqY0/rvtesB+HtDwHdzkckBIUyXtEFRM4mo4FUajw6k9Ns87rTbrlPrxUzKV+hvklGKfom2UTgGF5llO/l3rKNv7npTHtFekxzhIKIcWMGAYmOimSHj3tyGXJ3kpNuYZNpXI2dLotDoSKjT6Wmn6lGq6mnSaywKaClsyi1obcauZ27a7KutsK6Z5mOmw14gJ3JC8ysprC90TdqZNV7p8xSmEuXcMnLZnbU1wq5v7Q9yUCi6riqwKJgz/IY7nz1jPdkePtK4O1D120gEnIGEyo0mAAAOw=="
+var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPIFAAAAAAFsOACSRTCuSICAgP///wAAAAAAACH5BAlkAAYAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAKAAwAAAD72i6zATEgBCAebHpzUnxhDAMAvhxKOoV3ziuZyo3RO26dTbvgXj/gsCO9ysOhENZz+gKJmcUkmA6PSKfSqrWieVtuU+KGNXbXofLEZgR/VHCgdua4isGz9mbmM6U7/94BmlyfUZ1fhqDhYuGgYqMkCOBgo+RfWsNlZZ3ewIpcZaIYaF6XaCkR6aokqqrk0qrqVinpK+fsbZkuK2ouRy0ob4bwJbCibthh6GYebGcY7/EsWqTbdNG1dd9jnXPyk2d38y0Z9Yub2yA6AvWPYk+zEnkv6xdCoPuw/X2gLqy9vJIGAN4b8pAgpQOIlzI8EkCACH5BAlkAAYALAAAAAAoADAAAAPuaLrMBMSAEIB5senNSfGEMAwC+HEo6hXfOK5nKjdE7bp1Nu+BeP+CwI73Kw6EQ1nP6AomZxSSYDo9Ip9KqtaJ5W25Xej3qqGYsdEfZbMcgZXtYpActzLMeLOP6c7f3nVNfEZ7TXSFg4lyZAYBio+LZYiQfHMbc3iTlG9ilGpdjp4ujESiI6RQpqegqkesqqhKrbEpoaa0KLaiuBy6nrxss6+3w7tomo+cDXmBnsoLza2nsb7SN2tl1nyozVOZTJhxysxnd9XYCrrAtT7KQaPruavBo2HQ8xrvffaN+GV5/JbE45fOG8Ek5Q4qXHgwAQA7"
 
 var eventfn = { click:1, mouseup:1, mousedown:1, mousemove:1,
     keydown:1, keypress:1, keyup:1 };
@@ -4199,7 +4199,7 @@ function nameToImg(name) {
       height: 24,
       turtleHull: "-8 -5 -8 6 0 -13 8 6 8 -5 0 9",
       transformOrigin: '10px 13px',
-      opacity: 0.5,
+      opacity: 0.67,
       backgroundImage: 'url(' + turtleGIFUrl + ')',
       backgroundSize: 'contain'
     }
