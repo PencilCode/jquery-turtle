@@ -18,6 +18,9 @@ module.exports = function(grunt) {
         }
       }
     },
+    connect: {
+      testserver: { }
+    },
     uglify: {
       all: {
         files: {
@@ -33,20 +36,33 @@ module.exports = function(grunt) {
       }
     },
     qunit: {
-      all: ["test/*.html"]
+      all: ["test/*.html"],
+      options: {
+        timeout: 100000
+      }
     },
     release: {
       options: {
         bump: false
       }
+    },
+    watch: {
+      testserver: {
+        files: [],
+        tasks: ['connect:testserver'],
+        options: { atBegin: true, spawn: false }
+      },
     }
   });
 
   grunt.loadNpmTasks('grunt-bowercopy');
+  grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-qunit');
+  grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-release');
 
+  grunt.registerTask("testserver", ["watch:testserver"]);
   grunt.registerTask("default", ["uglify", "qunit"]);
 };
 
