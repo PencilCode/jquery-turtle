@@ -1982,6 +1982,23 @@ function doQuickMove(elem, distance, sideways) {
   flushPenState(elem);
 }
 
+function doQuickMoveXY(elem, dx, dy) {
+  var ts = readTurtleTransform(elem, true),
+      state = $.data(elem, 'turtleData'),
+      qpxy;
+  if (!ts) { return; }
+  if (state && (qpxy = state.quickpagexy)) {
+    state.quickpagexy = {
+      pageX: qpxy.pageX + dx,
+      pageY: qpxy.pageY - dy
+    };
+  }
+  ts.tx += dx;
+  ts.ty -= dy;
+  elem.style[transform] = writeTurtleTransform(ts);
+  flushPenState(elem);
+}
+
 function doQuickRotate(elem, degrees) {
   var ts = readTurtleTransform(elem, true);
   if (!ts) { return; }
@@ -2713,6 +2730,28 @@ var turtlefn = {
     return this.plan(function(j, elem) {
       this.animate({turtlePosition:
           displacedPosition(elem, y, x)}, animTime(elem), animEasing(elem));
+    });
+  }),
+  movexy: wraphelp(
+  ["<u>movexy(x, y)</u> Changes graphing coordinates by x and y: " +
+      "<mark>movexy 50, 100</mark>"],
+  function movexy(x, y) {
+    if ($.isArray(x)) {
+      y = x[1];
+      x = x[0];
+    }
+    if (!y) { y = 0; }
+    if (!x) { x = 0; }
+    var elem;
+    if ((elem = canMoveInstantly(this))) {
+      doQuickMoveXY(elem, x, y);
+      return this;
+    }
+    return this.plan(function(j, elem) {
+      var tr = getElementTranslation(elem);
+      this.animate(
+        { turtlePosition: cssNum(tr[0] + x) + ' ' + cssNum(tr[1] - y) },
+        animTime(elem), animEasing(elem));
     });
   }),
   moveto: wraphelp(
