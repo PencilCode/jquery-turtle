@@ -19,7 +19,11 @@ module.exports = function(grunt) {
       }
     },
     connect: {
-      testserver: { }
+      testserver: {
+        options: {
+          hostname: '0.0.0.0'
+        }
+      }
     },
     uglify: {
       all: {
