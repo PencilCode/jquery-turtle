@@ -4833,7 +4833,7 @@ var debug = {
   init: function initdebug() {
     if (parent && parent.ide) {
       this.ide = parent.ide;
-      this.ide.bind(window);
+      this.ide.bindframe(window);
     }
   },
   showerror: function showerror(e) {
