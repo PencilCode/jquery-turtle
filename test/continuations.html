@@ -1,0 +1,50 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Continuation style test.");
+asyncTest("Exercises continuation-passing style on various apis.", function() {
+  speed(10, function() {
+    pen(red, function() {
+      rt(360, 100, function() {
+        ok(touches(red));
+        pen(null, function() {
+          fd(100, function() {
+            ok(!touches(red));
+            speed(Infinity, function() {
+              lt(90, function() {
+                bk(100, function() {
+                  ok(touches(red));
+                  jump(0, -100, function() {
+                    ok(!touches(red));
+                    turnto(0, function() {
+                      ok(!touches(red));
+                      slide(0, -100, function() {
+                        ok(touches(red));
+                        moveto(0, 0, function() {
+                          ok(touches(red));
+                          play({tempo: 1000}, 'c', function() {
+                            ok(touches(red));
+                            start();
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+});
+</script>
+
+
+
