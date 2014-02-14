@@ -3196,8 +3196,9 @@ var turtlefn = {
       "<mark>play \"de[dBFA]2[cGEC]4\"</mark>"],
   function play(notes) {
     var cc = setupContinuation(this, arguments, 1);
+    var self = this;
     this.queue(function() {
-      playABC(function() { cc.resolve(); $(this).dequeue(); }, cc.args);
+      playABC(function() { cc.resolve(); $(self).dequeue(); }, cc.args);
     });
     cc.start();
     return this;
