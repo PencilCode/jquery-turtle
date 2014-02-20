@@ -6,11 +6,11 @@
 <div id="qunit"></div>
 <script>
 eval($.turtle());
-module("Drawing test.");
+module("Test of the play function.");
 asyncTest("Plays a few notes twice.", function() {
   var t0 = +(new Date);
-  play({tempo:100}, 'ABC[eg]')
-  play('bc')
+  play({tempo:1000}, 'ABC[eg]')
+  play({tempo:300}, 'gc')
   done(function() {
     var t1 = +(new Date);
     ok(t1 - t0 < 1000);
