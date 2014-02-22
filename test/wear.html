@@ -1,0 +1,43 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Test of wear command.");
+asyncTest("Wears and hittests different shapes.", function() {
+  speed(Infinity);
+  dot(red, 30);
+  dot(white, 22);
+  ok(touches(white));
+  ok(touches(red));
+  wear('radius');
+  ok(touches(white));
+  ok(!touches(red));
+  rt(20);
+  ok(touches(white));
+  ok(!touches(red));
+  rt(20);
+  ok(touches(white));
+  ok(!touches(red));
+  fd(3);
+  ok(touches(white));
+  ok(touches(red));
+  bk(3);
+  ok(touches(white));
+  ok(!touches(red));
+  dot(white, 27);
+  wear('pointer');
+  ok(touches(white));
+  ok(touches(red));
+  wear('turtle');
+  ok(touches(white));
+  ok(!touches(red));
+  fd(3);
+  ok(touches(white));
+  ok(touches(red));
+  start();
+});
+</script>

@@ -1,0 +1,78 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Speed Infinity test.");
+asyncTest("Test of dots and fills.", function() {
+  speed(Infinity);
+  pen(fill);
+  bk(100);
+  lt(90);
+  bk(100);
+  lt(90);
+  bk(100);
+  lt(90);
+  bk(100);
+  lt(90);
+  fill(green);
+  pen('path');
+  fd(100);
+  rt(90);
+  fd(100);
+  rt(90);
+  fd(100);
+  rt(90);
+  fd(100);
+  rt(90);
+  fill(red);
+  ok(!touches(blue));
+  ok(touches(green));
+  ok(touches(red));
+  ok(touches(transparent));
+  dot(blue, 100);
+  ok(touches(blue));
+  ok(!touches(green));
+  ok(!touches(red));
+  ok(!touches(transparent));
+  fd(100);
+  ok(!touches(blue));
+  ok(!touches(green));
+  ok(touches(red));
+  ok(touches(transparent));
+  slide(50);
+  ok(!touches(blue));
+  ok(!touches(green));
+  ok(touches(red));
+  ok(touches(transparent));
+  bk(50);
+  ok(!touches(blue));
+  ok(!touches(green));
+  ok(touches(red));
+  ok(!touches(transparent));
+  bk(50);
+  ok(touches(blue));
+  ok(touches(green));
+  ok(touches(red));
+  ok(!touches(transparent));
+  bk(50);
+  ok(!touches(blue));
+  ok(touches(green));
+  ok(!touches(red));
+  ok(!touches(transparent));
+  slide(50);
+  ok(!touches(blue));
+  ok(touches(green));
+  ok(!touches(red));
+  ok(touches(transparent));
+  fd(50);
+  ok(!touches(blue));
+  ok(touches(green));
+  ok(touches(red));
+  ok(touches(transparent));
+  start();
+});
+</script>

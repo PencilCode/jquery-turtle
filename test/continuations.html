@@ -9,14 +9,19 @@ eval($.turtle());
 module("Continuation style test.");
 asyncTest("Exercises continuation-passing style on various apis.", function() {
   speed(10, function() {
+    equal($.fx.speeds.turtle, 100);
     pen(red, function() {
+      ok(true);
       rt(360, 100, function() {
         ok(touches(red));
         pen(null, function() {
           fd(100, function() {
             ok(!touches(red));
             speed(Infinity, function() {
+              equal($.fx.speeds.turtle, 0);
+              equal(Math.round(direction()), 0);
               lt(90, function() {
+                equal(Math.round(direction()), -90);
                 bk(100, function() {
                   ok(touches(red));
                   jump(0, -100, function() {
