@@ -1,0 +1,56 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Label test.");
+function rounded(obj) {
+  var result;
+  if ($.isNumeric(obj)) {
+    return Math.round(obj);
+  }
+  if ($.isArray(obj)) {
+    result = [];
+    for (var j = 0; j < obj.length; ++j) {
+      result.push(rounded(obj[j]));
+    }
+    return result;
+  }
+  if ($.isObject(obj)) {
+    result = {};
+    for (var k in obj) {
+      result[k] = rounded(obj[k]);
+      return result;
+    }
+  }
+}
+asyncTest("Outputs some labels.", function() {
+  speed(10);
+  label('small');
+  fd(50)
+  css('fontSize', 100);
+  label('big');
+  bk(100)
+  rt(90);
+  label('mid', { fontSize: 50 });
+  fd(150)
+  label('giant', 150);
+  done(function() {
+    ok($('label:contains(small)').width() < $('label:contains(mid)').width());
+    ok($('label:contains(mid)').width() < $('label:contains(big)').width());
+    ok($('label:contains(big)').width() < $('label:contains(giant)').width());
+    deepEqual(rounded($('label:contains(small)').getxy()), [0, 0]);
+    deepEqual(rounded($('label:contains(big)').getxy()), [0, 50]);
+    deepEqual(rounded($('label:contains(mid)').getxy()), [0, -50]);
+    deepEqual(rounded($('label:contains(giant)').getxy()), [150, -50]);
+    equal(rounded($('label:contains(small)').direction()), 0);
+    equal(rounded($('label:contains(big)').direction()), 0);
+    equal(rounded($('label:contains(mid)').direction()), 90);
+    equal(rounded($('label:contains(giant)').direction()), 90);
+    start();
+  });
+});
+</script>
