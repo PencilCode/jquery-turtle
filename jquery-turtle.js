@@ -1025,7 +1025,7 @@ function getCornersInPageCoordinates(elem, untransformed) {
       totalTransform = matrixProduct(totalParentTransform, currentTransform),
       inverseParent = inverse2x2(totalParentTransform),
       out = {},
-      origin = getTurtleOrigin(elem, inverseParent),
+      origin = getTurtleOrigin(elem, inverseParent, out),
       gbcr = out.gbcr,
       hull = polyToVectorsOffset(getTurtleData(elem).hull, origin) || [
         [gbcr.left, gbcr.top],

@@ -1,0 +1,21 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Inside test.");
+asyncTest("Verifies that 'inside' works.", function() {
+  speed(Infinity);
+  ok(inside(window));
+  p = write('hello');
+  ok(p.inside(window));
+  p.slide(-25, 0);
+  ok(!p.inside(window));
+  fd(2000);
+  ok(!inside(window));
+  start();
+});
+</script>
