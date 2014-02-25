@@ -26,11 +26,13 @@ function() {
 var counter = 0;
 var expected = [
   "bindframe",
-  ["enter","speed"],   // The first "speed" call begins effect immediately,
-  ["appear","speed"],  // so "appear" happens before "exit", but its
-  ["exit","speed"],    // "resolve" happens much later.
-  ["enter","pen"],     // All the queued actions just "enter" and "exit"
-  ["exit","pen"],      // before the animations are visible.
+  ["enter","speed"],   // Speed happens synchronously
+  ["appear","speed"],  // so "appear" and "resolve" happen between
+  ["resolve","speed"], // "enter" and "exit".
+  ["exit","speed"],
+  ["enter","pen"],     // The first "pen" starts immeidately, so
+  ["appear","pen"],    // its "appear" happens synchronously.
+  ["exit","pen"],      // But it resolves later.
   ["enter","fd"],
   ["exit","fd"],
   ["enter","rt"],
@@ -39,10 +41,8 @@ var expected = [
   ["exit","fd"],
   ["enter","rt"],
   ["exit","rt"],
-  ["resolve","speed"], // Now finally "speed" is resolved.
-  ["appear","pen"],    // And then the remaining queued actions occur.
-  ["resolve","pen"],
-  ["appear","fd"],
+  ["resolve","pen"],   // The first "pen resolves here, followed by
+  ["appear","fd"],     // all the remaining queued actions.
   ["resolve","fd"],
   ["appear","rt"],
   ["resolve","rt"],
