@@ -1,0 +1,57 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Speed Infinity test.");
+asyncTest("Draws a square changing speed along the way.", function() {
+
+  targets = [
+    new Turtle,
+    new Turtle(red),
+    new Turtle('radius'),
+    new Turtle('green pencil')
+  ];
+
+  for (var x = 0; x < 4; x++) {
+    t = targets[x];
+    t.speed(Infinity);
+    t.rt(135);
+    t.fd(100);
+    t.speed(100);
+    for (var j = 0; j < x; j++) {
+      t.fd(100);
+      t.rt(90);
+    }
+  }
+
+  var expected = 0;
+  var gotten = []
+  tick(100, function() {
+    for (var index = 0; index < targets.length; index++) {
+      var t = targets[index];
+      if (touches(t) && !gotten[index]) {
+        gotten[index] = true;
+        write('got', index);
+        equal(index, expected++);
+      }
+    }
+  });
+
+  speed(10);
+  rt(135);
+  fd(100);
+  for (var j = 0; j < 4; ++j) {
+    fd(100);
+    rt(90);
+  }
+
+  done(function() {
+    equal(expected, 4);
+    start();
+  });
+});
+</script>

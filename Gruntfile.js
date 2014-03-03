@@ -66,6 +66,14 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-release');
 
+  grunt.task.registerTask('test', 'Run unit tests, or just one test.',
+  function(testname) {
+    if (!!testname) {
+      grunt.config('qunit.all', ['test/' + testname + '.html']);
+    }
+    grunt.task.run('qunit:all');
+  });
+
   grunt.registerTask("testserver", ["watch:testserver"]);
   grunt.registerTask("default", ["uglify", "qunit"]);
 };
