@@ -1485,6 +1485,13 @@ function getTurtleDrawingCtx() {
   return drawing.ctx;
 }
 
+function getTurtleDrawingCanvas() {
+  if (!drawing.canvas) {
+    getTurtleDrawingCtx();
+  }
+  return drawing.canvas;
+}
+
 function getOffscreenCanvas(width, height) {
   if (drawing.offscreen &&
       drawing.offscreen.width === width &&
@@ -1958,7 +1965,7 @@ function touchesPixel(elem, color) {
 //////////////////////////////////////////////////////////////////////////
 
 function applyImg(sel, img) {
-  if (sel[0].tagName == 'IMG') {
+  if (sel[0].tagName == 'IMG' || sel[0].tagName == 'CANVAS') {
     setImageWithStableOrigin(sel[0], img.url, img.css);
   } else {
     var props = {
@@ -2408,13 +2415,16 @@ function resizeEarlyIfPossible(url, elem, css) {
 
 function applyLoadedImage(loaded, elem, css) {
   // Read the element's origin before setting the image src.
-  var oldOrigin = readTransformOrigin(elem);
-  // Set the image to a 1x1 transparent GIF, and clear the transform origin.
-  // (This "reset" code was original added in an effort to avoid browser
-  // bugs, but it is not clear if it is still needed.)
-  elem.src = 'data:image/gif;base64,R0lGODlhAQABAIAAA' +
-             'AAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-  var sel = $(elem);
+  var oldOrigin = readTransformOrigin(elem),
+      sel = $(elem),
+      isCanvas = (elem.tagName == 'CANVAS');
+  if (!isCanvas) {
+    // Set the image to a 1x1 transparent GIF, and clear the transform origin.
+    // (This "reset" code was original added in an effort to avoid browser
+    // bugs, but it is not clear if it is still needed.)
+    elem.src = 'data:image/gif;base64,R0lGODlhAQABAIAAA' +
+               'AAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  }
   sel.css({
     backgroundImage: 'none',
     height: '',
@@ -2425,7 +2435,11 @@ function applyLoadedImage(loaded, elem, css) {
     // Now set the source, and then apply any css requested.
     elem.width = loaded.width;
     elem.height = loaded.height;
-    elem.src = loaded.src;
+    if (!isCanvas) {
+      elem.src = loaded.src;
+    } else {
+      elem.getContext('2d').drawImage(loaded, 0, 0);
+    }
   }
   if (css) {
     sel.css(css);
@@ -3671,6 +3685,14 @@ var turtlefn = {
     dy = pos.pageY - cur.pageY;
     return Math.sqrt(dx * dx + dy * dy);
   }),
+  canvas: wrapraw('canvas',
+  ["<u>turtle.canvas()</u> The canvas for the turtle image. " +
+      "Draw on the turtle: " +
+      "<mark>c = turtle.canvas().getContext('2d'); c.fillStyle = red; " +
+      "c.fillRect(10, 10, 30, 30)</mark>"],
+  function canvas() {
+    return this.filter('canvas').get(0);
+  }),
   cell: wrapraw('cell',
   ["<u>cell(r, c)</u> Row r and column c in a table. " +
       "Use together with the table function: " +
@@ -4069,6 +4091,26 @@ var dollar_turtle_methods = {
       "<mark>do ct</mark>"],
   function ct() {
     clearField('text');
+  }),
+  canvas: wrapraw('canvas',
+  ["<u>canvas()</u> Returns the raw turtle canvas. " +
+      "<mark>c = canvas().getContext('2d'); c.fillStyle = red; " +
+      "c.fillRect(100,100,200,200)</mark>"],
+  function canvas() {
+    return getTurtleDrawingCanvas();
+  }),
+  sizexy: wrapraw('sizexy',
+  ["<u>sizexy()</u> Get the document pixel [width, height]. " +
+      "<mark>[w, h] = sizexy(); canvas('2d').fillRect(0, 0, w, h)</mark>"],
+  function sizexy() {
+    // Notice that before the body exists, we cannot get its size; so
+    // we fall back to the window size.
+    // Using innerHeight || $(window).height() deals with quirks-mode.
+    var b = $('body');
+    return [
+      Math.max(b.outerWidth(true), window.innerWidth || $(window).width()),
+      Math.max(b.outerHeight(true), window.innerHeight || $(window).height())
+    ];
   }),
   tick: wrapraw('tick',
   ["<u>tick(fps, fn)</u> Calls fn fps times per second until " +
@@ -4888,6 +4930,34 @@ var shapes = {
   }
 };
 
+function createRectangleShape(width, height, subpixels) {
+  if (!subpixels) {
+    subpixels = 1;
+  }
+  return (function(color) {
+    var c = document.createElement('canvas');
+    c.width = width;
+    c.height = height;
+    var ctx = c.getContext('2d');
+    console.log('using',color);
+    if (color && color != 'transparent') {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, width, height);
+    }
+    var sw = width / subpixels, sh = height / subpixels;
+    console.log(c.toDataURL());
+    return {
+      url: c.toDataURL(),
+      css: {
+        width: sw,
+        height: sh,
+        transformOrigin: (sw / 2) + 'px + ' + (sh / 2) + 'px',
+        opacity: 1
+      }
+    };
+  });
+}
+
 function nameToImg(name) {
   // Parse forms for built-in shapes:
   // "red" -> red default shape (red turtle)
@@ -4895,9 +4965,19 @@ function nameToImg(name) {
   // "blue turtle" -> blue turtle
   // "rgba(50, 90, 255) pencil" -> bluish pencil
   if (!name) { return null; }
-  var builtin = name.trim().split(/\s+/), color = null, shape = null;
-  if (builtin.length && builtin[builtin.length - 1] in shapes) {
-    shape = shapes[builtin.pop()];
+  console.log('nametoImag', name);
+  var builtin = name.trim().split(/\s+/), color = null, shape = null,
+      dimensionpat = /^(\d+)x(\d+)(?:\/(\d+))?$/;
+  if (builtin.length) {
+    var m;
+    if (builtin[builtin.length - 1] in shapes) {
+      shape = shapes[builtin.pop()];
+    } else if (null != (m = builtin[builtin.length - 1].match(dimensionpat))) {
+      console.log('dimension match');
+      builtin.pop();
+      shape = createRectangleShape(
+          parseFloat(m[1]), parseFloat(m[2]), m[3] && parseFloat(m[3]));
+    }
   }
   if (builtin.length && isCSSColor(builtin.join(' '))) {
     color = builtin.join(' ');
@@ -4974,7 +5054,7 @@ function hatchone(name, container, clonepos) {
   var isID = name && /^[a-zA-Z]\w*$/.exec(name),
       isTag = name && /^<.*>$/.exec(name),
       img = nameToImg(name) ||
-        (isID || name === undefined) && nameToImg('turtle');
+        (name == null) && nameToImg('turtle');
 
   // Don't overwrite previously existing id.
   if (isID && $('#' + name).length) { isID = false; }
@@ -4982,7 +5062,7 @@ function hatchone(name, container, clonepos) {
   // Create an image element with the requested name.
   var result;
   if (img) {
-    result = $('<img>');
+    result = $('<canvas>');
     applyImg(result, img);
   } else if (isTag) {
     result = $(name);
