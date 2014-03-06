@@ -793,27 +793,36 @@ function cleanedStyle(trans) {
   return result;
 }
 
+// Returns the turtle's origin (the absolute location of its pen and
+// center of rotation when no transforms are applied) in page coordinates.
 function getTurtleOrigin(elem, inverseParent, corners) {
+  var state = getTurtleData(elem);
+  if (state && state.quickhomeorigin && state.down && !corners) {
+    return state.quickhomeorigin;
+  }
   var hidden = ($.css(elem, 'display') === 'none'),
       swapout = hidden ?
         { position: "absolute", visibility: "hidden", display: "block" } : {},
       substTransform = swapout[transform] = (inverseParent ? 'matrix(' +
           $.map(inverseParent, cssNum).join(', ') + ', 0, 0)' : 'none'),
-      old = {}, name, gbcr;
+      old = {}, name, gbcr, transformOrigin, result;
   for (name in swapout) {
     old[name] = elem.style[name];
     elem.style[name] = swapout[name];
   }
   gbcr = getPageGbcr(elem);
+  transformOrigin = readTransformOrigin(elem, [gbcr.width, gbcr.height]);
   for (name in swapout) {
     elem.style[name] = cleanedStyle(old[name]);
   }
   if (corners) {
     corners.gbcr = gbcr;
   }
-  return addVector(
-      [gbcr.left, gbcr.top],
-      readTransformOrigin(elem, [gbcr.width, gbcr.height]));
+  var result = addVector([gbcr.left, gbcr.top], transformOrigin);
+  if (state && state.down) {
+    state.quickhomeorigin = result;
+  }
+  return result;
 }
 
 function unattached(elt) {
@@ -1603,7 +1612,8 @@ function getTurtleData(elem) {
       speed: 'turtle',
       easing: 'swing',
       turningRadius: 0,
-      quickpagexy: null
+      quickpagexy: null,
+      quickhomeorigin: null
     });
   }
   return state;
@@ -1667,6 +1677,7 @@ function makePenDownHook() {
       if (style != state.down) {
         state.down = style;
         state.quickpagexy = null;
+        state.quickhomeorigin = null;
         elem.style.turtlePenDown = writePenDown(style);
         flushPenState(elem);
       }
