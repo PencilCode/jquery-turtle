@@ -1,0 +1,47 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle({hungtimeout: 10}));
+module("Interrupt test.");
+asyncTest("Tests interrupts.", function() {
+  var gotException = false, j;
+  // Nothing queued, nothing interruptable.
+  ok(!interrupt('test'));
+  // Now test an infinite loop: we should kill it in 10 ms.
+  try {
+    while(true) {
+      rt(1);
+    }
+  } catch (e) {
+    gotException = true;
+  }
+  ok(gotException);
+  // After killing an infinte loop, queues should be cleared.
+  equal($.queue(turtle).length, 0);
+  ok(!interrupt('test'));
+  // Reset the interrupt so we can run commands again.
+  interrupt('reset');
+  for (j = 0; j < 10; ++j) {
+    fd(10);
+  }
+  // Something is running, so something is interruptable.
+  ok(interrupt('test'));
+  // Interrupting it should throw an exception.
+  gotException = false;
+  try {
+    interrupt();
+  } catch(e) {
+    gotException = true;
+  }
+  ok(gotException);
+  // And the queues should be emptied immediately.
+  equal($.queue(turtle).length, 0);
+  done(function() {
+    start();
+  });
+});
+</script>
