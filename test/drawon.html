@@ -1,0 +1,70 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Turtle canvas test.");
+asyncTest("Draws on another turtle.", function() {
+  speed(Infinity);
+  css({zIndex:1});
+  var B = window.B = hatch('1000x1000/5');
+  drawon(B);
+  ok(!touches(blue));
+  ok(touches(transparent));
+  ok(!touches(red));
+  dot(blue, Infinity);
+  ok(touches(blue));
+  ok(!touches(transparent));
+  ok(!touches(red));
+  pen(red)
+  fd(100);
+  ok(touches(blue));
+  ok(!touches(transparent));
+  ok(touches(red));
+  B.rt(45);
+  ok(touches(blue));
+  ok(!touches(transparent));
+  ok(!touches(red));
+  dot(yellow, 30);
+  ok(!touches(blue));
+  ok(!touches(transparent));
+  ok(!touches(red));
+  ok(touches(yellow));
+  bk(10);
+  ok(touches(blue));
+  ok(!touches(transparent));
+  ok(touches(red));
+  ok(touches(yellow));
+  pen(null)
+  rt(135);
+  fd(40)
+  ok(touches(blue));
+  ok(!touches(transparent));
+  ok(!touches(red));
+  ok(!touches(yellow));
+  fd(20)
+  ok(touches(blue));
+  ok(!touches(transparent));
+  ok(touches(red));
+  ok(!touches(yellow));
+  B.rt(30);
+  B.bk(50);
+  ok(touches(blue));
+  ok(!touches(transparent));
+  ok(!touches(red));
+  ok(!touches(yellow));
+  bk(50);
+  ok(touches(blue));
+  ok(!touches(transparent));
+  ok(!touches(red));
+  ok(touches(yellow));
+  done(function() {
+    // B.rt(90);
+    ok(true);
+    start();
+  });
+});
+</script>
