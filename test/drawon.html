@@ -5,7 +5,7 @@
 <body>
 <div id="qunit"></div>
 <script>
-eval($.turtle());
+eval($.turtle({subpixel:2}));
 module("Turtle canvas test.");
 asyncTest("Draws on another turtle.", function() {
   speed(Infinity);
@@ -61,6 +61,17 @@ asyncTest("Draws on another turtle.", function() {
   ok(!touches(transparent));
   ok(!touches(red));
   ok(touches(yellow));
+  drawon(canvas());
+  ok(!touches(blue));
+  ok(touches(transparent));
+  ok(!touches(red));
+  ok(!touches(yellow));
+  pen(red);
+  fd(100);
+  ok(!touches(blue));
+  ok(touches(transparent));
+  ok(touches(red));
+  ok(!touches(yellow));
   done(function() {
     // B.rt(90);
     ok(true);

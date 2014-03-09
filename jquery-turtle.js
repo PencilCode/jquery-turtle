@@ -475,6 +475,22 @@ function inverse2x2(a) {
       rotation(-(d[0]))));
 }
 
+// By convention, a 2x3 transformation matrix has a 2x2 transform
+// in the first four slots and a 1x2 translation in the last two slots.
+// The array [a, b, c, d, e, f] is shorthand for the following 3x3
+// matrix where the upper-left 2x2 is an in-place transform, and the
+// upper-right vector [e, f] is the translation.
+//
+//   [a c e]   The inverse of this 3x3 matrix can be formed by
+//   [b d f]   figuring the inverse of the 2x2 upper-left corner
+//   [0 0 1]   (call that Ai), and then negating the upper-right vector
+//             (call that -t) and then forming Ai * (-t).
+//
+//   [ A  t]   (if Ai is the inverse of A)   [  Ai  Ai*(-t) ]
+//   [0 0 1]          --- invert --->        [ 0 0    1     ]
+//
+// The result is of the same form, and can be represented as an array
+// of six numbers.
 function inverse2x3(a) {
   var ai = inverse2x2(a);
   if (a.length == 4) return ai;
@@ -1426,6 +1442,10 @@ function createSurfaceAndField() {
       display: 'inline-block',
       top: 0, left: 0, width: '100%', height: '100%',
       font: 'inherit',
+      // z-index: -1 is required to keep the turtle
+      // surface behind document text and buttons, so
+      // the canvas does not block interaction
+      zIndex: -1,
       // Setting transform origin for the turtle field
       // fixes a "center" point in page coordinates that
       // will not change even if the document resizes.
@@ -1587,7 +1607,10 @@ function resizecanvas() {
     globalDrawing.canvas.width = bw;
     globalDrawing.canvas.height = bh;
     globalDrawing.canvas.getContext('2d').drawImage(tc, 0, 0);
-    $(globalDrawing.canvas).css({ width: bw, height: bh });
+    $(globalDrawing.canvas).css({
+      width: bw / globalDrawing.subpixel,
+      height: bh / globalDrawing.subpixel
+    });
   }
 }
 
@@ -1783,7 +1806,9 @@ function applyPenStyle(ctx, ps, scale) {
 // position and CSS 2d transforms.
 function computeCanvasPageTransform(canvas) {
   if (!canvas) { return; }
-  if (canvas === globalDrawing.canvas) { return [1, 0, 0, 1]; }
+  if (canvas === globalDrawing.canvas) {
+    return [globalDrawing.subpixel, 0, 0, globalDrawing.subpixel];
+  }
   var totalParentTransform = totalTransform2x2(canvas.parentElement),
       inverseParent = inverse2x2(totalParentTransform),
       out = {},
@@ -2532,7 +2557,9 @@ function applyLoadedImage(loaded, elem, css) {
     if (!isCanvas) {
       elem.src = loaded.src;
     } else {
-      elem.getContext('2d').drawImage(loaded, 0, 0);
+      var ctx = elem.getContext('2d');
+      ctx.clearRect(0, 0, loaded.width, loaded.height);
+      ctx.drawImage(loaded, 0, 0);
     }
   }
   if (css) {
@@ -3620,7 +3647,6 @@ var turtlefn = {
       "<mark>A = new Turtle('100x100'); " +
       "drawon A.canvas(); pen red; fd 10</mark>"],
   function drawon(cc, canvas) {
-    try {
     return this.plan(function(j, elem) {
       cc.appear(j);
       var state = getTurtleData(elem);
@@ -3628,15 +3654,9 @@ var turtlefn = {
         state.drawOnCanvas = canvas.canvas();
       } else if (canvas && canvas.tagName && canvas.tagName == 'CANVAS') {
         state.drawOnCanvas = canvas;
-      } else {
-        window.badcanvas = canvas;
       }
       cc.resolve(j);
     });
-    } catch (e) {
-      window.lasterr = e;
-      throw e;
-    }
   }),
   label: wrapcommand('label', 1,
   ["<u>label(text)</u> Labels the current position with HTML: " +
@@ -4630,9 +4650,9 @@ $.turtle = function turtle(id, options) {
   if (!globalDrawing.ctx && ('subpixel' in options)) {
     globalDrawing.subpixel = parseInt(options.subpixel);
   }
-  // Set up hung-browser timeout.
+  // Set up hung-browser timeout, default 10 seconds.
   $.turtle.hungtimeout = ('hungtimeout' in options) ?
-      parseFloat(options.hungtimeout) : 6000;
+      parseFloat(options.hungtimeout) : 10000;
 
   // Set up global events.
   if (!('events' in options) || options.events) {
