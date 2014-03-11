@@ -73,6 +73,12 @@ asyncTest("Test of dots and fills.", function() {
   ok(touches(green));
   ok(touches(red));
   ok(touches(transparent));
+  dot(purple, Infinity);
+  ok(!touches(transparent));
+  ok(touches(purple));
+  cg();
+  ok(touches(transparent));
+  ok(!touches(black));
   start();
 });
 </script>
