@@ -1,0 +1,63 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Pen styles test.");
+asyncTest("Draws a series of lines with different style pens.", function() {
+  speed(Infinity);
+  pen({strokeStyle: red, lineWidth:100, lineCap: 'butt'});
+  fd(10);
+  ok(touches(red));
+  ok(touches(transparent));
+  pen(null)
+  fd(20);
+  ok(!touches(red));
+  bk(20);
+  slide(50)
+  ok(touches(red));
+  slide(20)
+  ok(!touches(red));
+  slide(-120)
+  ok(touches(red));
+  slide(-20)
+  ok(!touches(red));
+  rt(45);
+  pen({strokeStyle: blue, lineWidth:100, lineCap: 'square'});
+  fd(10);
+  ok(touches(blue));
+  ok(!touches(transparent));
+  pen(null);
+  slide(50, 50);
+  ok(touches(blue));
+  ok(touches(transparent));
+  ok(touches(red));
+  pen({strokeStyle: green}, 100);
+  bk(10)
+  ok(touches(green));
+  ok(!touches(transparent));
+  pen(null);
+  slide(50, 50);
+  ok(touches(transparent));
+  ok(!touches(green));
+  slide(-10, -10);
+  ok(touches(transparent));
+  ok(touches(green));
+  pen('path');
+  bk(60); rt(120);
+  bk(60); rt(120);
+  bk(60); rt(120);
+  fill({strokeStyle: pink, lineWidth: 3, fillStyle: brown});
+  ok(touches(pink));
+  ok(touches(brown));
+  ok(touches(green));
+  lt(150);fd(33);
+  ok(touches(brown));
+  ok(!touches(green));
+  ok(!touches(pink));
+  start();
+});
+</script>
