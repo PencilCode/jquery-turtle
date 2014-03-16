@@ -38,6 +38,14 @@ asyncTest("Wears and hittests different shapes.", function() {
   fd(3);
   ok(touches(white));
   ok(touches(red));
-  start();
+  var b = new Turtle();
+  ok(!b.touches(blue));
+  b.drawon(turtle);
+  ok(!b.touches(blue));
+  wear(blue);
+  pause(0.1, function() {
+    ok(b.touches(blue));
+    start();
+  });
 });
 </script>
