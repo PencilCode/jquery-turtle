@@ -4942,7 +4942,7 @@ function createPointerOfColor(color) {
   ctx.moveTo(0,48);
   ctx.lineTo(20,0);
   ctx.lineTo(40,48);
-  ctx.lineTo(20,42);
+  ctx.lineTo(20,36);
   ctx.closePath();
   ctx.fillStyle = color;
   ctx.fill();
@@ -5059,8 +5059,8 @@ var shapes = {
       css: {
         width: 20,
         height: 24,
-        transformOrigin: '10px 0px',
-        turtleHull: "-10 24 0 0 10 24",
+        transformOrigin: '10px 18px',
+        turtleHull: "-10 6 0 -18 10 6",
         opacity: 0.67
       }
     };
