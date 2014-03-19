@@ -4963,6 +4963,19 @@ function createRadiusOfColor(color) {
   return c.toDataURL();
 }
 
+function createDotOfColor(color, diam) {
+  diam = diam || 12;
+  var c = getOffscreenCanvas(diam, diam);
+  var ctx = c.getContext('2d');
+  var r = diam / 2;
+  ctx.beginPath();
+  ctx.arc(r, r, r, 0, 2 * Math.PI);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  return c.toDataURL();
+}
+
 function createPencilOfColor(color) {
   var c = getOffscreenCanvas(40, 48);
   var ctx = c.getContext('2d');
@@ -5061,6 +5074,19 @@ var shapes = {
         height: 20,
         transformOrigin: '10px 10px',
         turtleHull: "-10 0 -7 7 0 10 7 7 10 0 7 -7 0 -10 -7 -7",
+        opacity: 1
+      }
+    };
+  },
+  dot: function(color) {
+    if (!color) { color = 'black'; }
+    return {
+      url: createDotOfColor(color, 24),
+      css: {
+        width: 12,
+        height: 12,
+        transformOrigin: '6px 6px',
+        turtleHull: "-12 0 -8 8 0 12 8 8 12 0 8 -8 0 -12 -8 -8",
         opacity: 1
       }
     };
