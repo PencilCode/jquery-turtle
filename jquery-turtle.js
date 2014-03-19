@@ -2663,24 +2663,12 @@ var Sprite = (function(_super) {
   function Sprite(selector, context) {
     this.constructor = jQuery;
     this.constructor.prototype = Object.getPrototypeOf(this);
-    var constructed = false;
-    if (!$.isPlainObject(selector)) {
-      // The Sprite constructor starts as just the jQuery constructor
-      // except in the case where the argument is a plain {} object.
-      jQuery.fn.init.call(this, selector, context, rootjQuery);
-      constructed = true;
+    if (!selector || typeof(selector) == 'string' ||
+        $.isPlainObject(selector) || typeof(selector) == 'number') {
+      // Use hatchone to create an element.
+      selector = hatchone(selector, context, '256x256');
     }
-    if (!constructed || this.length == 0) {
-      // If the jQuery constructor did not select anything, then
-      // the Sprite constructor creates a canvas element, defaulting
-      // to a blank 256x256 canvas if no shape is specified.
-      var sprite = hatchone(selector, context, '256x256').get(0);
-      if (!constructed) {
-        jQuery.fn.init.call(this, sprite, context, rootjQuery);
-      } else {
-        Array.prototype.push.call(this, sprite);
-      }
-    }
+    jQuery.fn.init.call(this, selector, context, rootjQuery);
   }
 
   Sprite.prototype.pushStack = function() {
@@ -5165,7 +5153,9 @@ function nameToImg(name, defaultshape) {
   if ($.isPlainObject(name)) {
     return specToImage(name, defaultshape);
   }
-  var builtin = name.trim().split(/\s+/), color = null, shape = null;
+  var builtin = name.toString().trim().split(/\s+/),
+      color = null,
+      shape = null;
   if (builtin.length) {
     shape = lookupShape(builtin[builtin.length - 1]);
     if (shape) {
