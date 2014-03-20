@@ -26,23 +26,25 @@ asyncTest("Draws a square changing speed along the way.", function() {
   done(function() {
     speed(Infinity);
     wear('turtle');
-    var j;
-    for (j = 0; j < 4; ++j) {
-      ok(touches(red));
-      fd(50);
-      ok(touches(red));
-      fd(50);
-      rt(90);
-    }
-    jump(-25,-25);
-    for (j = 0; j < 4; ++j) {
-      ok(!touches(red));
-      fd(75);
-      ok(!touches(red));
-      fd(75);
-      rt(90);
-    }
-    start();
+    plan(function() {
+      var j;
+      for (j = 0; j < 4; ++j) {
+        ok(touches(red));
+        fd(50);
+        ok(touches(red));
+        fd(50);
+        rt(90);
+      }
+      jump(-25,-25);
+      for (j = 0; j < 4; ++j) {
+        ok(!touches(red));
+        fd(75);
+        ok(!touches(red));
+        fd(75);
+        rt(90);
+      }
+      start();
+    });
   });
 });
 </script>

@@ -822,7 +822,7 @@ function cleanedStyle(trans) {
 // center of rotation when no transforms are applied) in page coordinates.
 function getTurtleOrigin(elem, inverseParent, extra) {
   var state = $.data(elem, 'turtleData');
-  if (state && state.quickhomeorigin && state.down && !extra) {
+  if (state && state.quickhomeorigin && state.down && state.style && !extra) {
     return state.quickhomeorigin;
   }
   var hidden = ($.css(elem, 'display') === 'none'),
@@ -845,7 +845,7 @@ function getTurtleOrigin(elem, inverseParent, extra) {
     extra.localorigin = transformOrigin;
   }
   var result = addVector([gbcr.left, gbcr.top], transformOrigin);
-  if (state && state.down) {
+  if (state && state.down && state.style) {
     state.quickhomeorigin = result;
   }
   return result;
@@ -1039,7 +1039,7 @@ function getCenterInPageCoordinates(elem) {
     return getRoundedCenterLTWH(0, 0, dw(), dh());
   }
   var state = getTurtleData(elem);
-  if (state && state.quickpagexy && state.down) {
+  if (state && state.quickpagexy && state.down && state.style) {
     return state.quickpagexy;
   }
   var tr = getElementTranslation(elem),
@@ -1049,7 +1049,7 @@ function getCenterInPageCoordinates(elem) {
       origin = getTurtleOrigin(elem, inverseParent),
       pos = addVector(matrixVectorProduct(totalParentTransform, tr), origin),
       result = { pageX: pos[0], pageY: pos[1] };
-  if (state && simple && state.down) {
+  if (state && simple && state.down && state.style) {
     state.quickpagexy = result;
   }
   return result;
