@@ -5074,7 +5074,20 @@ var shapes = {
         width: 12,
         height: 12,
         transformOrigin: '6px 6px',
-        turtleHull: "-12 0 -8 8 0 12 8 8 12 0 8 -8 0 -12 -8 -8",
+        turtleHull: "-6 0 -4 4 0 6 4 4 6 0 4 -4 0 -6 -4 -4",
+        opacity: 1
+      }
+    };
+  },
+  point: function(color) {
+    if (!color) { color = 'black'; }
+    return {
+      url: createDotOfColor(color, 6),
+      css: {
+        width: 3,
+        height: 3,
+        transformOrigin: '1.5px 1.5px',
+        turtleHull: "-1.5 0 -1 1 0 1.5 1 1 1.5 0 1 -1 0 -1.5 -1 -1",
         opacity: 1
       }
     };
@@ -5152,6 +5165,10 @@ function nameToImg(name, defaultshape) {
   if (!name) { return null; }
   if ($.isPlainObject(name)) {
     return specToImage(name, defaultshape);
+  }
+  if ($.isFunction(name) && (name.helpname || name.name)) {
+    // Deal with unquoted "tan" and "dot".
+    name = name.helpname || name.name;
   }
   var builtin = name.toString().trim().split(/\s+/),
       color = null,
