@@ -3564,13 +3564,38 @@ var turtlefn = {
   }),
   pause: wrapcommand('pause', 1,
   ["<u>pause(seconds)</u> Pauses some seconds before proceeding. " +
-      "<mark>fd 100; pause 2.5; bk 100</mark>"],
+      "<mark>fd 100; pause 2.5; bk 100</mark>",
+   "<u>pause(turtle)</u> Waits for other turtles to be done before " +
+      "proceeding. <mark>t = new Turtle().fd 100; pause t; bk 100</mark>"],
   function pause(cc, seconds) {
-    this.plan(function(j, elem) {
-      cc.appear(j);
-      visiblePause(elem, seconds);
-      this.plan(cc.resolver(j));
-    });
+    var qname = 'fx', promise = null, completion = null;
+    if (seconds && $.isFunction(seconds.done)) {
+      // Accept a promise-like object that has a "done" method.
+      promise = seconds;
+      completion = seconds.done;
+    } else if ($.isFunction(seconds)) {
+      // Or accept a function that is assumed to take a callback.
+      completion = seconds;
+    }
+    if (completion) {
+      this.queue(function() {
+        var elem = this;
+        completion.call(promise, function() {
+          // If the user sets up a callback that is called more than
+          // once, then ignore calls after the first one.
+          var once = elem;
+          elem = null;
+          if (once) { $.dequeue(once); }
+        });
+      });
+    } else {
+      // Pause for some number of seconds.
+      this.plan(function(j, elem) {
+        cc.appear(j);
+        visiblePause(elem, seconds);
+        this.plan(cc.resolver(j));
+      });
+    }
     return this;
   }),
   st: wrapcommand('st', 0,
