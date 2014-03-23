@@ -366,6 +366,7 @@ var undefined = void 0,
     rootjQuery = jQuery(function() {}),
     Pencil, Turtle,
     interrupted = false,
+    async_pending = 0,
     global_plan_counter = 0;
 
 function __extends(child, parent) {
@@ -2951,7 +2952,11 @@ function setupContinuation(thissel, name, args, argcount) {
       // timeout in this case.
       if (done) {
         if (sync) {
-          setTimeout(done, 0);
+          async_pending += 1;
+          setTimeout(function() {
+            async_pending -= 1;
+            done();
+          }, 0);
         } else {
           done();
         }
@@ -4020,7 +4025,11 @@ var turtlefn = {
         // Never do callback synchronously.  Instead redo the promise
         // callback after a zero setTimeout.
         var async = sync;
-        setTimeout(function() { async.promise().done(callback); }, 0);
+        async_pending += 1;
+        setTimeout(function() {
+          async_pending -= 1;
+          async.promise().done(callback);
+        }, 0);
       } else {
         callback.apply(this, arguments);
       }
@@ -4062,7 +4071,11 @@ var turtlefn = {
           } else {
             // Insert a timeout after executing a batch of plans,
             // to avoid deep recursion.
-            setTimeout(function() { $.dequeue(elem, qname); }, 0);
+            async_pending += 1;
+            setTimeout(function() {
+              async_pending -= 1;
+              $.dequeue(elem, qname);
+            }, 0);
           }
         });
       animation.finish = action;
@@ -4214,6 +4227,7 @@ var dollar_turtle_methods = {
       if (interrupted) return false;
       if (tickinterval) return true;
       if ($.timers.length) return true;
+      if (async_pending) return true;
       if (global_turtle && $.queue(global_turtle).length > 0) return true;
       if ($(':animated').length) return true;
       return ($('.turtle').filter(function() {
@@ -4312,7 +4326,11 @@ var dollar_turtle_methods = {
         // Never do callback synchronously.  Instead redo the promise
         // callback after a zero setTimeout.
         var async = sync;
-        setTimeout(function() { async.promise().done(callback); }, 0);
+        async_pending += 1;
+        setTimeout(function() {
+          async_pending -= 1;
+          async.promise().done(callback);
+        }, 0);
       } else {
         callback.apply(this, arguments);
       }
