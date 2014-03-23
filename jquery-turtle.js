@@ -2664,24 +2664,12 @@ var Sprite = (function(_super) {
   function Sprite(selector, context) {
     this.constructor = jQuery;
     this.constructor.prototype = Object.getPrototypeOf(this);
-    var constructed = false;
-    if (!$.isPlainObject(selector)) {
-      // The Sprite constructor starts as just the jQuery constructor
-      // except in the case where the argument is a plain {} object.
-      jQuery.fn.init.call(this, selector, context, rootjQuery);
-      constructed = true;
+    if (!selector || typeof(selector) == 'string' ||
+        $.isPlainObject(selector) || typeof(selector) == 'number') {
+      // Use hatchone to create an element.
+      selector = hatchone(selector, context, '256x256');
     }
-    if (!constructed || this.length == 0) {
-      // If the jQuery constructor did not select anything, then
-      // the Sprite constructor creates a canvas element, defaulting
-      // to a blank 256x256 canvas if no shape is specified.
-      var sprite = hatchone(selector, context, '256x256').get(0);
-      if (!constructed) {
-        jQuery.fn.init.call(this, sprite, context, rootjQuery);
-      } else {
-        Array.prototype.push.call(this, sprite);
-      }
-    }
+    jQuery.fn.init.call(this, selector, context, rootjQuery);
   }
 
   Sprite.prototype.pushStack = function() {
@@ -4985,7 +4973,7 @@ function createPointerOfColor(color) {
   ctx.moveTo(0,48);
   ctx.lineTo(20,0);
   ctx.lineTo(40,48);
-  ctx.lineTo(20,42);
+  ctx.lineTo(20,36);
   ctx.closePath();
   ctx.fillStyle = color;
   ctx.fill();
@@ -5003,6 +4991,19 @@ function createRadiusOfColor(color) {
   ctx.strokeStyle = color;
   ctx.lineWidth = 4
   ctx.stroke();
+  return c.toDataURL();
+}
+
+function createDotOfColor(color, diam) {
+  diam = diam || 12;
+  var c = getOffscreenCanvas(diam, diam);
+  var ctx = c.getContext('2d');
+  var r = diam / 2;
+  ctx.beginPath();
+  ctx.arc(r, r, r, 0, 2 * Math.PI);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
   return c.toDataURL();
 }
 
@@ -5089,8 +5090,8 @@ var shapes = {
       css: {
         width: 20,
         height: 24,
-        transformOrigin: '10px 0px',
-        turtleHull: "-10 24 0 0 10 24",
+        transformOrigin: '10px 18px',
+        turtleHull: "-10 6 0 -18 10 6",
         opacity: 0.67
       }
     };
@@ -5104,6 +5105,32 @@ var shapes = {
         height: 20,
         transformOrigin: '10px 10px',
         turtleHull: "-10 0 -7 7 0 10 7 7 10 0 7 -7 0 -10 -7 -7",
+        opacity: 1
+      }
+    };
+  },
+  dot: function(color) {
+    if (!color) { color = 'black'; }
+    return {
+      url: createDotOfColor(color, 24),
+      css: {
+        width: 12,
+        height: 12,
+        transformOrigin: '6px 6px',
+        turtleHull: "-6 0 -4 4 0 6 4 4 6 0 4 -4 0 -6 -4 -4",
+        opacity: 1
+      }
+    };
+  },
+  point: function(color) {
+    if (!color) { color = 'black'; }
+    return {
+      url: createDotOfColor(color, 6),
+      css: {
+        width: 3,
+        height: 3,
+        transformOrigin: '1.5px 1.5px',
+        turtleHull: "-1.5 0 -1 1 0 1.5 1 1 1.5 0 1 -1 0 -1.5 -1 -1",
         opacity: 1
       }
     };
@@ -5182,7 +5209,13 @@ function nameToImg(name, defaultshape) {
   if ($.isPlainObject(name)) {
     return specToImage(name, defaultshape);
   }
-  var builtin = name.trim().split(/\s+/), color = null, shape = null;
+  if ($.isFunction(name) && (name.helpname || name.name)) {
+    // Deal with unquoted "tan" and "dot".
+    name = name.helpname || name.name;
+  }
+  var builtin = name.toString().trim().split(/\s+/),
+      color = null,
+      shape = null;
   if (builtin.length) {
     shape = lookupShape(builtin[builtin.length - 1]);
     if (shape) {
