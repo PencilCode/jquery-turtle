@@ -1,0 +1,43 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Field test.");
+asyncTest("Moves the field to translate the turtle.", function() {
+  speed(Infinity);
+  var homepos = pagexy();
+  pen(red);
+  fd(100);
+  rt(90);
+  fd(100);
+  rt(90);
+  fd(100);
+  rt(90);
+  fd(100);
+  rt(90);
+  pen(null);
+  $('#field').bk(100);
+  ok(!touches(red));
+  fd(100);
+  ok(touches(red));
+  fd(100);
+  ok(touches(red));
+  home();
+  ok(!touches(red));
+  moveto(homepos);
+  ok(touches(red));
+  $('#field').fd(100);
+  ok(touches(red));
+  bk(100);
+  ok(touches(red));
+  bk(100);
+  ok(!touches(red));
+  done(function() {
+    start();
+  });
+});
+</script>
