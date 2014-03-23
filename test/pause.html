@@ -1,0 +1,48 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Pause test.");
+asyncTest("Moves a few turtles, having each pause for the other.", function() {
+  speed(100);
+  var a = new Turtle(red);
+  var b = new Turtle(blue);
+  a.pause();
+  a.plan(function() {
+    equal(a.getxy()[1], 0);
+    equal(round(b.getxy()[1]), 0);
+    equal(getxy()[0], 0);
+    ok(b.direction() != 0); // b should have started turning without pause.
+  });
+  a.fd(100);
+  b.rt(180);
+  b.pause(a);
+  b.plan(function() {
+    equal(round(a.getxy()[1]), 100);
+    equal(getxy()[0], 0);
+  });
+  b.fd(100);
+  equal(a.getxy()[1], 0);
+  equal(b.getxy()[1], 0);
+  equal(getxy()[0], 0);
+  pause(b);
+  slide(100);
+  plan(function() {
+    equal(round(a.getxy()[1]), 100);
+    equal(round(b.getxy()[1]), -100);
+    equal(round(getxy()[0]), 100);
+    a.rt(90);
+    $('.turtle').bk(50);
+    $(document).pause($('.turtle')).plan(function() {
+      equal(round(a.getxy()[0]), -50);
+      equal(round(b.getxy()[1]), -50);
+      equal(round(getxy()[1]), -50);
+      start();
+    });
+  });
+});
+</script>
