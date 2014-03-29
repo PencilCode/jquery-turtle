@@ -1,0 +1,126 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Type and menu test.");
+asyncTest("Makes a simple adventure game and plays it.", function() {
+  // Add the turtlefield class so that qunit UI is not deleted by cs().
+  $('#qunit').addClass('turtlefield');
+  function room1() {
+    cs();
+    type("You are in room #1\n");
+    type("It is the first room\n");
+    menu({
+      north: room2,
+      south: room3,
+      east: room2,
+      west: room1
+    });
+  }
+  function room2() {
+    cs();
+    type("You are in room #2\n");
+    type("It is the second room\n");
+    menu([room1, room2, room3, room4]);
+  }
+  var room3 = function() {
+    cs();
+    type("You are in room #3\n");
+    menu([room1]);
+  }
+  var room4 = function() {
+    cs();
+    type("You win!  You are in room #4\n");
+    menu(["go back"], function(v) {
+      equal(v, "go back");
+      room1();
+    });
+  }
+  room1();
+  function sendKeyDown(elt, code) {
+    var down = $.Event('keydown');
+    down.which = code;
+    $(elt).trigger(down);
+  }
+  function asap(f) {
+    setTimeout(f, 0);
+  }
+  var LEFT = 37, UP = 38, RIGHT = 39, DOWN = 40, ENTER = 13, SPACE = 32;
+  // Default focus on first radio
+  equal(document.activeElement, $('form input[type=radio]').get(0));
+  equal($('form input:checked').length, 0)
+  // First arrow key refocuses first item.
+  sendKeyDown('form', DOWN);
+  equal(document.activeElement, $('form input[type=radio]').get(0));
+  equal($('form input:checked').length, 1)
+  equal(document.activeElement, $('form input:checked').get(0));
+  // Next arrow key goes to second item.
+  sendKeyDown('form', RIGHT);
+  equal(document.activeElement, $('form input[type=radio]').get(1));
+  equal(document.activeElement, $('form input:checked').get(0));
+  // Space key also goes down.
+  sendKeyDown('form', SPACE);
+  equal(document.activeElement, $('form input[type=radio]').get(2));
+  equal(document.activeElement, $('form input:checked').get(0));
+  // Enter key proceeds
+  sendKeyDown('form', 13);
+  ok(/room #2/.test($('pre').text()));
+  equal($('form input:checked').length, 0)
+  equal(document.activeElement, $('form input[type=radio]').get(0));
+  // Single click should proceed.
+  $('form input[type=radio]').eq(2).trigger('click');
+  ok(/room #3/.test($('pre').text()));
+  equal($('form input:checked').length, 0);
+  equal(document.activeElement, $('form input[type=radio]').get(0));
+  // Mousedown should show but not proceed.
+  $('form input[type=radio]').eq(0).trigger('mousedown');
+  ok(/room #3/.test($('pre').text()));
+  // But a click after the mousedown should work.
+  $('form input[type=radio]').eq(0).trigger('click');
+  ok(/room #1/.test($('pre').text()));
+  equal($('form input:checked').length, 0)
+  // First arrow focuses the first line
+  sendKeyDown('form', LEFT);
+  equal(document.activeElement, $('form input[type=radio]').get(0));
+  equal($('form input:checked').length, 1)
+  equal(document.activeElement, $('form input:checked').get(0));
+  // Up arrow rolls around to bottom.
+  sendKeyDown('form', UP);
+  equal(document.activeElement, $('form input[type=radio]').get(3));
+  equal(document.activeElement, $('form input:checked').get(0));
+  // Left arrow backs up.
+  sendKeyDown('form', LEFT);
+  equal(document.activeElement, $('form input[type=radio]').get(2));
+  equal(document.activeElement, $('form input:checked').get(0));
+  // Click works.
+  $('form input[type=radio]').eq(0).trigger('click');
+  ok(/room #2/.test($('pre').text()));
+  equal($('form input:checked').length, 0)
+  // Keying a label works.
+  sendKeyDown('form', '3'.charCodeAt(0));
+  equal(document.activeElement, $('form input[type=radio]').get(2));
+  equal(document.activeElement, $('form input:checked').get(0));
+  // Advance after keying label works.
+  sendKeyDown('form', DOWN);
+  equal(document.activeElement, $('form input[type=radio]').get(3));
+  equal(document.activeElement, $('form input:checked').get(0));
+  // Enter key works.
+  sendKeyDown('form', 13);
+  ok(/room #4/.test($('pre').text()));
+  equal($('form input:checked').length, 0)
+  equal(document.activeElement, $('form input[type=radio]').get(0));
+  // Keying a label gives focus
+  sendKeyDown('form', 'G'.charCodeAt(0));
+  equal(document.activeElement, $('form input[type=radio]').get(0));
+  equal(document.activeElement, $('form input:checked').get(0));
+  equal($('form label').eq(0).text(), 'go back');
+  // Go play again.
+  sendKeyDown('form', ENTER);
+  ok(/room #1/.test($('pre').text()));
+  start();
+});
+</script>
