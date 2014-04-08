@@ -30,6 +30,8 @@ asyncTest("Makes a simple adventure game and plays it.", function() {
   var room3 = function() {
     cs();
     type("You are in room #3\n");
+    type(null);
+    type(void 0);
     menu([room1]);
   }
   var room4 = function() {
@@ -74,6 +76,8 @@ asyncTest("Makes a simple adventure game and plays it.", function() {
   // Single click should proceed.
   $('form input[type=radio]').eq(2).trigger('click');
   ok(/room #3/.test($('pre').text()));
+  ok(/null/.test($('pre').text()));
+  ok(/undefined/.test($('pre').text()));
   equal($('form input:checked').length, 0);
   equal(document.activeElement, $('form input[type=radio]').get(0));
   // Mousedown should show but not proceed.

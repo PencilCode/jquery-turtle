@@ -5512,13 +5512,7 @@ function plainTextPrint() {
       document.body.appendChild(pre);
     }
     for (var j = 0; j < args.length; j++) {
-      var t;
-      if (args[j] == null) {
-        t = typeof(args[j]);
-      } else {
-        t = args[j].toString();
-      }
-      pre.appendChild(document.createTextNode(t));
+      pre.appendChild(document.createTextNode(String(args[j])));
     }
   });
 }
