@@ -6782,6 +6782,9 @@ var dollar_turtle_methods = {
         debug.addEvalPump(name, evalpump, evalthis);
       }
     },
+    eval: function(code, scope) {
+      return debug.eval(code, scope);
+    }
   }),
   append: wrapraw('append',
   ["<u>append(html)</u> Appends text to the document without a new line. " +
@@ -7208,6 +7211,7 @@ $.turtle = function turtle(id, options) {
       }
       selector = new Turtle(id);
       selector.attr('id', id);
+      window[id] = selector;
     }
   }
   if (selector && !selector.length) { selector = null; }
@@ -8242,22 +8246,22 @@ var debug = {
         this.ide = parent.ide;
         this.ide.bindframe(window);
         this.attached = true;
+        if (window.addEventListener) {
+          window.addEventListener('error', function(event) {
+            // An error event will highlight the error line.
+            debug.reportEvent('error', [event]);
+          });
+        }
       }
     } catch(e) {
+      // Unable to access parent frame - may be cross-domain.
       this.ide = null;
       this.attached = false;
-    }
-    if (this.attached) {
-      if (window.addEventListener) {
-        window.addEventListener('error', function(event) {
-          // An error event will highlight the error line.
-          debug.reportEvent('error', [event]);
-        });
-      }
     }
   },
   attached: false,
   ide: null,
+  evalPump: {},
   reportEvent: function reportEvent(name, args) {
     if (this.ide) { this.ide.reportEvent(name, args); }
   },
@@ -8283,8 +8287,15 @@ var debug = {
     }
   },
   addEvalPump: function addEval(name, pump, pumpthis) {
+    this.evalPump[name || ''] = {p: pump, t: pumpthis};
     if (this.ide && this.ide.addEvalPump) {
       this.ide.addEvalPump(name, pump, pumpthis);
+    }
+  },
+  eval: function eval(str, name) {
+    var record = this.evalPump[name || ''];
+    if (record) {
+      return record.p.call(record.t, str);
     }
   }
 };
