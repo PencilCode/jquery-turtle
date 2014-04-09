@@ -5468,13 +5468,35 @@ function turtleevents(prefix) {
 // running the passed function.  (E.g., to allow "print" to scroll
 // text upward.)
 function autoScrollAfter(f) {
-  var stick = ($(window).height() + $('body').prop('scrollTop') + 10 >=
-               $('body').prop('scrollHeight'));
+  var slop = 10,
+      stick = (autoScrollBottomSeen() + slop >= $('html').outerHeight(true));
   f();
   if (stick) {
-    $('body').prop('scrollTop',
-      $('body').prop('scrollHeight') - $(window).height());
+    var scrollPos = $(window).scrollTop(),
+        advancedScrollPos = Math.min(autoScrollBottomSeen(),
+            $('html').outerHeight(true) - $(window).height());
+    if (advancedScrollPos > scrollPos) {
+      $(window).scrollTop(advancedScrollPos);
+    }
   }
+}
+var autoScrollState = {
+  autoScrollTimer: null,
+  bottomSeen: 0
+};
+// We cache bottomSeen until a zero-delay timer can clear it,
+// so that a sequence of writes to the screen will not autoscroll
+// more than one full page.
+function autoScrollBottomSeen() {
+  if (!autoScrollState.timer) {
+    autoScrollState.timer = setTimeout(function() {
+      autoScrollState.timer = null;
+    }, 0);
+    autoScrollState.bottomSeen = Math.min(
+        $(window).height() + $(window).scrollTop(),
+        $('html').outerHeight(true));
+  }
+  return autoScrollState.bottomSeen;
 }
 
 // Simplify $('body').append(html).
