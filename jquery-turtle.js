@@ -5469,11 +5469,13 @@ function turtleevents(prefix) {
 // text upward.)
 function autoScrollAfter(f) {
   var slop = 10,
-      stick = (autoScrollBottomSeen() + slop >= $('html').outerHeight(true));
+      seen = autoScrollBottomSeen(),
+      stick = ($(window).height() + $(window).scrollTop() + slop >=
+          $('html').outerHeight(true));
   f();
   if (stick) {
     var scrollPos = $(window).scrollTop(),
-        advancedScrollPos = Math.min(autoScrollBottomSeen(),
+        advancedScrollPos = Math.min(seen,
             $('html').outerHeight(true) - $(window).height());
     if (advancedScrollPos > scrollPos) {
       $(window).scrollTop(advancedScrollPos);
@@ -5494,7 +5496,7 @@ function autoScrollBottomSeen() {
     }, 0);
     autoScrollState.bottomSeen = Math.min(
         $(window).height() + $(window).scrollTop(),
-        $('html').outerHeight(true));
+        $('body').height() + $('body').offset().top);
   }
   return autoScrollState.bottomSeen;
 }
