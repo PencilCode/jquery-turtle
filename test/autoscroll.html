@@ -1,0 +1,60 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<body>
+<div id="qunit"></div>
+<iframe id="i" width=1024 height=768 src="./"></iframe>
+<script>
+module("Autoscroll test.");
+asyncTest("Prints out a bunch of text to test autoscroll.", function() {
+  function asap(f) {
+    setTimeout(f, 10);
+  }
+  var frame = document.getElementById('i'),
+      fw = frame.contentWindow,
+      fd = fw.document;
+  fd.open();
+  fd.write('<!doctype html>\n');
+  fd.write('<script src="lib/jquery.js"><' + '/script>\n');
+  fd.write('<script src="../jquery-turtle.js"><' + '/script>\n');
+  window.dotest = (function() {
+    fw.write('hello');
+    for (var j = 0; j < 5; ++j) {
+      fw.write('line ' + j);
+    }
+    fw.write('<div class="last"><u>last line</u></div>');
+    equal(0, fw.$(fw).scrollTop());
+    if (/phantom/i.test(navigator.userAgent)) {
+      // PhantomJS doesn't correctly deal with full-window scrolling.
+      // https://github.com/ariya/phantomjs/issues/10619
+      start();
+    } else {
+      var urect = fw.$('.last').get(0).getBoundingClientRect();
+      asap(function() {
+        // First, check that the maximum autoscroll is down to the last
+        // piece of text that was readable.
+        for (var j = 5; j < 100; ++j) {
+          fw.write('later line ' + j);
+        }
+        // Verify that the scrollbar went one page only.
+        equal(urect.bottom, fw.$(fw).scrollTop());
+        // Jam the scrollbar to the end.
+        fw.$(fw).scrollTop(fw.$('html').outerHeight(true) + 100);
+        var jammed = fw.$(fw).scrollTop();
+        asap(function() {
+          // Next, check that a few lines of autoscroll work.
+          fw.type('a bit more\nand another bit more\n');
+          ok(fw.$(fw).scrollTop() >= jammed + fw.$('pre').height());
+          // Then, scroll up a bit, and check that autoscroll no longer
+          // sticks to the bottom.
+          var unjammed = fw.$(fw).scrollTop() - 30;
+          fw.$(fw).scrollTop(unjammed);
+          fw.type('some\nmore\nthat should not autoscroll.\n');
+          equal(unjammed, fw.$(fw).scrollTop());
+          start();
+        });
+      });
+    }
+  });
+  fd.write('<body><script>eval($.turtle());parent.dotest();<' + '/script>');
+});
+</script>
