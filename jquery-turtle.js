@@ -2860,7 +2860,7 @@ var pressedKey = (function() {
     }
     updatePressedState(name, down);
     updatePressedState(simplified, down);
-    if (down && !relistened) {
+    if (down) {
       // After any keydown event, unlisten and relisten, to put oursleves last.
       $(window).off(events, pressListener);
       $(window).on(events, pressListener);
@@ -2882,15 +2882,13 @@ var pressedKey = (function() {
     for (key in pressedState) {
       delete pressedState[key];
     }
-    relistened = false;
   }
   // The pressed listener can be turned on and off using pressed.enable(flag).
   function enablePressListener(turnon) {
+    resetPressedState();
     if (turnon) {
-      resetPressedState();
       $(window).on(events, pressListener);
     } else {
-      resetPressedState();
       $(window).off(events, pressListener);
     }
   }
