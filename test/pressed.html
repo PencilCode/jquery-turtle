@@ -1,0 +1,93 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Pressed api test.");
+asyncTest("Simulates a few keypress events and polls press.", function() {
+  function triggerKey(name, n) {
+    if (typeof(n) == 'string') {
+      n = n.charCodeAt(0);
+    }
+    var e = $.Event(name);
+    e.which = n;
+    $(window).trigger(e);
+  }
+  // Single key press
+  equal(0, pressed.list().length);
+  ok(!pressed('a'));
+  triggerKey('keydown', 'A')
+  ok(pressed('a')); // Lowercase works
+  ok(pressed('A')); // Uppercase also works
+  equal(1, pressed.list().length);
+  equal(pressed.list()[0], 'a');
+  triggerKey('keyup', 'A')
+  equal(0, pressed.list().length);
+  ok(!pressed('a'));
+  ok(!pressed('A'));
+  // Alt-right key press should also press 'alt'
+  triggerKey('keydown', 165)
+  ok(pressed('alt')); // Lowercase works
+  ok(pressed('ALT')); // Uppercase also works
+  ok(pressed('alt right')); // Lowercase works
+  ok(pressed('Alt Right')); // Uppercase also works
+  ok(!pressed('alt left')); // 165 is not alt-left
+  equal(2, pressed.list().length);
+  equal(pressed.list()[0], 'alt right');
+  equal(pressed.list()[1], 'alt');
+  triggerKey('keyup', 165)
+  equal(0, pressed.list().length);
+  ok(!pressed('alt right'));
+  ok(!pressed('alt'));
+  ok(!pressed('alt left'));
+  // Test chording: shift, backslash, f1
+  triggerKey('keydown', 16)
+  triggerKey('keydown', 220)
+  triggerKey('keydown', 112)
+  ok(pressed('shift'));
+  ok(pressed('f1'));
+  ok(pressed('\\'));
+  equal(pressed.list().length, 3);
+  equal(pressed.list().join(','), 'shift,\\,f1');
+  ok(!pressed('z'));
+  triggerKey('keydown', 'Z');
+  ok(pressed('z'));
+  ok(pressed('shift'));
+  ok(pressed('f1'));
+  ok(pressed('\\'));
+  equal(pressed.list().length, 4);
+  equal(pressed.list().join(','), 'shift,\\,f1,z');
+  triggerKey('keyup', 112)
+  ok(pressed('z'));
+  ok(pressed('shift'));
+  ok(pressed('\\'));
+  equal(pressed.list().length, 3);
+  equal(pressed.list().join(','), 'shift,\\,z');
+  // Verify that the last key pressed is always last in the list.
+  triggerKey('keydown', 112)
+  equal(pressed.list().length, 4);
+  equal(pressed.list().join(','), 'shift,\\,z,f1');
+  // Now trigger one type of blur event, and expect keys to reset.
+  var b = document.createEvent('Event');
+  b.initEvent('contextmenu', true, true);
+  document.body.dispatchEvent(b);
+  equal(pressed.list().length, 0);
+  ok(!pressed('z'));
+  ok(!pressed('shift'));
+  ok(!pressed('f1'));
+  ok(!pressed('\\'));
+  // Now preventDefault on the contextmenu event and try again: no reset.
+  window.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+  triggerKey('keydown', '5');
+  ok(pressed('5'));
+  var c = document.createEvent('Event');
+  c.initEvent('contextmenu', true, true);
+  document.body.dispatchEvent(c);
+  equal(pressed.list().length, 1);
+  ok(pressed('5'));
+  start();
+});
+</script>
