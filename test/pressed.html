@@ -32,17 +32,17 @@ asyncTest("Simulates a few keypress events and polls press.", function() {
   triggerKey('keydown', 165)
   ok(pressed('alt')); // Lowercase works
   ok(pressed('ALT')); // Uppercase also works
-  ok(pressed('alt right')); // Lowercase works
-  ok(pressed('Alt Right')); // Uppercase also works
+  ok(pressed('altright')); // Lowercase works
+  ok(pressed('AltRight')); // Uppercase also works
   ok(!pressed('alt left')); // 165 is not alt-left
   equal(2, pressed.list().length);
-  equal(pressed.list()[0], 'alt right');
+  equal(pressed.list()[0], 'altright');
   equal(pressed.list()[1], 'alt');
   triggerKey('keyup', 165)
   equal(0, pressed.list().length);
-  ok(!pressed('alt right'));
+  ok(!pressed('altright'));
   ok(!pressed('alt'));
-  ok(!pressed('alt left'));
+  ok(!pressed('altleft'));
   // Test chording: shift, backslash, f1
   triggerKey('keydown', 16)
   triggerKey('keydown', 220)
