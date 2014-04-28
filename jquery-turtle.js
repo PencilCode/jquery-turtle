@@ -6166,7 +6166,7 @@ function playABC(done, args) {
     if (done) { done(); }
     return;
   }
-  var atop = getAudioTop(),
+  var atop = getAudioTop(), callback = null,
       firstvoice = 0, argindex, voice, freqmult, beatsecs,
       volume = 0.5, tempo = 120, transpose = 0, type = ['square'],
       venv = {a: 0.01, d: 0.2, s: 0.1, r: 0.1}, envelope = [venv],
@@ -6179,6 +6179,7 @@ function playABC(done, args) {
     if ('tempo' in opts) { tempo = opts.tempo; }
     if ('transpose' in opts) { transpose = opts.transpose; }
     if ('type' in opts) { type = opts.type; }
+    if ('callback' in opts) { callback = opts.callback; }
     if ('envelope' in opts) {
       if ($.isArray(opts.envelope)) {
         envelope = []
@@ -6195,9 +6196,10 @@ function playABC(done, args) {
   if (!$.isArray(type)) { type = [type]; }
   if (!$.isArray(volume)) { volume = [volume]; }
   if (!$.isArray(transpose)) { transpose = [transpose]; }
+  var voices = [];
   for (argindex = firstvoice; argindex < args.length; argindex++) {
     voice = argindex - firstvoice;
-    notes = parseABCNotes(args[argindex]);
+    voices[voice] = notes = parseABCNotes(args[argindex]);
     vtype = type[voice % type.length] || 'square';
     fingers = 0;
     for (i = 0; i < notes.length; i++) {
@@ -6214,9 +6216,13 @@ function playABC(done, args) {
     time = start_time;
     for (i = 0; i < notes.length; i++) {
       t = notes[i].time;
+      // Fill in fields useful for callback notifications.
+      stime = t * beatsecs + time;
+      notes[i].start_at = time;
+      notes[i].end_at = stime;
+      notes[i].voice = voice;
       if (notes[i].frequency.length > 0) {
         g = atop.ac.createGain();
-        stime = t * beatsecs + time;
         atime = Math.min(t, venv.a) * beatsecs + time;
         rtime = Math.max(0, t + venv.r) * beatsecs + time;
         if (atime > rtime) { atime = rtime = (atime + rtime) / 2; }
@@ -6255,15 +6261,47 @@ function playABC(done, args) {
     }
     end_time = Math.max(end_time, time);
   }
-  function callDequeueWhenDone() {
-    if (atop.ac.currentTime < end_time) {
-      setTimeout(callDequeueWhenDone, (end_time - atop.ac.currentTime) * 1000);
-    } else {
+  var nextToNotify = [];
+  for (i = 0; i < voices.length; ++i) {
+    nextToNotify.push(0);
+  }
+  function callNotifications() {
+    var now = atop.ac.currentTime, notifyNotes = [], i, j, next = end_time;
+    if (callback) {
+      for (i = 0; i < voices.length; ++i) {
+        for (j = nextToNotify[i]; j < voices[i].length; ++j) {
+          if (voices[i][j].start_at <= now) {
+            notifyNotes.push(voices[i][j]);
+          } else {
+            nextToNotify[i] = j;
+            break;
+          }
+        }
+        if (nextToNotify[i] < voices[i].length) {
+          next = Math.min(voices[i][nextToNotify[i]].start_at, next);
+        }
+      }
+      notifyNotes.sort(function(a, b) {
+        if (a.start_at != b.start_at) {
+          return a.start_at - b.start_at;
+        }
+        return a.end_at - b.end_at;
+      });
+      for (i = 0; i < notifyNotes.length; ++i) {
+        try {
+          callback(notifyNotes[i]);
+        } catch(e) { }
+      }
+    }
+    if (now >= end_time) {
+      if (callback) { try { callback(null); } catch(e) { } }
       if (done) { done(); }
+    } else {
+      setTimeout(callNotifications, (next - atop.ac.currentTime) * 1000);
     }
   }
-  if (done) {
-    callDequeueWhenDone();
+  if (done || callback) {
+    callNotifications();
   }
 }
 
