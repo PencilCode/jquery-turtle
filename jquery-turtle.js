@@ -6253,8 +6253,8 @@ function playABC(done, args) {
             o.stop(rtime);
           } else {
             // Early draft web audio spec.
-            o.start(time);
-            o.stop(rtime);
+            o.noteOn(time);
+            o.noteOff(rtime);
           }
         }
       }
