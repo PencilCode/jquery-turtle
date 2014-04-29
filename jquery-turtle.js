@@ -1912,7 +1912,7 @@ function flushPenState(elem) {
   if (!state.down) {
     // Penup when saving path will start a new segment if one isn't started.
     if (state.path.length && state.path[0].length) {
-      state.path.shift([]);
+      state.path.unshift([]);
     }
     return;
   }

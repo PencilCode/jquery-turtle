@@ -1,0 +1,23 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Jump and fill test.");
+asyncTest("Test that jumpto and fill work together.", function() {
+  speed(Infinity);
+  pen(path);
+  jumpto(-50, -50);
+  rt(100, 100);
+  jumpto(-50, 50);
+  rt(100, 100);
+  fill(red);
+  ok(touches(red));
+  jumpto(0, 50);
+  ok(!touches(red));
+  start();
+});
+</script>
