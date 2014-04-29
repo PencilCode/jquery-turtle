@@ -5913,9 +5913,10 @@ function input(name, callback, numeric) {
     name = null;
   }
   name = $.isNumeric(name) || name ? name : '&rArr;';
-  var textbox = $('<input>').css({margin:0, padding:0}),
+  var textbox = $('<input>').css({margin:0, padding:0, flex:1}),
       label = $(
-      '<label style="display:block">' +
+      (numeric >= 0 ? '<label style="display:table">'
+                    : '<label style="display:flex">') +
       name + '&nbsp;' +
       '</label>').append(textbox),
       thisval = $([textbox[0], label[0]]),
@@ -5933,7 +5934,7 @@ function input(name, callback, numeric) {
     dodebounce();
     lastseen = val;
     textbox.remove();
-    label.append(val);
+    label.append(val).css({display: 'table'});
     if (numeric > 0 || (
       numeric >= 0 && $.isNumeric(val) && ('' + parseFloat(val) == val))) {
       val = parseFloat(val);
