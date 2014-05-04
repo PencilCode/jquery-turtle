@@ -6100,7 +6100,7 @@ function parseABCNotes(str) {
 }
 function parseStem(tokens, index) {
   var pitch = [];
-  var duration = '', stemDuration, stemTime, minStemTime = Infinity;
+  var duration = '', noteDuration, noteTime, minStemTime = Infinity;
   if (index < tokens.length && tokens[index] == '[') {
     index++;
     while (index < tokens.length) {
@@ -6114,15 +6114,18 @@ function parseStem(tokens, index) {
       // When a stem has more than one duration, select the
       // shortest one. The standard says to pick the first one,
       // but in practice, transcribed music online seems to
-      // go with the rule that the stem's duration is determined
+      // follow the rule that the stem's duration is determined
       // by the shortest contained duration.
       if (index < tokens.length && /\d|\//.test(tokens[index])) {
-        stemDuration = tokens[index++];
-        stemTime = durationToTime(stemDuration);
-        if (stemTime && (!duration || stemTime < minStemTime)) {
-          duration = tokens[index++];
-          minStemTime = stemTime;
-        }
+        noteDuration = tokens[index++];
+        noteTime = durationToTime(noteDuration);
+      } else {
+        noteDuration = '';
+        noteTime = 1;
+      }
+      if (noteTime && noteTime < minStemTime) {
+        duration = noteDuration;
+        minStemTime = noteTime;
       }
     }
     if (tokens[index] != ']') {
