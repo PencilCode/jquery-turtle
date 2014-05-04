@@ -5715,6 +5715,14 @@ function autoScrollBottomSeen() {
   }
   return autoScrollState.bottomSeen;
 }
+// undoScrollAfter will return the scroll position back to its original
+// location after running the passed function.  (E.g., to allow focusing
+// a control without autoscrolling.)
+function undoScrollAfter(f) {
+  var scrollPos = $(window).scrollTop();
+  f();
+  $(window).scrollTop(scrollPos);
+}
 
 // Simplify $('body').append(html).
 function output(html, defaulttag) {
@@ -5888,7 +5896,8 @@ function menu(choices, fn) {
       focusCursor();
     }
   });
-  focusCursor(true);
+  // Focus, but don't cause autoscroll to occur due to focus.
+  undoScrollAfter(function() { focusCursor(true); });
 }
 
 // Simplify $('body'>.append('<button>' + label + '</button>').click(fn).
@@ -5970,7 +5979,8 @@ function input(name, callback, numeric) {
   autoScrollAfter(function() {
     $('body').append(label);
   });
-  textbox.focus();
+  // Focus, but don't cause autoscroll to occur due to focus.
+  undoScrollAfter(function() { textbox.focus(); });
   return thisval;
 }
 
