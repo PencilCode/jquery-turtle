@@ -4457,6 +4457,8 @@ var dollar_turtle_methods = {
     }
     // Stop all animations.
     $(':animated,.turtle').clearQueue().stop();
+    // Stop our audio.
+    resetAudio();
     // Set a flag that will cause all commands to throw.
     interrupted = true;
     // Turn off the global tick interval timer.
@@ -6068,6 +6070,13 @@ function getAudioTop() {
   }
   return audioTop;
 }
+function resetAudio() {
+  if (audioTop && audioTop.out.disconnect) {
+    // Disconnect the top-level node and make a new one.
+    audioTop.out.disconnect();
+    audioTop.out = audioTop.ac.createDynamicsCompressor();
+  }
+}
 function parseABCNotes(str) {
   var tokens = str.match(ABCtoken), result = [], stem = null,
       index = 0, dotted = 0, t;
@@ -6267,6 +6276,7 @@ function playABC(done, args) {
     nextToNotify.push(0);
   }
   function callNotifications() {
+    if (interrupted) { return; }
     var now = atop.ac.currentTime, notifyNotes = [], i, j, next = end_time;
     if (callback) {
       for (i = 0; i < voices.length; ++i) {
