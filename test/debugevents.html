@@ -56,6 +56,7 @@ function verify(data) {
   var expecting = expected.shift();
   deepEqual(expecting, data);
   if (!expected.length) {
+    delete window.ide;
     start()
   }
 }

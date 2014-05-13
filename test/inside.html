@@ -10,7 +10,7 @@ module("Inside test.");
 asyncTest("Verifies that 'inside' works.", function() {
   speed(Infinity);
   ok(inside(window));
-  p = write('hello');
+  var p = write('hello');
   ok(p.inside(window));
   p.slide(-25, 0);
   ok(!p.inside(window));

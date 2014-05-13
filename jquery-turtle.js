@@ -1105,7 +1105,7 @@ function getDirectionOnPage(elem) {
       r = convertToRadians(normalizeRotation(ts.rot)),
       ux = Math.sin(r), uy = Math.cos(r),
       totalParentTransform = totalTransform2x2(elem.parentElement),
-      up = matrixVectorProduct(totalParentTransform, [ux, uy]);
+      up = matrixVectorProduct(totalParentTransform, [ux, uy]),
       dp = Math.atan2(up[0], up[1]);
   return radiansToDegrees(dp);
 }
@@ -1621,6 +1621,11 @@ function resizecanvas() {
 // turtlePenStyle style syntax
 function parsePenStyle(text, defaultProp) {
   if (!text) { return null; }
+  if (text && (typeof(text) == "function") && (
+      text.helpname || text.name)) {
+    // Deal with "tan" and "fill".
+    text = (text.helpname || text.name);
+  }
   text = String(text);
   if (text.trim) { text = text.trim(); }
   if (!text || text === 'none') { return null; }
@@ -2879,7 +2884,7 @@ var pressedKey = (function() {
   }
   // The state map is reset by clearing every member.
   function resetPressedState() {
-    for (key in pressedState) {
+    for (var key in pressedState) {
       delete pressedState[key];
     }
   }
@@ -2894,7 +2899,7 @@ var pressedKey = (function() {
   }
   // All pressed keys known can be listed using pressed.list().
   function listPressedKeys() {
-    var result = [];
+    var result = [], key;
     for (key in pressedState) {
       if (pressedState[key]) { result.push(key); }
     }
@@ -3052,6 +3057,7 @@ function canMoveInstantly(sel) {
 function canElementMoveInstantly(elem) {
   // True if the element has no animtation queue and currently is
   // moving at speed Infinity.
+  var atime;
   return (elem && $.queue(elem).length == 0 &&
       ((atime = animTime(elem)) === 0 || $.fx.speeds[atime] === 0));
 }
@@ -5789,7 +5795,8 @@ function menu(choices, fn) {
       count = 0,
       cursor = 0,
       suppressChange = 0,
-      keys = {};
+      keys = {},
+      text;
   // Default behavior: invoke the outcome if it is a function.
   if (!fn) {
     fn = (function invokeOutcome(out) {

@@ -9,7 +9,7 @@ eval($.turtle());
 module("Speed Infinity test.");
 asyncTest("Draws a square changing speed along the way.", function() {
 
-  targets = [
+  var targets = [
     new Turtle,
     new Turtle(red),
     new Turtle('radius'),
@@ -17,7 +17,7 @@ asyncTest("Draws a square changing speed along the way.", function() {
   ];
 
   for (var x = 0; x < 4; x++) {
-    t = targets[x];
+    var t = targets[x];
     t.speed(Infinity);
     t.rt(135);
     t.fd(100);
@@ -50,6 +50,7 @@ asyncTest("Draws a square changing speed along the way.", function() {
   }
 
   done(function() {
+    $('#radius').remove();
     equal(expected, 4);
     start();
   });

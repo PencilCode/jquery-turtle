@@ -50,6 +50,7 @@ asyncTest("Prints out a bunch of text to test autoscroll.", function() {
           fw.$(fw).scrollTop(unjammed);
           fw.type('some\nmore\nthat should not autoscroll.\n');
           equal(unjammed, fw.$(fw).scrollTop());
+          delete parent.window.dotest;
           start();
         });
       });
