@@ -23,9 +23,10 @@ asyncTest("Draws a square changing speed along the way.", function() {
   fd(100);
   rt(90);
   pen(null);
+  speed(Infinity);
+  wear('turtle');
+  pause(0.1);
   done(function() {
-    speed(Infinity);
-    wear('turtle');
     plan(function() {
       var j;
       for (j = 0; j < 4; ++j) {
