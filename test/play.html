@@ -8,12 +8,16 @@
 eval($.turtle());
 module("Test of the play function.");
 asyncTest("Plays a few notes twice.", function() {
-  var t0 = +(new Date);
+  var t0 = +(new Date), t1 = 0;
   play({tempo:1000}, 'ABC[eg]')
+  plan(function() { t1 = +(new Date); });
   play({tempo:300}, 'gc')
   done(function() {
-    var t1 = +(new Date);
-    ok(t1 - t0 < 1000);
+    var t2 = +(new Date);
+    // It really shouldn't take more than 5s for webaudio to start up
+    ok(t1 - t0 < 5000, 'elapsed ' + (t1 - t0))
+    // We asked for 400ms (60/300 * 2 = 0.4), so it should be less than 500.
+    ok(t2 - t1 < 500, 'elapsed ' + (t2 - t1))
     start();
   });
 });

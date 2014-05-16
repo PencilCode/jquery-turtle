@@ -306,6 +306,7 @@ $(q).css('turtleTurningRadius, '50px');// arc turning radius for rotation.
 $(q).css('turtlePenStyle', 'red');     // or 'red lineWidth 2px' etc.
 $(q).css('turtlePenDown', 'up');       // default 'down' to draw with pen.
 $(q).css('turtleHull', '5 0 0 5 0 -5');// fine-tune shape for collisions.
+$(q).css('turtleTimbre', 'square');    // quality of the sound.
 </pre>
 
 Arbitrary 2d transforms are supported, including transforms of elements
@@ -418,6 +419,87 @@ var transform = styleSupport("transform"),
 if (!transform || !hasGetBoundingClientRect()) {
   // Need transforms and boundingClientRects to support turtle methods.
   return;
+}
+
+// A standard "ad-hoc" language used for key-value pairs.
+// key:value; key:value; key; key:value;.  If defaultProp is set,
+// then the string can begin with "value", and it's interpreted
+// as defaultProp(value).
+function parseOptionString(str, defaultProp) {
+  var token = str.match(/[-a-zA-Z_][-\w]*|"[^"]*"|'[^']'|\([^()]*\)|\s+|./g),
+      result = {}, j, t, key = null, value, arg,
+      seencolon = false, vlist = [], firstval = true;
+  function commitvalue() {
+    // Trim whitespace
+    while (vlist.length && /^\s/.test(vlist[vlist.length - 1])) { vlist.pop(); }
+    while (vlist.length && /^\s/.test(vlist[0])) { vlist.shift(); }
+    if (vlist.length == 1 && (
+          /^".*"$/.test(vlist[0]) || /^'.*'$/.test(vlist[0]))) {
+      // Unquote quoted string.
+      value = vlist[0].substr(1, vlist[0].length - 2);
+    } else if (vlist.length == 2 && vlist[0] == 'url' &&
+        /^(.*)$/.test(vlist[1])) {
+      // Remove url(....) from around a string.
+      value = vlist[1].substr(1, vlist[1].length - 2);
+    } else {
+      arg = vlist.join('');
+      if (arg == "") {
+        value = arg;
+      } else if (isNaN(arg)) {
+        value = arg;
+      } else {
+        value = Number(arg);
+      }
+    }
+    if (!seencolon && firstval && defaultProp && key) {
+      value = key;
+      key = defaultProp;
+    }
+    firstval = false;
+    if (key) {
+      result[key] = value;
+    }
+  }
+  for (j = 0; j < token.length; ++j) {
+    t = token[j];
+    if (!seencolon) {
+      if (!key && /^[a-zA-Z_-]/.test(t)) {
+        key = t;
+      }
+      if (t == ':') {
+        seencolon = true;
+        vlist.length = 0;
+        continue;
+      }
+    }
+    if (t != ';') {
+      vlist.push(t);
+    }
+    if (t == ';') {
+      commitvalue();
+      key = null;
+      vlist.length = 0;
+      seencolon = false;
+    }
+  }
+  commitvalue();
+  return result;
+}
+function printOptionAsString(obj) {
+  var result = [];
+  function quoted(s) {
+    if (/[\s:]/.test(s)) {
+      if (s.indexOf('"') < 0) {
+        return '"' + s + '"';
+      }
+      return "'" + s + "'";
+    }
+    return s;
+  }
+  for (var k in obj) {
+    result.append(k + '=' + obj[k] + ';');
+  }
+  return result.join(' ');
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1297,6 +1379,17 @@ function makeHullHook() {
   };
 }
 
+function makeTimbreHook() {
+  return {
+    get: function(elem, computed, extra) {
+      return getTurtleInstrument(elem).getTimbre();
+    },
+    set: function(elem, value) {
+      getTurtleInstrument(elem).setTimbre(value);
+    }
+  };
+}
+
 //////////////////////////////////////////////////////////////////////////
 // TURTLE CSS CONVENTIONS
 // For better performance, the turtle library always writes transform
@@ -1659,6 +1752,7 @@ function parsePenStyle(text, defaultProp) {
     }
   }
   if (end > 0 && !result[defaultProp]) {
+    // deal with the rgba(...) case
     result[defaultProp] = words.slice(0, end).join(' ');
   }
   return result;
@@ -1696,7 +1790,8 @@ function getTurtleData(elem) {
       turningRadius: 0,
       drawOnCanvas: null,
       quickpagexy: null,
-      quickhomeorigin: null
+      quickhomeorigin: null,
+      instrument: null
     });
   }
   return state;
@@ -2937,7 +3032,8 @@ $.extend(true, $, {
     turtleScaleX: makeTurtleHook('sx', identity, '', false),
     turtleScaleY: makeTurtleHook('sy', identity, '', false),
     turtleTwist: makeTurtleHook('twi', normalizeRotation, 'deg', false),
-    turtleHull: makeHullHook()
+    turtleHull: makeHullHook(),
+    turtleTimbre: makeTimbreHook()
   },
   cssNumber: {
     turtleRotation: true,
@@ -3852,10 +3948,33 @@ var turtlefn = {
     this.plan(function(j, elem) {
       cc.appear(j);
       this.queue(function(next) {
-        playABC(function() { cc.resolve(j); next(); }, cc.args);
+        var instrument = getTurtleInstrument(elem),
+            args = $.makeArray(cc.args);
+        args.push(function() { cc.resolve(j); next(); });
+        instrument.play.apply(instrument, args);
       });
     });
     return this;
+  }),
+  tone: wrapraw('tone',
+  ["<u>tone(freq)</u> Immediately plays a tone, returning an object" +
+      "that can be called obj.release() to immediately stop the tone. " +
+      "<u>tone(freq, secs)</u> plays a tone for a specific duration. " +
+      "Freq may be a letter pitch or a frequency in Hz. " +
+      "<mark>tone 440, 5</mark>"],
+  function tone(freq, secs) {
+    if (this.length > 0) {
+      var instrument = getTurtleInstrument(this.get(0));
+      return instrument.tone.apply(instrument, arguments);
+    }
+  }),
+  silence: wrapraw('silence',
+  ["<u>silence()</u> Immediately silences sound from play() or tone()."],
+  function silence() {
+    return this.each(function(j, elem) {
+      var instrument = getTurtleInstrument(elem);
+      instrument.silence();
+    });
   }),
   speed: wrapcommand('speed', 1,
   ["<u>speed(persec)</u> Set one turtle's speed in moves per second: " +
@@ -4541,8 +4660,37 @@ var dollar_turtle_methods = {
     } else {
       var cc = setupContinuation(null, 'play', arguments, 0);
       cc.appear(null);
-      playABC(function() { cc.resolve(null); }, arguments);
+      var instrument = getGlobalInstrument(),
+          args = $.makeArray(cc.args);
+      args.push(function() { cc.resolve(null); });
+      instrument.play.apply(instrument, args);
       cc.exit();
+    }
+  }),
+  tone: wrapraw('tone',
+  ["<u>tone(freq)</u> Immediately plays a tone, returning an object" +
+      "that can be called obj.release() to stop the tone. " +
+      "<u>tone(freq, secs)</u> plays a tone for a specific duration. " +
+      "Freq may be a letter pitch or a frequency in Hz. " +
+      "<mark>tone 440, 5</mark>"],
+  function tone() {
+    if (global_turtle) {
+      var sel = $(global_turtle);
+      sel.tone.apply(sel, arguments);
+    } else {
+      var instrument = getGlobalInstrument();
+      instrument.play.apply(instrument, args);
+    }
+  }),
+  silence: wrapraw('silence',
+  ["<u>silence()</u> Immediately silences sound from play() or tone()."],
+  function silence() {
+    if (global_turtle) {
+      var sel = $(global_turtle);
+      sel.silence();
+    } else {
+      var instrument = getGlobalInstrument();
+      instrument.silence();
     }
   }),
   done: wrapraw('done',
@@ -6059,47 +6207,61 @@ function table(height, width, cellCss, tableCss) {
   return result;
 }
 
+
 //////////////////////////////////////////////////////////////////////////
 // WEB AUDIO SUPPORT
 // Definition of play("ABC") - uses ABC music note syntax.
 //////////////////////////////////////////////////////////////////////////
 
-var ABCtoken = /\s+|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\d*\/\d+|\d+|\/+|[xzXZ]|\||%[^\n]*$|./g;
+function getTurtleInstrument(elem) {
+  var state = getTurtleData(elem);
+  if (state.instrument) {
+    return state.instrument;
+  }
+  state.instrument = new Instrument();
+  return state.instrument;
+}
+
+var global_instrument = null;
+
+function getGlobalInstrument(elem) {
+  if (!global_instrument) {
+    global_instrument = new Instrument();
+  }
+  return global_instrument;
+}
+
+var ABCtoken = /(?:^\[V:\S*\])|\s+|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\d*\/\d+|\d+|\/+|[xzXZ]|\||%[^\n]*$|./g;
 var ABCheader = /^([A-Za-z]):\s*(.*)$/;
 var audioTop = null;
+
 function isAudioPresent() {
   return !!(window.AudioContext || window.webkitAudioContext);
 }
 function getAudioTop() {
   if (!audioTop) {
     var ac = new (window.AudioContext || window.webkitAudioContext),
-        dcn = ac.createDynamicsCompressor(),
         firstTime = null;
-    dcn.connect(ac.destination);
     audioTop = {
       ac: ac,
-      out: dcn,
-      // Partial workaround for http://crbug.com/254942:
-      // add little extra pauses before scheduling envelopes.
-      // A quarter second or so seems to be needed at initial startup,
-      // then 1/64 second before scheduling each envelope afterwards.
-      nextStartTime: function() {
-        if (firstTime === null) {
-          firstTime = ac.currentTime;
-        }
-        return Math.max(firstTime + 0.25,
-                        ac.currentTime + 0.015625);
-      }
+      out: null
     }
+    resetAudio();
   }
   return audioTop;
 }
 function resetAudio() {
-  if (audioTop && audioTop.out.disconnect) {
+  if (audioTop) {
     // Disconnect the top-level node and make a new one.
-    audioTop.out.disconnect();
-    audioTop.out = audioTop.ac.createDynamicsCompressor();
-    audioTop.out.connect(audioTop.ac.destination);
+    if (audioTop.out) {
+      audioTop.out.disconnect();
+      audioTop.out = null;
+    }
+    var dcn = audioTop.ac.createDynamicsCompressor();
+    dcn.ratio = 16;
+    dcn.attack = 0.0005;
+    dcn.connect(audioTop.ac.destination);
+    audioTop.out = dcn;
   }
 }
 // Returns a map of A-G -> accidentals, according to the key signature.
@@ -6179,59 +6341,135 @@ function keysig(k) {
   }
   return result;
 }
+// Parses an ABC file to an object with the following structure:
+// {
+//   X: value from the X: lines in header (\n separated for multiple values)
+//   K: value from the K: lines in header, etc.
+//   tempo: Q: line as beatsecs
+//   timbre: ... I:timbre line as parsed by parseTimbre
+//   voice: {
+//     myname: { // voice with id "myname"
+//       V: value from the V:myname lines
+//       stems: [...] as parsed by parseABCstems
+//       timbre: ... I:timbre line as parsed by parseTimbre
+//    }
+//  }
+// }
 function parseABCFile(str) {
   var lines = str.split('\n'),
-      result = {},
-      context = result,
-      j, header, notes, key = {}, accent = {};
+      result = {
+        voice: {}
+      },
+      context = result, timbre,
+      j, header, stems, key = {}, accent = {}, out;
+  // Shifts context to a voice with the given id given.  If no id
+  // given, then just sticks with the current voice.  If the current
+  // voice is unnamed and empty, renames the current voice.
+  function startVoiceContext(id) {
+    id = id || '';
+    if (!id && context !== result) {
+      return;
+    }
+    if (id && !context.id && (!context.stems || !context.stems.length)) {
+      delete result.voice[context.id];
+      context.id = id;
+      result.voice[id] = context;
+    } else if (result.voice.hasOwnProperty(id)) {
+      context = result.voice[id];
+      accent = {};
+    } else {
+      context = { id: id };
+      result.voice[id] = context;
+      accent = {};
+    }
+  }
   for (j = 0; j < lines.length; ++j) {
     header = ABCheader.exec(lines[j]);
     if (header) {
-      if (header[1] == 'V') {
-        if (!('voice' in result)) {
-          result.voice = [];
-        }
-        context = {};
-        accent = {};
-        result.voice.push(context);
+      switch(header[1]) {
+        case 'V':
+          startVoiceContext(header[2].split(' ')[0]);
+          break;
+        case 'M':
+          parseMeter(header[2], context);
+          break;
+        case 'L':
+          parseUnitNote(header[2], context);
+          break;
+        case 'Q':
+          parseTempo(header[2], context);
+          break;
+        case 'I':
+          timbre = /^timbre\s+(.*)$/.exec(header[2]);
+          if (timbre) {
+            context.timbre = parseTimbre(timbre);
+          }
+          break;
       }
-      if (header[1] == 'K') {
+      if (context.hasOwnProperty(header[1])) {
+        context[header[1]] += '\n' + header[2];
+      } else {
+        context[header[1]] = header[2];
+      }
+      if (header[1] == 'K' && context === result) {
         key = keysig(header[2]);
+        startVoiceContext();
       }
-      context[header[1]] = header[2];
     } else {
-      notes = parseABCNotes(lines[j], key, accent);
-      if (notes.length) {
-        if (context === result) {
-          if (!('voice' in result)) {
-            result.voice = [];
-          }
-          if (!result.voice.length) {
-            context = {};
-            result.voice.push(context);
-          }
-          context = result.voice[0];
-        }
-        if (!('notes' in context)) {
-          context.notes = [];
-        }
-        context.notes.push.apply(context.notes, notes);
+      out = {};
+      stems = parseABCNotes(lines[j], key, accent, out);
+      if (stems && stems.length) {
+        startVoiceContext(out.voiceid);
+        if (!('stems' in context)) { context.stems = []; }
+        context.stems.push.apply(context.stems, stems);
       }
     }
   }
   if (result.voice) {
-    // Calculate times for all the tied notes.
+    // Calculate times for all the tied stems.
     for (j = 0; j < result.voice.length; ++j) {
-      if (result.voice[j].notes) {
-        processTies(result.voice[j].notes);
+      if (result.voice[j].stems) {
+        processTies(result.voice[j].stems);
       }
     }
   }
   return result;
 }
+function parseMeter(mline, beatinfo) {
+  var d = durationToTime(mline);
+  if (!d) { return; }
+  if (!beatinfo.unitnote) {
+    if (d < 0.75) {
+      beatinfo.unitnote = 1/16;
+    } else {
+      beatinfo.unitnote = 1/8;
+    }
+  }
+}
+function parseUnitNote(lline, beatinfo) {
+  var d = durationToTime(lline);
+  if (!d) { return; }
+  beatinfo.unitnote = d;
+}
+function parseTempo(qline, beatinfo) {
+  var parts = qline.split(/\s*=\s*/), j, unit = null, tempo = null;
+  for (j = 0; j < parts.length; ++j) {
+    if (parts[j].indexOf('/') >= 0 || /^[1-4]$/.test(parts[j])) {
+      unit = unit || durationToTime(parts[j]);
+    } else {
+      tempo = tempo || Number(parts[j]);
+    }
+  }
+  if (unit) {
+    beatinfo.unitbeat = unit;
+  }
+  if (tempo) {
+    beatinfo.tempo = tempo;
+  }
+}
 function processTies(stems) {
   var tied = {}, nextTied, j, k, note, firstNote;
-  // Run through all the notes, adding up time for tied notes,
+  // Run through all the notes, adding up time for tied stems,
   // and marking notes that were held over with holdover = true.
   for (j = 0; j < stems.length; ++j) {
     nextTied = {};
@@ -6249,11 +6487,22 @@ function processTies(stems) {
     tied = nextTied;
   }
 }
-function parseABCNotes(str, key, accent) {
+function parseABCNotes(str, key, accent, out) {
   var tokens = str.match(ABCtoken), result = [], stem = null,
       index = 0, dotted = 0, t;
+  if (!tokens) {
+    return null;
+  }
   while (index < tokens.length) {
     if (/^s+$/.test(tokens[index])) { index++; continue; }
+    if (/^\[V:\S*\]$/.test(tokens[index])) {
+      // Grab the voice id out of [V:id]
+      if (out) {
+        out.voiceid = tokens[index].substring(3, tokens[index].length - 1);
+      }
+      index++;
+      continue;
+    }
     if (/</.test(tokens[index])) { dotted = -tokens[index++].length; continue; }
     if (/>/.test(tokens[index])) { dotted = tokens[index++].length; continue; }
     if (/\|/.test(tokens[index])) {
@@ -6288,8 +6537,8 @@ function parseABCNotes(str, key, accent) {
   return result;
 }
 function stripNatural(pitch) {
-  if (pitch.length > 0 && (!/[_=^]/.test(pitch.charAt(0)))) {
-    return '=' + pitch;
+  if (pitch.length > 0 && pitch.charAt(0) == '=') {
+    return pitch.substr(1);
   }
   return pitch;
 }
@@ -6304,7 +6553,7 @@ function applyAccent(pitch, key, accent) {
     return stripNatural(pitch);
   }
   if (accent.hasOwnProperty(letter)) {
-    // Accidentals from this measure apply to unaccented notes.
+    // Accidentals from this measure apply to unaccented stems.
     return stripNatural(accent[letter] + m[2] + m[3]);
   }
   if (key.hasOwnProperty(letter)) {
@@ -6314,9 +6563,10 @@ function applyAccent(pitch, key, accent) {
   return stripNatural(pitch);
 }
 function parseStem(tokens, index, key, accent) {
-  var note = [], frequency = [],
-      duration = '', staccato = false;
-  var lastNote = null, minStemTime = Infinity, j;
+  var note = [],
+      duration = '', staccato = false,
+      noteDuration, noteTime,
+      lastNote = null, minStemTime = Infinity, j;
   if (index < tokens.length && '.' == tokens[index]) {
     staccato = true;
     index++;
@@ -6341,11 +6591,6 @@ function parseStem(tokens, index, key, accent) {
       } else {
         break;
       }
-      // When a stem has more than one duration, select the
-      // shortest one. The standard says to pick the first one,
-      // but in practice, transcribed music online seems to
-      // follow the rule that the stem's duration is determined
-      // by the shortest contained duration.
       if (index < tokens.length && /\d|\//.test(tokens[index])) {
         noteDuration = tokens[index++];
         noteTime = durationToTime(noteDuration);
@@ -6358,6 +6603,11 @@ function parseStem(tokens, index, key, accent) {
         lastNote.duration = noteDuration;
         lastNote.time = noteTime;
       }
+      // When a stem has more than one duration, select the
+      // shortest one. The standard says to pick the first one,
+      // but in practice, transcribed music online seems to
+      // follow the rule that the stem's duration is determined
+      // by the shortest contained duration.
       if (noteTime && noteTime < minStemTime) {
         duration = noteDuration;
         minStemTime = noteTime;
@@ -6402,31 +6652,37 @@ function parseStem(tokens, index, key, accent) {
       note[j].tie = true;
     }
   }
-  frequency = []
-  for (j = 0; j < note.length; ++j) {
-    frequency.push(note[j].frequency);
-  }
   return {
     index: index,
     value: {
       note: note,
       duration: duration,
       staccato: staccato,
-      frequency: frequency,
       time: durationToTime(duration)
     }
   };
 }
-function pitchToFrequency(pitch) {
+function midiToFrequency(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+function frequencyToMidi(freq) {
+  // Approximate by getting the closest midi number.
+  return Math.round(69 + Math.log(freq / 440) * 12 / Math.LN2);
+}
+function pitchToMidi(pitch) {
   var m = /^(\^\^|\^|__|_|=|)([A-Ga-g])(,+|'+|)$/.exec(pitch);
   if (!m) { return null; }
   var n = {C:-9,D:-7,E:-5,F:-4,G:-2,A:0,B:2,c:3,d:5,e:7,f:8,g:10,a:12,b:14};
   var a = { '^^':2, '^':1, '': 0, '=':0, '_':-1, '__':-2 };
   var semitone = n[m[2]] + a[m[1]] + (/,/.test(m[3]) ? -12 : 12) * m[3].length;
-  return 440 * Math.pow(2, semitone / 12);
+  return semitone + 69; // 69 = midi code for "A", which is A4.
+}
+function pitchToFrequency(pitch) {
+  return midiToFrequency(pitchToMidi(pitch));
 }
 function durationToTime(duration) {
   var m = /^(\d*)(?:\/(\d*))?$|^(\/+)$/.exec(duration), n, d, i = 0, ilen;
+  if (!m) return;
   if (m[3]) return Math.pow(0.5, m[3].length);
   d = (m[2] ? parseFloat(m[2]) : /\//.test(duration) ? 2 : 1);
   // Handle mixed frations:
@@ -6439,190 +6695,463 @@ function durationToTime(duration) {
   }
   return i + (n / d);
 }
-function playABC(done, args) {
-  if (!isAudioPresent()) {
+var pianoTimbre = parseOptionString(
+  "wave:sawtooth; gain:0.25; " +
+  "attack:0.001; decay:0.3; sustain:0.01; release:0.1; " +
+  "cutoff:1; resonance:5; detune:1.001;");
+
+function parseTimbre(options) {
+  if (!options) {
+    options = {};
+  } else if (typeof(options) == 'string') {
+    options = parseOptionString(options, 'wave');
+  }
+  var result = $.extend({}, pianoTimbre, options);
+  return result;
+}
+function Instrument(options) {
+  this._timbre = parseTimbre(options);
+  this._queue = [];
+  this._minQueueTime = Infinity;
+  this._maxScheduledTime = 0;
+  this._unsortedQueue = false;
+  this._startSet = [];
+  this._finishSet = [];
+  this._cleanupSet = [];
+  this._callbackSet = [];
+  this._handlers = {};
+  this._now = null;
+  if (isAudioPresent()) {
+    this._atop = getAudioTop();
+    this._out = this._atop.ac.createGain();
+    this._out.gain.value = this.gain;
+    this._out.connect(this._atop.out);
+  }
+}
+
+Instrument.bufferSecs = 3;     // Seconds ahead to buffer notes.
+Instrument.toneLength = 60;    // Default duration of a tone.
+Instrument.cleanupDelay = 0.1; // Time before disconnecting gain nodes.
+Instrument.nowDelay = 0.02;    // Hack to avoid bug http://crbug.com/254942.
+
+Instrument.prototype.setTimbre = function(t) {
+  this._timbre = parseTimbre(t);
+};
+Instrument.prototype.getTimbre = function(t) {
+  return printOptionAsString(this._timbre);
+};
+Instrument.prototype.silence = function() {
+  var j;
+  // Clear future notes.
+  this._queue.length = 0;
+  this._minQueueTime = Infinity;
+  this._maxScheduledTime = 0;
+  // Don't notify notes that haven't started yet.
+  this._startSet.length = 0;
+  // Flush finish callbacks that are promised.
+  for (j in this._finishSet) if (this._finishSet.hasOwnProperty(j)) {
+    this._trigger('notefinish', this._finishSet[j]);
+  }
+  this._finishSet = {};
+  // Flush one-time callacks that are promised.
+  for (j = 0; j < this._callbackSet.length; ++j) {
+    this._callbackSet[j].callback();
+  }
+  this._callbackSet.length = 0;
+  this._out.disconnect();
+  this._out = this._atop.ac.createGain();
+  this._out.gain.value = this.gain;
+  this._out.connect(this._atop.out);
+};
+Instrument.prototype.now = function() {
+  if (this._now != null) {
+    return this._now;
+  }
+  this._startPollTimer(true);
+  this._now = this._atop.ac.currentTime + Instrument.nowDelay;
+  return this._now;
+};
+Instrument.prototype.on = function(ev, cb) {
+  if (!this._handlers.hasOwnProperty(ev)) {
+    this._handlers[ev] = [];
+  }
+  this._handlers[ev].push(cb);
+};
+Instrument.prototype.off = function(ev, cb) {
+  if (this._handlers.hasOwnProperty(ev)) {
+    if (!cb) {
+      this._handlers[ev] = [];
+    } else {
+      var j, hunt = this._handlers[ev];
+      for (j = 0; j < hunt.length; ++j) {
+        if (hunt[j] === cb) {
+          hunt.splice(j, 1);
+          j -= 1;
+        }
+      }
+    }
+  }
+};
+Instrument.prototype._trigger = function(ev, record) {
+  var cb = this._handlers[ev], j;
+  if (!cb) {
+    return;
+  }
+  for (j = 0; j < cb.length; ++j) {
+    cb[j](record);
+  }
+};
+function makeRecordRelease(instrument, record) {
+  return (function() {
+    var now = instrument.now();
+    instrument._truncateNoteSound(record, now);
+  });
+}
+Instrument.prototype._truncateNoteSound = function(record, releasetime) {
+  if (releasetime < record.time + record.duration) {
+    record.duration = Math.max(0, releasetime - record.time);
+    if (record.gainNode) {
+      var timbre = record.timbre || this._timbre,
+          starttime = record.time,
+          attacktime = Math.min(releasetime, starttime + timbre.attack),
+          stoptime = releasetime + timbre.release,
+          cleanuptime = stoptime + Instrument.cleanupDelay,
+          doubled = timbre.detune && timbre.detune != 1.0,
+          amp = timbre.gain * record.velocity * (doubled ? 0.5 : 1.0),
+          j, g = record.gainNode;
+      g.gain.cancelScheduledValues(releasetime);
+      if (releasetime <= starttime) {
+        g.gain.setValueAtTime(0, releasetime);
+      } else if (releasetime <= attacktime) {
+        g.gain.linearRampToValueAtTime(
+          amp * (releasetime - starttime) / (attacktime - starttime));
+      } else {
+        g.gain.setValueAtTime(amp * (timbre.sustain + (1 - timbre.sustain) *
+          Math.exp((attacktime - releasetime) / timbre.decay)), releasetime);
+      }
+      g.gain.linearRampToValueAtTime(0, stoptime);
+      g.gain.linearRampToValueAtTime(0, cleanuptime);
+      if (record.oscillators) {
+        for (j = 0; j < record.oscillators.length; ++j) {
+          record.oscillators[j].stop(stoptime);
+        }
+      }
+      record.cleanuptime = cleanuptime;
+    }
+  }
+};
+Instrument.prototype._makeNoteSound = function(record) {
+  var timbre = record.timbre || this._timbre,
+      starttime = record.time,
+      releasetime = starttime + record.duration,
+      attacktime = Math.min(releasetime, starttime + timbre.attack),
+      stoptime = releasetime + timbre.release,
+      doubled = timbre.detune && timbre.detune != 1.0,
+      amp = timbre.gain * record.velocity * (doubled ? 0.5 : 1.0),
+      ac = this._atop.ac,
+      g, f, o, o2;
+  if (record.duration > 0 && record.velocity > 0) {
+    g = ac.createGain();
+    g.gain.setValueAtTime(0, starttime);
+    g.gain.linearRampToValueAtTime(amp, attacktime);
+    g.gain.setTargetAtTime(amp * timbre.sustain, attacktime, timbre.decay);
+    g.gain.setValueAtTime(amp * (timbre.sustain + (1 - timbre.sustain) *
+        Math.exp((attacktime - releasetime) / timbre.decay)), releasetime);
+    g.gain.linearRampToValueAtTime(0, stoptime);
+    g.connect(this._out);
+    if (!timbre.cutoff || timbre.cutoff == Infinity) {
+      f = g;
+    } else {
+      f = ac.createBiquadFilter();
+      f.frequency.value = record.frequency * timbre.cutoff;
+      f.Q.value = timbre.resonance;
+      f.connect(g);
+    }
+    o = ac.createOscillator();
+    try {
+      o.type = timbre.wave;
+    } catch(e) {
+      // If unrecognized, just use square.
+      o.type = 'square';
+    }
+    o.frequency.value = record.frequency;
+    o.connect(f);
+    o.start(starttime);
+    o.stop(stoptime);
+    if (doubled) {
+      o2 = ac.createOscillator();
+      o2.type = timbre.wave;
+      o2.frequency.value = record.frequency * timbre.detune;
+      o2.connect(f);
+      o2.start(starttime);
+      o2.stop(stoptime);
+    }
+    record.gainNode = g;
+    record.oscillators = [o];
+    if (doubled) { record.oscillators.push(o2); }
+    record.cleanuptime = stoptime;
+  }
+  this._startSet.push(record);
+};
+Instrument.prototype._doPoll = function() {
+  this._pollTimer = null;
+  this._now = null;
+  if (interrupted) {
+    this.silence();
+    return;
+  }
+  var instrument = this,
+      now = this._atop.ac.currentTime,
+      j, work, when, freq, record, conflict;
+  // Schedule a batch of stems
+  if (this._minQueueTime - now <= Instrument.bufferSecs) {
+    if (this._unsortedQueue) {
+      this._queue.sort(function(a, b) {
+        if (a.time != b.time) { return a.time - b.time; }
+        if (a.duration != b.duration) { return a.duration - b.duration; }
+        return a.frequency - b.frequency;
+      });
+      this._unsortedQueue = false;
+    }
+    for (j = 0; j < this._queue.length; ++j) {
+      if (this._queue[j].time - now > Instrument.bufferSecs) { break; }
+    }
+    if (j > 0) {
+      work = this._queue.splice(0, j);
+      for (j = 0; j < work.length; ++j) {
+        this._makeNoteSound(work[j]);
+      }
+      this._minQueueTime =
+        (this._queue.length > 0) ? this._queue[0].time : Infinity;
+    }
+  }
+  if (this._queue.length > 0) {
+    this._nextQueueTime = this._queue[0].time;
+  } else {
+    this._nextQueueTime = Infinity;
+  }
+  // Disconnect notes from the cleanup set.
+  for (j = 0; j < this._cleanupSet.length; ++j) {
+    record = this._cleanupSet[j];
+    if (record.cleanuptime < now) {
+      if (record.gainNode) {
+        // This explicit disconnect is needed or else Chrome's WebAudio
+        // starts getting overloaded after a couple thousand notes.
+        record.gainNode.disconnect();
+        record.gainNode = null;
+      }
+      this._cleanupSet.splice(j, 1);
+      j -= 1;
+    }
+  }
+  // Notify about any stems finishing.
+  for (freq in this._finishSet) if (this._finishSet.hasOwnProperty(freq)) {
+    record = this._finishSet[freq];
+    when = record.time + record.duration;
+    if (when <= now) {
+      this._trigger('notefinish', record);
+      if (record.cleanuptime != Infinity) {
+        this._cleanupSet.push(record);
+      }
+      delete this._finishSet[freq];
+    }
+  }
+  // Call any specific one-time callbacks that were registered.
+  for (j = 0; j < this._callbackSet.length; ++j) {
+    if (this._callbackSet[j].time <= now) {
+      this._callbackSet[j].callback();
+      this._callbackSet.splice(j, 1);
+      j -= 1;
+    }
+  }
+  // Notify about any stems starting.
+  for (j = 0; j < this._startSet.length; ++j) {
+    if (this._startSet[j].time <= now) {
+      record = this._startSet[j];
+      freq = record.frequency;
+      if (this._finishSet.hasOwnProperty(freq)) {
+        // If there is already a note at the same frequency playing,
+        // then release the one that starts first, immediately.
+        conflict = this._finishSet[freq];
+        if (conflict.time <= record.time) {
+          this._truncateNoteSound(conflict, record.time);
+        } else {
+          this._truncateNoteSound(record, conflict.time);
+        }
+      }
+      this._startSet.splice(j, 1);
+      j -= 1;
+      if (record.duration > 0) {
+        this._trigger('notestart', record);
+        this._finishSet[freq] = record;
+      }
+    }
+  }
+  this._startPollTimer();
+};
+Instrument.prototype._startPollTimer = function(soon) {
+  var instrument = this,
+      earliest = Infinity, j, delay;
+  if (this._pollTimer) {
+    if (this._now != null) {
+      // We have already set the poll timer to come back instantly.
+      return;
+    }
+    // We might have updated information: clear the timer and look again.
+    clearTimeout(this._pollTimer);
+    this._pollTimer = null;
+  }
+  if (soon) {
+    // Timer due to now() call: schedule immediately.
+    earliest = 0;
+  } else {
+    // Timer due to _doPoll complete: compute schedule.
+    for (j = 0; j < this._startSet.length; ++j) {
+      earliest = Math.min(earliest, this._startSet[j].time);
+    }
+    for (j in this._finishSet) if (this._finishSet[j].hasOwnProperty(j)) {
+      earliest = Math.min(
+        earliest, this._finishSet[j].time + this._finishSet[j].duration);
+    }
+    for (j = 0; j < this._callbackSet.length; ++j) {
+      earliest = Math.min(earliest, this._callbackSet[j].time);
+    }
+    // subtract a little time.
+    earliest = Math.min(earliest, this._minQueueTime - 1);
+  }
+  delay = Math.max(0, earliest - this._atop.ac.currentTime);
+  if (isNaN(delay)) {
+    return;
+  }
+  if (delay == Infinity) { return; }
+  this._pollTimer = setTimeout(
+      function() { instrument._doPoll(); }, delay * 1000);
+};
+Instrument.prototype.tone = function(pitch, velocity, duration, delay, timbre) {
+  if (!this._atop) {
+    return { release: (function() {}) };
+  }
+  var midi, frequency;
+  if (!pitch) { pitch = 'C'; }
+  if (isNaN(pitch)) {
+    midi = pitchToMidi(pitch);
+    frequency = midiToFrequency(midi);
+  } else {
+    frequency = Number(pitch);
+    if (frequency < 0) {
+      midi = -frequency;
+      frequency = midiToFrequency(midi);
+    } else {
+      midi = frequencyToMidi(frequency);
+    }
+  }
+  var ac = this._atop.ac,
+      now = this.now(),
+      time = now + (delay || 0),
+      record = {
+        time: time,
+        on: false,
+        frequency: frequency,
+        midi: midi,
+        velocity: (velocity == null ? 1 : velocity),
+        duration: (duration == null ? Instrument.toneLength : duration),
+        timbre: timbre,
+        instrument: this,
+        gainNode: null,
+        oscillators: null,
+        cleanuptime: Infinity
+      };
+  if (time < now + Instrument.bufferSecs) {
+    this._makeNoteSound(record);
+  } else {
+    if (!this._unsortedQueue && this._queue.length &&
+        time < this._queue[this._queue.length -1].time) {
+      this._unsortedQueue = true;
+    }
+    this._queue.push(record);
+    this._minQueueTime = Math.min(this._minQueueTime, record.time);
+
+  }
+  return { release: makeRecordRelease(this, record) };
+};
+Instrument.prototype.schedule = function(delay, callback) {
+  this._callbackSet.push({ time: this.now() + delay, callback: callback });
+};
+Instrument.prototype.play = function(abcstring) {
+  var args = Array.prototype.slice.call(arguments),
+      done = null,
+      opts = {},
+      abcfile, argindex, tempo, timbre, k, delay, maxdelay = 0, attenuate,
+      voicename, stems, ni, vn, j, stem, note, beatsecs, secs, files = [];
+  // Look for continuation as last argument.
+  if (args.length && $.isFunction(args[args.length - 1])) {
+    done = args.pop();
+  }
+  if (!this._atop) {
     if (done) { done(); }
     return;
   }
-  var atop = getAudioTop(), callback = null,
-      firstvoice = 0, argindex, voice, beatsecs,
-      volume = 0.5, tempo = 120, transpose = 0, type = ['square'],
-      venv = {a: 0.01, d: 0.2, s: 0.1, r: 0.1}, envelope = [venv],
-      start_time = null, end_time = atop.ac.currentTime,
-      notes, vtype, time, fingers, strength, i, j, t, opts;
+  // Look for options as first object.
+  argindex = 0;
   if ($.isPlainObject(args[0])) {
-    opts = args[0];
-    if ('volume' in opts) { volume = opts.volume; }
-    if ('tempo' in opts) { tempo = opts.tempo; }
-    if ('type' in opts) { type = opts.type; }
-    if ('callback' in opts) { callback = opts.callback; }
-    if ('envelope' in opts) {
-      if ($.isArray(opts.envelope)) {
-        envelope = []
-        for (i = 0; i < opts.envelope.length; i++) {
-          envelope.push($.extend({}, venv, opts.envelope[i]));
-        }
-      } else {
-        $.extend(venv, opts.envelope);
-      }
-    }
-    firstvoice = 1;
+    $.extend(opts, args[0]);
+    argindex = 1;
   }
-  beatsecs = 60 / tempo;
-  if (!$.isArray(type)) { type = [type]; }
-  if (!$.isArray(volume)) { volume = [volume]; }
-  if (!$.isArray(transpose)) { transpose = [transpose]; }
-  var voices = [];
-  for (argindex = firstvoice; argindex < args.length; argindex++) {
-    voice = argindex - firstvoice;
+  for (; argindex < args.length; ++argindex) {
     abcfile = parseABCFile(args[argindex]);
-    if (abcfile && abcfile.voice && abcfile.voice.length &&
-        abcfile.voice[0].notes) {
-      notes = abcfile.voice[0].notes;
-    } else {
-      notes = [];
-    }
-    voices[voice] = notes
-    vtype = type[voice % type.length] || 'square';
-    fingers = 0;
-    for (i = 0; i < notes.length; i++) {
-      fingers = Math.max(fingers, notes[i].frequency.length);
-    }
-    for (i = 0; i < notes.length; i++) {
-      notes[i];
-    }
-    if (fingers == 0) { continue; }
-    // Attenuate chorded voice so chorded power matches volume.
-    strength = volume[voice % volume.length] / Math.sqrt(fingers);
-    venv = envelope[voice % envelope.length];
-    if (start_time === null) {
-      start_time = atop.nextStartTime();
-    }
-    time = start_time;
-    for (i = 0; i < notes.length; i++) {
-      t = notes[i].time;
-      // Fill in fields useful for callback notifications.
-      stime = t * beatsecs + time;
-      notes[i].start_at = time;
-      notes[i].end_at = stime;
-      notes[i].voice = voice;
-      if (notes[i].note.length > 0) {
-        playChordAt(atop, time, notes[i], beatsecs, strength, vtype, venv);
+    if (!abcfile) continue;
+    if (!opts.tempo && abcfile.tempo) {
+      opts.tempo = abcfile.tempo;
+      if (abcfile.unitbeat) {
+        opts.tempo *= abcfile.unitbeat / (abcfile.unitnote || 1);
       }
-      time += t * beatsecs;
     }
-    end_time = Math.max(end_time, time);
+    if (!abcfile.voice) continue;
+    files.push(abcfile);
   }
-  var nextToNotify = [];
-  for (i = 0; i < voices.length; ++i) {
-    nextToNotify.push(0);
-  }
-  function callNotifications() {
-    if (interrupted) { return; }
-    var now = atop.ac.currentTime, notifyNotes = [], i, j, next = end_time;
-    if (callback) {
-      for (i = 0; i < voices.length; ++i) {
-        for (j = nextToNotify[i]; j < voices[i].length; ++j) {
-          if (voices[i][j].start_at <= now) {
-            notifyNotes.push(voices[i][j]);
-          } else {
-            nextToNotify[i] = j;
-            break;
+  if (!opts.tempo) { opts.tempo = 120; }
+  beatsecs = 60.0 / opts.tempo;
+  for (k = 0; k < files.length; ++k) {
+    abcfile = files[k];
+    for (vn in abcfile.voice) if (abcfile.voice.hasOwnProperty(vn)) {
+      timbre = parseTimbre(opts.timbre || abcfile.voice[vn].timbre ||
+         abcfile.timbre || this._timbre);
+      stems = abcfile.voice[vn].stems;
+      delay = 0;
+      for (ni = 0; ni < stems.length; ++ni) {
+        stem = stems[ni];
+        // Attenuate chords to reduce clipping.
+        attenuate = 1 / Math.sqrt(stem.note.length);
+        attenuate = 1 / stem.note.length;
+        for (j = 0; j < stem.note.length; ++j) {
+          note = stem.note[j];
+          if (note.holdover) {
+            // Skip holdover stems.
+            continue;
           }
+          secs = (note.time || stem.time) * beatsecs;
+          if (stem.staccato) {
+            secs = Math.min(Math.min(secs, beatsecs / 16),
+                timbre.attack + timbre.decay);
+          }
+          this.tone(
+            note.pitch,
+            note.velocity || attenuate,
+            secs,
+            delay,
+            timbre);
         }
-        if (nextToNotify[i] < voices[i].length) {
-          next = Math.min(voices[i][nextToNotify[i]].start_at, next);
-        }
+        delay += stem.time * beatsecs;
       }
-      notifyNotes.sort(function(a, b) {
-        if (a.start_at != b.start_at) {
-          return a.start_at - b.start_at;
-        }
-        return a.end_at - b.end_at;
-      });
-      for (i = 0; i < notifyNotes.length; ++i) {
-        try {
-          callback(notifyNotes[i]);
-        } catch(e) { }
-      }
-    }
-    if (now >= end_time) {
-      if (callback) { try { callback(null); } catch(e) { } }
-      if (done) { done(); }
-    } else {
-      setTimeout(callNotifications, (next - atop.ac.currentTime) * 1000);
+      maxdelay = Math.max(delay, maxdelay);
     }
   }
-  if (done || callback) {
-    callNotifications();
+  this._maxScheduledTime =
+      Math.max(this._maxScheduledTime, this.now() + maxdelay);
+  if (done) {
+    this.schedule(maxdelay, done);
   }
-}
-function playChordAt(atop, time, stem, beatsecs, strength, vtype, venv) {
-  // First, sort notes into notes that share the same duration.
-  var j, d, staccato = stem.staccato, subchord = {}, n, t, x, s,
-      g, o, atime, rtime, stime, dt, strength;
-  for (j = 0; j < stem.note.length; ++j) {
-    if (stem.note[j].holdover) {
-      // Skip holdover notes.
-      continue;
-    }
-    d = staccato ? 's' : ('' + Math.round(stem.note.time * 1000));
-    if (!subchord.hasOwnProperty(d)) {
-      subchord[d] = [];
-    }
-    subchord[d].push(stem.note[j]);
-  }
-  // Then play each subchord.
-  for (d in subchord) if (subchord.hasOwnProperty(d)) {
-    n = subchord[d];
-    // A subchord shares timing.
-    t = n[0].time;
-    // Staccato: no longer than 1/16 beat, and no sustain.
-    sustain = venv.s;
-    if (staccato) {
-      t = Math.min(t, 1/16, venv.d);
-      s = 0;
-    }
-    stime = t * beatsecs + time;
-    atime = Math.min(t, venv.a) * beatsecs + time;
-    rtime = Math.max(0, t + venv.r) * beatsecs + time;
-    if (atime > rtime) { atime = rtime = (atime + rtime) / 2; }
-    if (rtime < stime) { stime = rtime; rtime = t * beatsecs + time; }
-    dt = venv.d * beatsecs;
-    // Create gain for the ADSR envelope.
-    g = atop.ac.createGain();
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(strength, atime);
-    if ('setTargetAtTime' in g.gain) {
-      // Current web audio spec.
-      g.gain.setTargetAtTime(sustain * strength, atime, dt);
-    } else {
-      // Early draft web audio spec.
-      g.gain.setTargetValueAtTime(sustain * strength, atime, dt);
-    }
-    slast = sustain + (1 - sustain) * Math.exp((atime - stime) / dt);
-    g.gain.setValueAtTime(slast * strength, stime);
-    g.gain.linearRampToValueAtTime(0, rtime);
-    g.connect(atop.out);
-    for (x = 0; x < n.length; x++) {
-      // Create an oscillator for each note.
-      // TODO: support more elaborate vtypes, with lowpass/highpass.
-      o = atop.ac.createOscillator();
-      o.type = vtype;
-      o.frequency.value = n[x].frequency;
-      o.connect(g);
-      if ('start' in g) {
-        // Current web audio spec.
-        o.start(time);
-        o.stop(rtime);
-      } else {
-        // Early draft web audio spec.
-        o.noteOn(time);
-        o.noteOff(rtime);
-      }
-    }
-  }
-}
+};
 
 //////////////////////////////////////////////////////////////////////////
 // DEBUGGING SUPPORT
