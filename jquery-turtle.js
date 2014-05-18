@@ -143,11 +143,11 @@ apostrophes, carets, underscores, digits, and slashes as in the
 standard.  Enclosing letters in square brackets represents a chord,
 and z represents a rest.  The default tempo is 120, but can be changed
 by passing a options object as the first parameter setting tempo, e.g.,
-{ tempo: 200 }.  Other options include volume: 0.5, type: 'sine' or
-'square' or 'sawtooth' or 'triangle', and envelope: which defines
-an ADSR envelope e.g., { a: 0.01, d: 0.2, s: 0.1, r: 0.1 }.
+{ tempo: 200 }.
 
-The turtle's motion will pause while it is playing notes.
+The turtle's motion will pause while it is playing notes. A single
+tone can be played immediately (without participating in the
+turtle animation queue) by using the "tone" method.
 
 Planning Logic in the Animation Queue
 -------------------------------------
@@ -426,6 +426,10 @@ if (!transform || !hasGetBoundingClientRect()) {
 // then the string can begin with "value", and it's interpreted
 // as defaultProp(value).
 function parseOptionString(str, defaultProp) {
+  if ($.isPlainObject(str)) {
+    console.log('plain object', str);
+    return str;
+  }
   var token = str.match(/[-a-zA-Z_][-\w]*|"[^"]*"|'[^']'|\([^()]*\)|\s+|./g),
       result = {}, j, t, key = null, value, arg,
       seencolon = false, vlist = [], firstval = true;
@@ -496,8 +500,8 @@ function printOptionAsString(obj) {
     }
     return s;
   }
-  for (var k in obj) {
-    result.append(k + '=' + obj[k] + ';');
+  for (var k in obj) if (obj.hasOwnProperty(k)) {
+    result.push(k + ': ' + quoted(obj[k]) + ';');
   }
   return result.join(' ');
 }
@@ -1382,10 +1386,10 @@ function makeHullHook() {
 function makeTimbreHook() {
   return {
     get: function(elem, computed, extra) {
-      return getTurtleInstrument(elem).getTimbre();
+      return getTurtleVoice(elem).getTimbre();
     },
     set: function(elem, value) {
-      getTurtleInstrument(elem).setTimbre(value);
+      getTurtleVoice(elem).setTimbre(value);
     }
   };
 }
@@ -1728,44 +1732,17 @@ function parsePenStyle(text, defaultProp) {
   var eraseMode = false;
   if (/^erase\b/.test(text)) {
     text = text.replace(
-        /^erase\b/, 'white globalCompositeOperation destination-out');
+        /^erase\b/, 'white; globalCompositeOperation:destination-out');
     eraseMode = true;
   }
-  var words = text.split(/\s+/),
-      mapping = {
-        strokeStyle: identity,
-        lineWidth: parseFloat,
-        lineCap: identity,
-        lineJoin: identity,
-        miterLimit: parseFloat,
-        fillStyle: identity,
-        globalCompositeOperation: identity
-      },
-      result = {}, j, end = words.length;
+  var result = parseOptionString(text, defaultProp);
   if (eraseMode) { result.eraseMode = true; }
-  for (j = words.length - 1; j >= 0; --j) {
-    if (mapping.hasOwnProperty(words[j])) {
-      var key = words[j],
-          param = words.slice(j + 1, end).join(' ');
-      result[key] = mapping[key](param);
-      end = j;
-    }
-  }
-  if (end > 0 && !result[defaultProp]) {
-    // deal with the rgba(...) case
-    result[defaultProp] = words.slice(0, end).join(' ');
-  }
   return result;
 }
 
 function writePenStyle(style) {
   if (!style) { return 'none'; }
-  var result = [];
-  $.each(style, function(k, v) {
-    result.push(k);
-    result.push(v);
-  });
-  return result.join(' ');
+  return printOptionAsString(style);
 }
 
 function parsePenDown(style) {
@@ -1791,7 +1768,7 @@ function getTurtleData(elem) {
       drawOnCanvas: null,
       quickpagexy: null,
       quickhomeorigin: null,
-      instrument: null
+      voice: null
     });
   }
   return state;
@@ -2806,6 +2783,248 @@ var Turtle = (function(_super) {
 
 })(Sprite);
 
+Instrument = (function(_super) {
+  __extends(Instrument, _super);
+  // TODO: make a default instrument shape.
+  function Instrument(options) {
+    Instrument.__super__.constructor.apply(this, arguments);
+    var instrument = this, v = getTurtleVoice(this.get(0));
+    v.on('noteon', function(r) { instrument.noteon(r.midi); });
+    v.on('noteoff', function(r) { instrument.noteoff(r.midi); });
+  }
+  Instrument.prototype.noteon = function(midi) { };
+  Instrument.prototype.noteoff = function(midi) { };
+  return Instrument;
+})(Sprite);
+
+Piano = (function(_super) {
+  __extends(Piano, _super);
+  // TODO: reduce the number of public members.
+  function Piano(options) {
+    var aspect, defwidth, extra, firstwhite, height, width, lastwhite, numwhite;
+    if (options == null) {
+      options = {};
+    }
+    if (typeof(options) == 'string') {
+      options = parseOptionString(options, 'keys');
+    }
+    this.lineWidth = ('lineWidth' in options) ?  options.lineWidth : 1.6;
+    this.color = ('color' in options) ? options.color : 'white';
+    this.blackColor = ('blackColor' in options) ? options.blackColor : 'black';
+    this.lineColor = ('lineColor' in options) ? options.lineColor : 'black';
+    extra = Math.ceil(this.lineWidth);
+    defwidth = 422;
+    if (options.keys != null) {
+      numwhite = Math.ceil(options.keys / 12 * 7);
+      aspect = numwhite / 5;
+      defwidth = Math.sqrt(42000 * aspect) + extra;
+    }
+    width = ('width' in options) ? options.width : ('height' in options) ?
+        Math.round((options.height - extra) *
+            (aspect != null ? aspect : 4.2) + extra) : defwidth;
+    height = ('height' in options) ? options.height :
+        Math.round((width - extra) / (aspect != null ? aspect : 4.2) + extra);
+    if (!('keys' in options)) {
+      numwhite = Math.max(1,
+          Math.round((width - extra) / (height - extra) * 5));
+    }
+    firstwhite = Math.floor(42 - (numwhite - 1) / 2);
+    lastwhite = Math.ceil(firstwhite + numwhite - 1);
+    this.lowest = ('lowest' in options) ? options.lowest :
+        Piano.mcp(firstwhite);
+    if ('keys' in options) {
+      this.highest = this.lowest + options.keys - 1;
+    } else {
+      this.highest = Math.max(this.lowest,
+          Piano.mcp(Piano.wcp(this.lowest) + numwhite - 1));
+    }
+    firstwhite = Piano.wcp(this.lowest);
+    lastwhite = Piano.wcp(this.highest);
+    if (Piano.keyshape(this.highest) >= 8) {
+      lastwhite += 1;
+    }
+    numwhite = lastwhite - firstwhite + 1;
+    this.kw = (width - extra) / numwhite;
+    this.kh = ('height' in options) ? options.height - extra : this.kw * 5;
+    this.bkw = this.kw * 4 / 7;
+    this.bkh = this.kh * 3 / 5;
+    this.halfex = extra / 2;
+    this.horiz = {
+      left: firstwhite * this.kw,
+      right: (lastwhite + 1) * this.kw
+    };
+    this.ckw = (3 * this.kw - 2 * this.bkw) / 3;
+    this.fkw = (4 * this.kw - 3 * this.bkw) / 4;
+    Piano.__super__.constructor.call(this, {
+      width: Math.ceil(this.horiz.right - this.horiz.left + extra),
+      height: Math.ceil(this.kh + extra)
+    });
+    this.css({ turtleTimbre:
+        "wave:sawtooth;gain:0.25;" +
+        "attack:0.001;decay:0.3;sustain:0.005;release:0.1;" +
+        "cutoff:1;resonance:5;detune:1.001;" });
+    this.drawall();
+  }
+
+  Piano.prototype.noteon = function(midi) {
+    this.draw(midi, Piano.keycolor(midi));
+  };
+
+  Piano.prototype.noteoff = function(midi) {
+    this.draw(midi);
+  };
+
+  Piano.prototype.calcHoriz = function() {
+    var leftmost, rightmost;
+    leftmost = Piano.wcp(this.lowest);
+    rightmost = Piano.wcp(this.highest) + 1;
+    if (Piano.keyshape(this.highest) >= 8) {
+      rightmost += 1;
+    }
+    return {
+      left: leftmost * this.kw,
+      right: rightmost * this.kw
+    };
+  };
+
+  Piano.wcp = function(n) {
+    return floor((n + 7) / 12 * 7);
+  };
+
+  Piano.mcp = function(n) {
+    return ceil(n / 7 * 12) - 7;
+  };
+
+  Piano.keyshape = function(n) {
+    return [1, 8, 2, 9, 3, 4, 10, 5, 11, 6, 12, 7][((n % 12) + 12) % 12];
+  };
+
+  Piano.colors12 = [
+    '#db4437', // C  red
+    '#ff5722', // C# orange
+    '#f4b400', // D  orange yellow
+    '#ffeb3b', // D# yellow
+    '#cddc39', // E  lime
+    '#0f9d58', // F  green
+    '#00bcd4', // F# teal
+    '#03a9f4', // G  light blue
+    '#4285f4', // G# blue
+    '#673ab7', // A  deep purple
+    '#9c27b0', // A# purple
+    '#e91e63'  // B  pink
+  ];
+
+  Piano.keycolor = function(n) {
+    return Piano.colors12[(n % 12 + 12) % 12];
+  };
+
+  Piano.prototype.draw = function(n, fillcolor) {
+    var ctx;
+    if (!((this.lowest <= n && n <= this.highest))) {
+      return;
+    }
+    if (fillcolor == null) {
+      if (Piano.keyshape(n) >= 8) {
+        fillcolor = this.blackColor;
+      } else {
+        fillcolor = this.color;
+      }
+    }
+    ctx = this.canvas().getContext('2d');
+    ctx.save();
+    ctx.beginPath();
+    this.keyoutline(ctx, n);
+    ctx.fillStyle = fillcolor;
+    ctx.strokeStyle = this.lineColor;
+    ctx.lineWidth = this.lineWidth;
+    ctx.fill();
+    ctx.stroke();
+    return ctx.restore();
+  };
+
+  Piano.prototype.drawall = function() {
+    for (var n = this.lowest; n <= this.highest; ++n) {
+      this.draw(n);
+    }
+  };
+
+  Piano.prototype.keyoutline = function(ctx, n) {
+    var ks, lcx, leftmost, rcx, rightmost, startx, starty;
+    startx = this.halfex + this.kw * Piano.wcp(n) - this.horiz.left;
+    starty = this.halfex;
+    ks = Piano.keyshape(n);
+    leftmost = n === this.lowest;
+    rightmost = n === this.highest;
+    lcx = 0;
+    rcx = 0;
+    switch (ks) {
+      case 1:
+        rcx = this.kw - this.ckw;
+        break;
+      case 2:
+        rcx = lcx = (this.kw - this.ckw) / 2;
+        break;
+      case 3:
+        lcx = this.kw - this.ckw;
+        break;
+      case 4:
+        rcx = this.kw - this.fkw;
+        break;
+      case 5:
+        lcx = this.fkw + this.bkw - this.kw;
+        rcx = 2 * this.kw - 2 * this.fkw - this.bkw;
+        break;
+      case 6:
+        lcx = 2 * this.kw - 2 * this.fkw - this.bkw;
+        rcx = this.fkw + this.bkw - this.kw;
+        break;
+      case 7:
+        lcx = this.kw - this.fkw;
+        break;
+      case 8:
+        startx += this.ckw;
+        break;
+      case 9:
+        startx += 2 * this.ckw + this.bkw - this.kw;
+        break;
+      case 10:
+        startx += this.fkw;
+        break;
+      case 11:
+        startx += 2 * this.fkw + this.bkw - this.kw;
+        break;
+      case 12:
+        startx += 3 * this.fkw + 2 * this.bkw - 2 * this.kw;
+    }
+    if (leftmost) {
+      lcx = 0;
+    }
+    if (rightmost) {
+      rcx = 0;
+    }
+    if (ks >= 8) {
+      ctx.moveTo(startx, starty + this.bkh);
+      ctx.lineTo(startx + this.bkw, starty + this.bkh);
+      ctx.lineTo(startx + this.bkw, starty);
+      ctx.lineTo(startx, starty);
+      return ctx.closePath();
+    } else {
+      ctx.moveTo(startx, starty + this.kh);
+      ctx.lineTo(startx + this.kw, starty + this.kh);
+      ctx.lineTo(startx + this.kw, starty + this.bkh);
+      ctx.lineTo(startx + this.kw - rcx, starty + this.bkh);
+      ctx.lineTo(startx + this.kw - rcx, starty);
+      ctx.lineTo(startx + lcx, starty);
+      ctx.lineTo(startx + lcx, starty + this.bkh);
+      ctx.lineTo(startx, starty + this.bkh);
+      return ctx.closePath();
+    }
+  };
+
+  return Piano;
+
+})(Instrument);
+
 //////////////////////////////////////////////////////////////////////////
 // KEYBOARD HANDLING
 // Implementation of the "pressed" function
@@ -3696,7 +3915,7 @@ var turtlefn = {
         moved = true;
       } else {
         if (lineWidth !== undefined) {
-          penstyle += " lineWidth " + lineWidth;
+          penstyle += ";lineWidth:" + lineWidth;
         }
         this.css('turtlePenStyle', penstyle);
       }
@@ -3948,32 +4167,33 @@ var turtlefn = {
     this.plan(function(j, elem) {
       cc.appear(j);
       this.queue(function(next) {
-        var instrument = getTurtleInstrument(elem),
+        var voice = getTurtleVoice(elem),
             args = $.makeArray(cc.args);
         args.push(function() { cc.resolve(j); next(); });
-        instrument.play.apply(instrument, args);
+        voice.play.apply(voice, args);
       });
     });
     return this;
   }),
   tone: wrapraw('tone',
-  ["<u>tone(freq)</u> Immediately plays a tone, returning an object" +
-      "that can be called obj.release() to immediately stop the tone. " +
-      "<u>tone(freq, secs)</u> plays a tone for a specific duration. " +
-      "Freq may be a letter pitch or a frequency in Hz. " +
+  ["<u>tone(freq)</u> Immediately sound a tone. " +
+      "<u>tone(freq, 0)</u> Stop sounding the tone. " +
+      "<u>tone(freq, v, secs)</u> Play a tone with a volume and duration. " +
+      "Frequency may be a number in Hz or a letter pitch. " +
       "<mark>tone 440, 5</mark>"],
   function tone(freq, secs) {
-    if (this.length > 0) {
-      var instrument = getTurtleInstrument(this.get(0));
-      return instrument.tone.apply(instrument, arguments);
-    }
+    var args = arguments;
+    return this.each(function(j, elem) {
+      var voice = getTurtleVoice(elem);
+      voice.tone.apply(voice, args);
+    });
   }),
   silence: wrapraw('silence',
-  ["<u>silence()</u> Immediately silences sound from play() or tone()."],
+  ["<u>silence()</u> immediately silences sound from play() or tone()."],
   function silence() {
     return this.each(function(j, elem) {
-      var instrument = getTurtleInstrument(elem);
-      instrument.silence();
+      var voice = getTurtleVoice(elem);
+      voice.silence();
     });
   }),
   speed: wrapcommand('speed', 1,
@@ -4468,7 +4688,7 @@ function checkForHungLoop(fname) {
       clearTimeout(hungTimer);
       hungTimer = null;
       hangStartTime = null;
-    });
+    }, 0);
     return;
   }
   // Timeout after which we interrupt the program: 6 seconds.
@@ -4660,26 +4880,26 @@ var dollar_turtle_methods = {
     } else {
       var cc = setupContinuation(null, 'play', arguments, 0);
       cc.appear(null);
-      var instrument = getGlobalInstrument(),
+      var voice = getGlobalVoice(),
           args = $.makeArray(cc.args);
       args.push(function() { cc.resolve(null); });
-      instrument.play.apply(instrument, args);
+      voice.play.apply(voice, args);
       cc.exit();
     }
   }),
   tone: wrapraw('tone',
-  ["<u>tone(freq)</u> Immediately plays a tone, returning an object" +
-      "that can be called obj.release() to stop the tone. " +
-      "<u>tone(freq, secs)</u> plays a tone for a specific duration. " +
-      "Freq may be a letter pitch or a frequency in Hz. " +
+  ["<u>tone(freq)</u> Immediately sound a tone. " +
+      "<u>tone(freq, 0)</u> Stop sounding the tone. " +
+      "<u>tone(freq, v, secs)</u> Play a tone with a volume and duration. " +
+      "Frequency may be a number in Hz or a letter pitch. " +
       "<mark>tone 440, 5</mark>"],
   function tone() {
     if (global_turtle) {
       var sel = $(global_turtle);
       sel.tone.apply(sel, arguments);
     } else {
-      var instrument = getGlobalInstrument();
-      instrument.play.apply(instrument, args);
+      var voice = getGlobalVoice();
+      voice.play.apply(voice, args);
     }
   }),
   silence: wrapraw('silence',
@@ -4689,8 +4909,8 @@ var dollar_turtle_methods = {
       var sel = $(global_turtle);
       sel.silence();
     } else {
-      var instrument = getGlobalInstrument();
-      instrument.silence();
+      var voice = getGlobalVoice();
+      voice.silence();
     }
   }),
   done: wrapraw('done',
@@ -4943,6 +5163,9 @@ var dollar_turtle_methods = {
   Turtle: wrapraw('Turtle',
   ["<u>new Turtle(color)</u> Make a new turtle. " +
       "<mark>t = new Turtle; t.fd 100</mark>"], Turtle),
+  Piano: wrapraw('Piano',
+  ["<u>new Piano(keys)</u> Make a new piano. " +
+      "<mark>t = new Piano 88; t.play 'edcdeee'</mark>"], Piano),
   Sprite: wrapraw('Sprite',
   ["<u>new Sprite({width:w,height:h,color:c})</u> " +
       "Make a new sprite to <mark>drawon</mark>. " +
@@ -6213,22 +6436,22 @@ function table(height, width, cellCss, tableCss) {
 // Definition of play("ABC") - uses ABC music note syntax.
 //////////////////////////////////////////////////////////////////////////
 
-function getTurtleInstrument(elem) {
+function getTurtleVoice(elem) {
   var state = getTurtleData(elem);
-  if (state.instrument) {
-    return state.instrument;
+  if (state.voice) {
+    return state.voice;
   }
-  state.instrument = new Instrument();
-  return state.instrument;
+  state.voice = new Voice();
+  return state.voice;
 }
 
-var global_instrument = null;
+var global_voice = null;
 
-function getGlobalInstrument(elem) {
-  if (!global_instrument) {
-    global_instrument = new Instrument();
+function getGlobalVoice(elem) {
+  if (!global_voice) {
+    global_voice = new Voice();
   }
-  return global_instrument;
+  return global_voice;
 }
 
 var ABCtoken = /(?:^\[V:\S*\])|\s+|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\d*\/\d+|\d+|\/+|[xzXZ]|\||%[^\n]*$|./g;
@@ -6426,7 +6649,7 @@ function parseABCFile(str) {
     }
   }
   if (result.voice) {
-    // Calculate times for all the tied stems.
+    // Calculate times for all the tied notes.
     for (j = 0; j < result.voice.length; ++j) {
       if (result.voice[j].stems) {
         processTies(result.voice[j].stems);
@@ -6469,7 +6692,7 @@ function parseTempo(qline, beatinfo) {
 }
 function processTies(stems) {
   var tied = {}, nextTied, j, k, note, firstNote;
-  // Run through all the notes, adding up time for tied stems,
+  // Run through all the notes, adding up time for tied notes,
   // and marking notes that were held over with holdover = true.
   for (j = 0; j < stems.length; ++j) {
     nextTied = {};
@@ -6553,7 +6776,7 @@ function applyAccent(pitch, key, accent) {
     return stripNatural(pitch);
   }
   if (accent.hasOwnProperty(letter)) {
-    // Accidentals from this measure apply to unaccented stems.
+    // Accidentals from this measure apply to unaccented notes.
     return stripNatural(accent[letter] + m[2] + m[3]);
   }
   if (key.hasOwnProperty(letter)) {
@@ -6695,10 +6918,11 @@ function durationToTime(duration) {
   }
   return i + (n / d);
 }
-var pianoTimbre = parseOptionString(
-  "wave:sawtooth; gain:0.25; " +
-  "attack:0.001; decay:0.3; sustain:0.01; release:0.1; " +
-  "cutoff:1; resonance:5; detune:1.001;");
+
+var defaultTimbre = parseOptionString(
+  "wave:square;gain:0.1;" +
+  "attack:0.001;decay:0.3;sustain:0;release:0.1;" +
+  "cutoff:0;resonance:0;detune:0");
 
 function parseTimbre(options) {
   if (!options) {
@@ -6706,18 +6930,20 @@ function parseTimbre(options) {
   } else if (typeof(options) == 'string') {
     options = parseOptionString(options, 'wave');
   }
-  var result = $.extend({}, pianoTimbre, options);
+  var result = $.extend({}, defaultTimbre, options);
   return result;
 }
-function Instrument(options) {
+
+function Voice(options) {
   this._timbre = parseTimbre(options);
   this._queue = [];
   this._minQueueTime = Infinity;
   this._maxScheduledTime = 0;
   this._unsortedQueue = false;
   this._startSet = [];
-  this._finishSet = [];
+  this._finishSet = {};
   this._cleanupSet = [];
+  this._conflictCount = 0;
   this._callbackSet = [];
   this._handlers = {};
   this._now = null;
@@ -6729,18 +6955,18 @@ function Instrument(options) {
   }
 }
 
-Instrument.bufferSecs = 3;     // Seconds ahead to buffer notes.
-Instrument.toneLength = 60;    // Default duration of a tone.
-Instrument.cleanupDelay = 0.1; // Time before disconnecting gain nodes.
-Instrument.nowDelay = 0.02;    // Hack to avoid bug http://crbug.com/254942.
+Voice.bufferSecs = 3;     // Seconds ahead to buffer notes.
+Voice.toneLength = 10;    // Default duration of a tone.
+Voice.cleanupDelay = 0.1; // Time before disconnecting gain nodes.
+Voice.nowDelay = 0.00;    // Adjust to workaround http://crbug.com/254942.
 
-Instrument.prototype.setTimbre = function(t) {
+Voice.prototype.setTimbre = function(t) {
   this._timbre = parseTimbre(t);
 };
-Instrument.prototype.getTimbre = function(t) {
+Voice.prototype.getTimbre = function(t) {
   return printOptionAsString(this._timbre);
 };
-Instrument.prototype.silence = function() {
+Voice.prototype.silence = function() {
   var j;
   // Clear future notes.
   this._queue.length = 0;
@@ -6750,7 +6976,7 @@ Instrument.prototype.silence = function() {
   this._startSet.length = 0;
   // Flush finish callbacks that are promised.
   for (j in this._finishSet) if (this._finishSet.hasOwnProperty(j)) {
-    this._trigger('notefinish', this._finishSet[j]);
+    this._trigger('noteoff', this._finishSet[j]);
   }
   this._finishSet = {};
   // Flush one-time callacks that are promised.
@@ -6763,21 +6989,21 @@ Instrument.prototype.silence = function() {
   this._out.gain.value = this.gain;
   this._out.connect(this._atop.out);
 };
-Instrument.prototype.now = function() {
+Voice.prototype.now = function() {
   if (this._now != null) {
     return this._now;
   }
   this._startPollTimer(true);
-  this._now = this._atop.ac.currentTime + Instrument.nowDelay;
+  this._now = this._atop.ac.currentTime + Voice.nowDelay;
   return this._now;
 };
-Instrument.prototype.on = function(ev, cb) {
+Voice.prototype.on = function(ev, cb) {
   if (!this._handlers.hasOwnProperty(ev)) {
     this._handlers[ev] = [];
   }
   this._handlers[ev].push(cb);
 };
-Instrument.prototype.off = function(ev, cb) {
+Voice.prototype.off = function(ev, cb) {
   if (this._handlers.hasOwnProperty(ev)) {
     if (!cb) {
       this._handlers[ev] = [];
@@ -6792,7 +7018,7 @@ Instrument.prototype.off = function(ev, cb) {
     }
   }
 };
-Instrument.prototype._trigger = function(ev, record) {
+Voice.prototype._trigger = function(ev, record) {
   var cb = this._handlers[ev], j;
   if (!cb) {
     return;
@@ -6801,13 +7027,7 @@ Instrument.prototype._trigger = function(ev, record) {
     cb[j](record);
   }
 };
-function makeRecordRelease(instrument, record) {
-  return (function() {
-    var now = instrument.now();
-    instrument._truncateNoteSound(record, now);
-  });
-}
-Instrument.prototype._truncateNoteSound = function(record, releasetime) {
+Voice.prototype._truncateNoteSound = function(record, releasetime) {
   if (releasetime < record.time + record.duration) {
     record.duration = Math.max(0, releasetime - record.time);
     if (record.gainNode) {
@@ -6815,7 +7035,7 @@ Instrument.prototype._truncateNoteSound = function(record, releasetime) {
           starttime = record.time,
           attacktime = Math.min(releasetime, starttime + timbre.attack),
           stoptime = releasetime + timbre.release,
-          cleanuptime = stoptime + Instrument.cleanupDelay,
+          cleanuptime = stoptime + Voice.cleanupDelay,
           doubled = timbre.detune && timbre.detune != 1.0,
           amp = timbre.gain * record.velocity * (doubled ? 0.5 : 1.0),
           j, g = record.gainNode;
@@ -6840,11 +7060,12 @@ Instrument.prototype._truncateNoteSound = function(record, releasetime) {
     }
   }
 };
-Instrument.prototype._makeNoteSound = function(record) {
+Voice.prototype._makeNoteSound = function(record) {
   var timbre = record.timbre || this._timbre,
       starttime = record.time,
       releasetime = starttime + record.duration,
       attacktime = Math.min(releasetime, starttime + timbre.attack),
+      decaystarttime = attacktime,
       stoptime = releasetime + timbre.release,
       doubled = timbre.detune && timbre.detune != 1.0,
       amp = timbre.gain * record.velocity * (doubled ? 0.5 : 1.0),
@@ -6854,7 +7075,17 @@ Instrument.prototype._makeNoteSound = function(record) {
     g = ac.createGain();
     g.gain.setValueAtTime(0, starttime);
     g.gain.linearRampToValueAtTime(amp, attacktime);
-    g.gain.setTargetAtTime(amp * timbre.sustain, attacktime, timbre.decay);
+    // For the beginning of the decay, use linearRampToValue instead
+    // of setTargetAtTime, because it avoids http://crbug.com/254942.
+    while (decaystarttime < attacktime + 1/32 &&
+           decaystarttime + 1/256 < releasetime) {
+      decaystarttime += 1/256;
+      g.gain.linearRampToValueAtTime(
+          amp * (timbre.sustain + (1 - timbre.sustain) *
+              Math.exp((attacktime - decaystarttime) / timbre.decay)),
+          decaystarttime);
+    }
+    g.gain.setTargetAtTime(amp * timbre.sustain, decaystarttime, timbre.decay);
     g.gain.setValueAtTime(amp * (timbre.sustain + (1 - timbre.sustain) *
         Math.exp((attacktime - releasetime) / timbre.decay)), releasetime);
     g.gain.linearRampToValueAtTime(0, stoptime);
@@ -6893,18 +7124,17 @@ Instrument.prototype._makeNoteSound = function(record) {
   }
   this._startSet.push(record);
 };
-Instrument.prototype._doPoll = function() {
+Voice.prototype._doPoll = function() {
   this._pollTimer = null;
   this._now = null;
   if (interrupted) {
     this.silence();
     return;
   }
-  var instrument = this,
-      now = this._atop.ac.currentTime,
-      j, work, when, freq, record, conflict;
-  // Schedule a batch of stems
-  if (this._minQueueTime - now <= Instrument.bufferSecs) {
+  var now = this._atop.ac.currentTime,
+      j, work, when, freq, record, conflict, save;
+  // Schedule a batch of notes
+  if (this._minQueueTime - now <= Voice.bufferSecs) {
     if (this._unsortedQueue) {
       this._queue.sort(function(a, b) {
         if (a.time != b.time) { return a.time - b.time; }
@@ -6914,7 +7144,7 @@ Instrument.prototype._doPoll = function() {
       this._unsortedQueue = false;
     }
     for (j = 0; j < this._queue.length; ++j) {
-      if (this._queue[j].time - now > Instrument.bufferSecs) { break; }
+      if (this._queue[j].time - now > Voice.bufferSecs) { break; }
     }
     if (j > 0) {
       work = this._queue.splice(0, j);
@@ -6924,11 +7154,6 @@ Instrument.prototype._doPoll = function() {
       this._minQueueTime =
         (this._queue.length > 0) ? this._queue[0].time : Infinity;
     }
-  }
-  if (this._queue.length > 0) {
-    this._nextQueueTime = this._queue[0].time;
-  } else {
-    this._nextQueueTime = Infinity;
   }
   // Disconnect notes from the cleanup set.
   for (j = 0; j < this._cleanupSet.length; ++j) {
@@ -6944,12 +7169,12 @@ Instrument.prototype._doPoll = function() {
       j -= 1;
     }
   }
-  // Notify about any stems finishing.
+  // Notify about any notes finishing.
   for (freq in this._finishSet) if (this._finishSet.hasOwnProperty(freq)) {
     record = this._finishSet[freq];
     when = record.time + record.duration;
     if (when <= now) {
-      this._trigger('notefinish', record);
+      this._trigger('noteoff', record);
       if (record.cleanuptime != Infinity) {
         this._cleanupSet.push(record);
       }
@@ -6964,11 +7189,12 @@ Instrument.prototype._doPoll = function() {
       j -= 1;
     }
   }
-  // Notify about any stems starting.
+  // Notify about any notes starting.
   for (j = 0; j < this._startSet.length; ++j) {
     if (this._startSet[j].time <= now) {
-      record = this._startSet[j];
+      save = record = this._startSet[j];
       freq = record.frequency;
+      conflict = null;
       if (this._finishSet.hasOwnProperty(freq)) {
         // If there is already a note at the same frequency playing,
         // then release the one that starts first, immediately.
@@ -6977,20 +7203,26 @@ Instrument.prototype._doPoll = function() {
           this._truncateNoteSound(conflict, record.time);
         } else {
           this._truncateNoteSound(record, conflict.time);
+          conflict = record;
         }
       }
       this._startSet.splice(j, 1);
       j -= 1;
-      if (record.duration > 0) {
-        this._trigger('notestart', record);
-        this._finishSet[freq] = record;
+      if (record.velocity > 0) {
+        this._trigger('noteon', record);
+        if (conflict) {
+          this._finishSet['t' + (this._conflictCount++)] = conflict;
+        }
+        if (conflict !== record) {
+          this._finishSet[freq] = record;
+        }
       }
     }
   }
   this._startPollTimer();
 };
-Instrument.prototype._startPollTimer = function(soon) {
-  var instrument = this,
+Voice.prototype._startPollTimer = function(soon) {
+  var voice = this,
       earliest = Infinity, j, delay;
   if (this._pollTimer) {
     if (this._now != null) {
@@ -7005,18 +7237,24 @@ Instrument.prototype._startPollTimer = function(soon) {
     // Timer due to now() call: schedule immediately.
     earliest = 0;
   } else {
-    // Timer due to _doPoll complete: compute schedule.
+    // Timer due to notes starting: wake up for 'noteon' notification.
     for (j = 0; j < this._startSet.length; ++j) {
       earliest = Math.min(earliest, this._startSet[j].time);
     }
-    for (j in this._finishSet) if (this._finishSet[j].hasOwnProperty(j)) {
+    // Timer due to notes finishing: wake up for 'noteoff' notification.
+    for (j in this._finishSet) if (this._finishSet.hasOwnProperty(j)) {
       earliest = Math.min(
         earliest, this._finishSet[j].time + this._finishSet[j].duration);
     }
+    // Timer due to scheduled callback.
     for (j = 0; j < this._callbackSet.length; ++j) {
       earliest = Math.min(earliest, this._callbackSet[j].time);
     }
-    // subtract a little time.
+    // Timer due to cleanup: add a second to give some time to batch up.
+    if (this._cleanupSet.length > 0) {
+      earliest = Math.min(earliest, this._cleanupSet[0].cleanuptime + 1);
+    }
+    // Timer due to sequencer events: subtract a second to stay ahead.
     earliest = Math.min(earliest, this._minQueueTime - 1);
   }
   delay = Math.max(0, earliest - this._atop.ac.currentTime);
@@ -7025,9 +7263,9 @@ Instrument.prototype._startPollTimer = function(soon) {
   }
   if (delay == Infinity) { return; }
   this._pollTimer = setTimeout(
-      function() { instrument._doPoll(); }, delay * 1000);
+      function() { voice._doPoll(); }, Math.round(delay * 1000));
 };
-Instrument.prototype.tone = function(pitch, velocity, duration, delay, timbre) {
+Voice.prototype.tone = function(pitch, velocity, duration, delay, timbre) {
   if (!this._atop) {
     return { release: (function() {}) };
   }
@@ -7054,14 +7292,14 @@ Instrument.prototype.tone = function(pitch, velocity, duration, delay, timbre) {
         frequency: frequency,
         midi: midi,
         velocity: (velocity == null ? 1 : velocity),
-        duration: (duration == null ? Instrument.toneLength : duration),
+        duration: (duration == null ? Voice.toneLength : duration),
         timbre: timbre,
-        instrument: this,
+        voice: this,
         gainNode: null,
         oscillators: null,
         cleanuptime: Infinity
       };
-  if (time < now + Instrument.bufferSecs) {
+  if (time < now + Voice.bufferSecs) {
     this._makeNoteSound(record);
   } else {
     if (!this._unsortedQueue && this._queue.length &&
@@ -7072,12 +7310,11 @@ Instrument.prototype.tone = function(pitch, velocity, duration, delay, timbre) {
     this._minQueueTime = Math.min(this._minQueueTime, record.time);
 
   }
-  return { release: makeRecordRelease(this, record) };
 };
-Instrument.prototype.schedule = function(delay, callback) {
+Voice.prototype.schedule = function(delay, callback) {
   this._callbackSet.push({ time: this.now() + delay, callback: callback });
 };
-Instrument.prototype.play = function(abcstring) {
+Voice.prototype.play = function(abcstring) {
   var args = Array.prototype.slice.call(arguments),
       done = null,
       opts = {},
@@ -7126,7 +7363,7 @@ Instrument.prototype.play = function(abcstring) {
         for (j = 0; j < stem.note.length; ++j) {
           note = stem.note[j];
           if (note.holdover) {
-            // Skip holdover stems.
+            // Skip holdover notes.
             continue;
           }
           secs = (note.time || stem.time) * beatsecs;
