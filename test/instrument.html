@@ -141,7 +141,7 @@ module("Test of the Instrument class.");
 asyncTest("Plays Stairway with an Instrument.", function() {
   // reset methodlog
   AudioContext.resetTestLog();
-  var ins = new Instrument(),
+  var ins = new Sprite(),
       notelog = [];
   ins.on('noteon', function(e) { notelog.push('on' + e.midi); });
   ins.on('noteoff', function(e) { notelog.push('off' + e.midi); });
@@ -174,7 +174,7 @@ asyncTest("Plays Stairway with an Instrument.", function() {
 asyncTest("Test tie timing.", function() {
   AudioContext.resetTestLog();
   var startTick = currentTick(),
-      ins = new Instrument(),
+      ins = new Sprite(),
       notelog = [];
   ins.on('noteon', function(e) {
     notelog.push('on' + e.midi + '-' + (currentTick() - startTick));
@@ -203,7 +203,7 @@ asyncTest("Test tie timing.", function() {
 asyncTest("Test staccato timing.", function() {
   AudioContext.resetTestLog();
   var startTick = currentTick(),
-      ins = new Instrument(),
+      ins = new Sprite(),
       notelog = [];
   ins.on('noteon', function(e) {
     notelog.push('on' + e.midi + '-' + (currentTick() - startTick));
@@ -235,7 +235,7 @@ asyncTest("Test staccato timing.", function() {
 asyncTest("Test multiple voices with a Bach Minuet.", function() {
   AudioContext.resetTestLog();
   var startTick = currentTick(),
-      ins = new Instrument(),
+      ins = new Sprite(),
       notelog = [];
   ins.on('noteon', function(e) {
     notelog.push('on' + e.midi + '-' + (currentTick() - startTick));

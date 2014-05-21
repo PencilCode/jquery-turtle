@@ -2800,28 +2800,6 @@ var Turtle = (function(_super) {
 
 })(Sprite);
 
-var Instrument = (function(_super) {
-  __extends(Instrument, _super);
-
-  // An Instrument is just a sprite with 'noteon' and 'noteoff' events.
-  // TODO: make a default instrument shape; maybe an eighth note.
-  function Instrument(options) {
-    Instrument.__super__.constructor.apply(this, arguments);
-    var instrument = this, v = getTurtleVoice(this.get(0));
-    v.on('noteon', function(r) {
-      var event = $.Event('noteon');
-      event.midi = r.midi;
-      instrument.trigger(event);
-    });
-    v.on('noteoff', function(r) {
-      var event = $.Event('noteoff');
-      event.midi = r.midi;
-      instrument.trigger(event);
-    });
-  }
-  return Instrument;
-})(Sprite);
-
 var Piano = (function(_super) {
   __extends(Piano, _super);
   // The piano constructor accepts an options object that can have:
@@ -3097,7 +3075,7 @@ var Piano = (function(_super) {
 
   return Piano;
 
-})(Instrument);
+})(Sprite);
 
 //////////////////////////////////////////////////////////////////////////
 // KEYBOARD HANDLING
@@ -5237,9 +5215,6 @@ var dollar_turtle_methods = {
   Turtle: wrapraw('Turtle',
   ["<u>new Turtle(color)</u> Make a new turtle. " +
       "<mark>t = new Turtle; t.fd 100</mark>"], Turtle),
-  Instrument: wrapraw('Instrument',
-  ["<u>new Instrument()</u> Make a new instrument. " +
-      "<mark>t = new Instrument; t.play 'cdefg'</mark>"], Instrument),
   Piano: wrapraw('Piano',
   ["<u>new Piano(keys)</u> Make a new piano. " +
       "<mark>t = new Piano 88; t.play 'edcdeee'</mark>"], Piano),
@@ -6521,6 +6496,18 @@ function getTurtleVoice(elem) {
     return state.voice;
   }
   state.voice = new Voice();
+  // Hook up noteon and noteoff events.
+  var selector = $(elem);
+  state.voice.on('noteon', function(r) {
+    var event = $.Event('noteon');
+    event.midi = r.midi;
+    selector.trigger(event);
+  });
+  state.voice.on('noteoff', function(r) {
+    var event = $.Event('noteoff');
+    event.midi = r.midi;
+    selector.trigger(event);
+  });
   return state.voice;
 }
 
