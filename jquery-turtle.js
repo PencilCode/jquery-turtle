@@ -2887,12 +2887,8 @@ var Piano = (function(_super) {
       width: Math.ceil(geom.rightpx - geom.leftpx + extra),
       height: Math.ceil(geom.kh + extra)
     });
-    // The following is a cheap analog synth simulation of a Piano sound.
-    // TODO: can we do better without a big download?
-    this.css({ turtleTimbre:
-        "wave:sawtooth;gain:1;" +
-        "attack:0.001;decay:0.3;sustain:0.005;release:0.1;" +
-        "cutoff:100;cutfollow:0.1;resonance:3;detune:1.001;" });
+    // The following is a simplistic wavetable simulation of a Piano sound.
+    this.css({ turtleTimbre: "wave:piano;" });
     // Hook up events.
     this.on('noteon', function(e) {
       self.drawkey(e.midi, keycolor(e.midi));
@@ -3506,7 +3502,7 @@ var Instrument = (function() {
         doubled = timbre.detune && timbre.detune != 1.0,
         amp = timbre.gain * record.velocity * (doubled ? 0.5 : 1.0),
         ac = this._atop.ac,
-        g, f, o, o2;
+        g, f, o, o2, pwave, k, wf, bwf;
     // Only hook up tone generators if it is an audible sound.
     if (record.duration > 0 && record.velocity > 0) {
       g = ac.createGain();
@@ -3545,22 +3541,43 @@ var Instrument = (function() {
         f.connect(g);
       }
       // Hook up the main oscillator.
-      o = ac.createOscillator();
-      try {
-        o.type = timbre.wave;
-      } catch(e) {
-        // If unrecognized, just use square.
-        // TODO: support "noise" or other wave shapes.
-        o.type = 'square';
+      function makeOscillator() {
+        var o = ac.createOscillator();
+        try {
+          if (wavetable.hasOwnProperty(timbre.wave)) {
+            // Use a customized wavetable.
+            pwave = wavetable[timbre.wave].wave;
+            if (wavetable[timbre.wave].freq) {
+              bwf = 0;
+              // Look for a higher-frequency variant.
+              for (k in wavetable[timbre.wave].freq) {
+                wf = Number(k);
+                if (record.frequency > wf && wf > bwf) {
+                  bwf = wf;
+                  pwave = wavetable[timbre.wave].freq[bwf];
+                }
+              }
+            }
+            o.setPeriodicWave(pwave);
+          } else {
+            o.type = timbre.wave;
+          }
+        } catch(e) {
+          if (window.console) { window.console.log(e); }
+          // If unrecognized, just use square.
+          // TODO: support "noise" or other wave shapes.
+          o.type = 'square';
+        }
+        return o;
       }
+      o = makeOscillator();
       o.frequency.value = record.frequency;
       o.connect(f);
       o.start(starttime);
       o.stop(stoptime);
       // Hook up a detuned oscillator.
       if (doubled) {
-        o2 = ac.createOscillator();
-        o2.type = timbre.wave;
+        o2 = makeOscillator();
         o2.frequency.value = record.frequency * timbre.detune;
         o2.connect(f);
         o2.start(starttime);
@@ -3797,7 +3814,8 @@ var Instrument = (function() {
         function() { instrument._doPoll(); }, Math.round(delay * 1000));
   };
   // The low-level tone function.
-  Instrument.prototype.tone = function(pitch, velocity, duration, delay, timbre) {
+  Instrument.prototype.tone =
+  function(pitch, velocity, duration, delay, timbre) {
     if (!this._atop) {
       return { release: (function() {}) };
     }
@@ -3944,8 +3962,8 @@ var Instrument = (function() {
 
   // The default sound is a square wave with a pretty quick decay to zero.
   var defaultTimbre = parseOptionString(
-    "wave:square;gain:1;" +
-    "attack:0.001;decay:0.3;sustain:0;release:0.1;" +
+    "wave:square;gain:0.5;" +
+    "attack:0.002;decay:0.4;sustain:0;release:0.1;" +
     "cutoff:0;cutfollow:0,resonance:0;detune:0");
 
   // A timbre can specify any of the fields of defaultTimbre; any
@@ -4002,14 +4020,20 @@ var Instrument = (function() {
       if (!id && context !== result) {
         return;
       }
-      if (id && !context.id && (!context.stems || !context.stems.length)) {
+      if (id && context !== result && !context.id &&
+          (!context.stems || !context.stems.length)) {
+        // If currently in an empty unnamed voice context, then
+        // delete it and switch to the new named context.
         delete result.voice[context.id];
         context.id = id;
         result.voice[id] = context;
+        accent = {};
       } else if (result.voice.hasOwnProperty(id)) {
+        // Resume a named voice.
         context = result.voice[id];
         accent = {};
       } else {
+        // Start a new voice.
         context = { id: id };
         result.voice[id] = context;
         accent = {};
@@ -4119,7 +4143,7 @@ var Instrument = (function() {
   }
   // Parse Q: line, e.g., "1/4=66".
   function parseTempo(qline, beatinfo) {
-    var parts = qline.split(/\s*=\s*/), j, unit = null, tempo = null;
+    var parts = qline.split(/\s+|=/), j, unit = null, tempo = null;
     for (j = 0; j < parts.length; ++j) {
       // It could be reversed, like "66=1/4", or just "120", so
       // determine what is going on by looking for a slash etc.
@@ -4242,10 +4266,10 @@ var Instrument = (function() {
   // The general strategy is to tokenize the line using the following
   // regexp, and then to delegate processing of single notes and
   // stems (sets of notes between [...]) to parseStem.
-  var ABCtoken = /(?:^\[V:[^\]\s]*\])|\s+|%[^\n]*|![^!]*!|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\d*\/\d+|\d+\/?|\/+|[xzXZ]|./g;
+  var ABCtoken = /(?:^\[V:[^\]\s]*\])|\s+|%[^\n]*|![^!]*!|\[|\]|>+|<+|(?:(?:\^\^|\^|__|_|=|)[A-Ga-g](?:,+|'+|))|\(\d+(?::\d+){0,2}|\d*\/\d+|\d+\/?|\/+|[xzXZ]|\[?\|\]?|:?\|:?|::|./g;
   function parseABCNotes(str, key, accent, out) {
     var tokens = str.match(ABCtoken), result = [], parsed = null,
-        index = 0, dotted = 0, t;
+        index = 0, dotted = 0, beatlet = null, t;
     if (!tokens) {
       return null;
     }
@@ -4267,6 +4291,10 @@ var Instrument = (function() {
         dotted = tokens[index++].length;
         continue;
       }
+      if (/^\(\d+(?::\d+)*/.test(tokens[index])) {
+        beatlet = parseBeatlet(tokens[index]);
+      }
+
       // Handle measure markings by clearing accidentals.
       if (/\|/.test(tokens[index])) {
         for (t in accent) if (accent.hasOwnProperty(t)) {
@@ -4283,6 +4311,14 @@ var Instrument = (function() {
       }
       // Process a parsed stem.
       if (parsed !== null) {
+        if (beatlet) {
+          t = (beatlet.time - 1) * parsed.stem.time;
+          syncopateStem(parsed.stem, t);
+          beatlet.count -= 1;
+          if (!beatlet.count) {
+            beatlet = null;
+          }
+        }
         // If syncopated with > or < notation, shift part of a beat
         // between this stem and the previous one.
         if (dotted && result.length) {
@@ -4312,6 +4348,20 @@ var Instrument = (function() {
       // Only adjust a note's duration if it matched the stem's duration.
       if (note.time == stemtime) { note.time = newtime; }
     }
+  }
+  // Parses notation of the form (3 or (5:2:10, which means to do
+  // the following 3 notes in the space of 2 notes, or to do the following
+  // 10 notes at the rate of 5 notes per 2 beats.
+  function parseBeatlet(token) {
+    var m = /^\((\d+)(?::(\d+)(?::(\d+))?)?$/.exec(token);
+    if (!m) { return null; }
+    var count = Number(m[1]),
+        beats = Number(m[2]) || 2,
+        duration = Number(m[3]) || count;
+    return {
+      time: beats / count,
+      count: duration
+    };
   }
   // Parses a stem, which may be a single note, or which may be
   // a chorded note.
@@ -4357,7 +4407,8 @@ var Instrument = (function() {
           break;
         }
         // After a pitch or rest, look for a duration.
-        if (index < tokens.length && /^(?![\s%!]).*[\d\/]/.test(tokens[index])) {
+        if (index < tokens.length &&
+            /^(?![\s%!]).*[\d\/]/.test(tokens[index])) {
           noteDuration = tokens[index++];
           noteTime = durationToTime(noteDuration);
         } else {
@@ -4484,7 +4535,8 @@ var Instrument = (function() {
     if (!m) { return null; }
     var n = {C:-9,D:-7,E:-5,F:-4,G:-2,A:0,B:2,c:3,d:5,e:7,f:8,g:10,a:12,b:14};
     var a = { '^^':2, '^':1, '': 0, '=':0, '_':-1, '__':-2 };
-    var semitone = n[m[2]] + a[m[1]] + (/,/.test(m[3]) ? -12 : 12) * m[3].length;
+    var semitone =
+      n[m[2]] + a[m[1]] + (/,/.test(m[3]) ? -12 : 12) * m[3].length;
     return semitone + 69; // 69 = midi code for "A", which is A4.
   }
   // Converts an ABC pitch to a frequency in Hz.
@@ -4507,6 +4559,80 @@ var Instrument = (function() {
     }
     return i + (n / d);
   }
+
+  // wavetable is a table of names for nonstandard waveforms.
+  // The table maps names to objects that have wave: and freq:
+  // properties. The wave: property is a PeriodicWave to use
+  // for the oscillator.  The freq: property, if present,
+  // is a map from higher frequencies to more PeriodicWave
+  // objects; when a frequency higher than the given threshold
+  // is requested, the alternate PeriodicWave is used.
+  var wavetable = (function(wavedata) {
+    if (!isAudioPresent()) { return {}; }
+    function makePeriodicWave(ac, data) {
+      var n = data.real.length,
+          real = new Float32Array(n),
+          imag = new Float32Array(n),
+          j;
+      for (j = 0; j < n; ++j) {
+        real[j] = data.real[j];
+        imag[j] = data.imag[j];
+      }
+      return ac.createPeriodicWave(real, imag);
+    }
+    function makeMultiple(data, mult, amt) {
+      var result = { real: [], imag: [] }, j, n = data.real.length, m;
+      for (j = 0; j < n; ++j) {
+        m = Math.log(mult[Math.min(j, mult.length - 1)]);
+        result.real.push(data.real[j] * Math.exp(amt * m));
+        result.imag.push(data.imag[j] * Math.exp(amt * m));
+      }
+      return result;
+    }
+    var result = {}, k, d, n, j, ff, record, pw, ac = getAudioTop().ac;
+    for (k in wavedata) {
+      record = result[k] = {};
+      d = wavedata[k];
+      record.wave = makePeriodicWave(ac, d);
+      // A strategy for computing higher frequency waveforms: apply
+      // multipliers to each harmonic according to d.mult.  These
+      // multipliers can be interpolated and applied at any number
+      // of transition frequencies.
+      if (d.mult) {
+        ff = wavedata[k].freq;
+        record.freq = {};
+        for (j = 0; j < ff.length; ++j) {
+          record.freq[ff[j]] =
+            makePeriodicWave(ac, makeMultiple(d, d.mult, (j + 1) / ff.length));
+        }
+      }
+    }
+    return result;
+  })({
+    // Currently the only nonstandard waveform is "piano".
+    // It is based on the first 32 harmonics from the example:
+    // https://github.com/GoogleChrome/web-audio-samples
+    // /blob/gh-pages/samples/audio/wave-tables/Piano
+    // That is a terrific sound for the lowest piano tones.
+    // For higher tones, interpolate to a customzed wave
+    // shape created by hand.
+    piano: {
+      real: [0, 0, -0.203569, 0.5, -0.401676, 0.137128, -0.104117, 0.115965,
+             -0.004413, 0.067884, -0.00888, 0.0793, -0.038756, 0.011882,
+             -0.030883, 0.027608, -0.013429, 0.00393, -0.014029, 0.00972,
+             -0.007653, 0.007866, -0.032029, 0.046127, -0.024155, 0.023095,
+             -0.005522, 0.004511, -0.003593, 0.011248, -0.004919, 0.008505],
+      imag: [0, 0.147621, 0, 0.000007, -0.00001, 0.000005, -0.000006, 0.000009,
+             0, 0.000008, -0.000001, 0.000014, -0.000008, 0.000003,
+             -0.000009, 0.000009, -0.000005, 0.000002, -0.000007, 0.000005,
+             -0.000005, 0.000005, -0.000023, 0.000037, -0.000021, 0.000022,
+             -0.000006, 0.000005, -0.000004, 0.000014, -0.000007, 0.000012],
+      // How to adjust the harmonics for the higest notes.
+      mult: [1, 4.3, 1, 0.08, 0.05, 0.05, 0.05, 0.02, 54, 1, 11, 0.05],
+      // The frequencies at which to interpolate the harmonics.
+      freq: [100, 110, 130, 160, 200, 400, 720, 1360]
+    }
+  });
 
   return Instrument;
 })();

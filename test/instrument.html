@@ -367,6 +367,7 @@ asyncTest("Test full ABC notation with a Beethoven Sonata.", function() {
   var startTick = currentTick(),
       ins = new Piano(),
       notelog = [];
+  ok(/wave:piano/.test(ins.css('turtleTimbre')));
   ins.on('noteon', function(e) {
     notelog.push('on' + e.midi + '-' + (currentTick() - startTick));
   });
