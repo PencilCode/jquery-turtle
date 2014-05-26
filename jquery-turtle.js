@@ -7335,21 +7335,23 @@ function formattitle(title) {
   return '<samp class="_log" id="_testpaneltitle" style="font-weight:bold;">' +
       title + '</samp>';
 }
+var noLocalStorage = null;
 function readlocalstorage() {
   if (!uselocalstorage) {
     return;
   }
-  var state = { height: panelheight, history: [] };
+  var state = { height: panelheight, history: [] }, result;
   try {
-    var result = window.JSON.parse(window.localStorage[uselocalstorage]);
-    if (result && result.slice && result.length) {
-      // if result is an array, then it's just the history.
-      state.history = result;
-      return state;
-    }
-    $.extend(state, result);
+    result = window.JSON.parse(window.localStorage[uselocalstorage]);
   } catch(e) {
+    result = noLocalStorage || {};
   }
+  if (result && result.slice && result.length) {
+    // if result is an array, then it's just the history.
+    state.history = result;
+    return state;
+  }
+  $.extend(state, result);
   return state;
 }
 function updatelocalstorage(state) {
@@ -7370,7 +7372,11 @@ function updatelocalstorage(state) {
     changed = true;
   }
   if (changed) {
-    window.localStorage[uselocalstorage] = window.JSON.stringify(stored);
+    try {
+      window.localStorage[uselocalstorage] = window.JSON.stringify(stored);
+    } catch(e) {
+      noLocalStorage = stored;
+    }
   }
 }
 function wheight() {
