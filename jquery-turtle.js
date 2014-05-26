@@ -3069,14 +3069,15 @@ var pressedKey = (function() {
       isOpera = /Opera/.test(ua),
       maybeFirefox = !/like Gecko/.test(ua) && !isOpera,
       pressedState = {},
-      events = 'mousedown mouseup keydown keyup blur contextmenu',
+      preventable = 'contextmenu',
+      events = 'mousedown mouseup keydown keyup blur ' + preventable,
       keyCodeName = {
-    1:  'mouse 1',
-    2:  'mouse 2',
+    1:  'mouse1',
+    2:  'mouse2',
     3:  'break',
-    4:  'mouse 3',
-    5:  'mouse 4',
-    6:  'mouse 5',
+    4:  'mouse3',
+    5:  'mouse4',
+    6:  'mouse5',
     8:  'backspace',
     9:  'tab',
     12: 'clear',
@@ -3085,20 +3086,20 @@ var pressedKey = (function() {
     17: 'control',
     18: 'alt',
     19: 'pause',
-    20: 'caps lock',
-    21: 'ime hangul',
-    23: 'ime junja',
-    24: 'ime final',
-    25: 'ime kanji',
+    20: 'capslock',
+    21: 'hangulmode',
+    23: 'junjamode',
+    24: 'finalmode',
+    25: 'kanjimode',
     27: 'escape',
-    28: 'ime convert',
-    29: 'ime nonconvert',
-    30: 'ime accept',
-    31: 'ime mode change',
+    28: 'convert',
+    29: 'nonconvert',
+    30: 'accept',
+    31: 'modechange',
     27: 'escape',
     32: 'space',
-    33: 'page up',
-    34: 'page down',
+    33: 'pageup',
+    34: 'pagedown',
     35: 'end',
     36: 'home',
     37: 'left',
@@ -3118,39 +3119,39 @@ var pressedKey = (function() {
   // chrome,opera,safari all report this for meta-right (osx mbp).
     93: isOSX ? 'meta' : 'menu',
     95: 'sleep',
-    106: 'num *',
-    107: 'num +',
-    108: 'num enter',
-    109: 'num -',
-    110: 'num .',
-    111: 'num /',
-    144: 'num lock',
-    145: 'scroll lock',
-    160: 'shift left',
-    161: 'shift right',
-    162: 'control left',
-    163: 'control right',
-    164: 'alt left',
-    165: 'alt right',
-    166: 'browser back',
-    167: 'browser forward',
-    168: 'browser refresh',
-    169: 'browser stop',
-    170: 'browser search',
-    171: 'browser favorites',
-    172: 'browser home',
+    106: 'numpad*',
+    107: 'numpad+',
+    108: 'numpadenter',
+    109: 'numpad-',
+    110: 'numpad.',
+    111: 'numpad/',
+    144: 'numlock',
+    145: 'scrolllock',
+    160: 'shiftleft',
+    161: 'shiftright',
+    162: 'controlleft',
+    163: 'controlright',
+    164: 'altleft',
+    165: 'altright',
+    166: 'browserback',
+    167: 'browserforward',
+    168: 'browserrefresh',
+    169: 'browserstop',
+    170: 'browsersearch',
+    171: 'browserfavorites',
+    172: 'browserhome',
     // ff/osx reports 'volume-mute' for '-'
-    173: isOSX && maybeFirefox ? '-' : 'volume mute',
-    174: 'volume down',
-    175: 'volume up',
-    176: 'next track',
-    177: 'prev track',
-    178: 'stop',
-    179: 'play pause',
-    180: 'launch mail',
-    181: 'launch media-select',
-    182: 'launch app 1',
-    183: 'launch app 2',
+    173: isOSX && maybeFirefox ? '-' : 'volumemute',
+    174: 'volumedown',
+    175: 'volumeup',
+    176: 'mediatracknext',
+    177: 'mediatrackprev',
+    178: 'mediastop',
+    179: 'mediaplaypause',
+    180: 'launchmail',
+    181: 'launchmediaplayer',
+    182: 'launchapp1',
+    183: 'launchapp2',
     186: ';',
     187: '=',
     188: ',',
@@ -3164,17 +3165,17 @@ var pressedKey = (function() {
     222: "'",
     223: 'meta',
     224: 'meta',      // firefox reports meta here.
-    226: 'alt gr',
-    229: 'ime process',
+    226: 'altgraph',
+    229: 'process',
     231: isOpera ? '`' : 'unicode',
     246: 'attention',
     247: 'crsel',
     248: 'exsel',
-    249: 'erase eof',
+    249: 'eraseeof',
     250: 'play',
     251: 'zoom',
-    252: 'no name',
-    253: 'pa 1',
+    252: 'noname',
+    253: 'pa1',
     254: 'clear'
   };
   // :-@, 0-9, a-z(lowercased)
@@ -3200,11 +3201,11 @@ var pressedKey = (function() {
       down = (event.type == 'keydown');
       if (event.which >= 160 && event.which <= 165) {
         // For "shift left", also trigger "shift"; same for control and alt.
-        simplified = name.split(' ')[0];
+        simplified = name.replace(/(?:left|right)$/, '');
       }
     } else if (event.type == 'blur' || event.type == 'contextmenu') {
       // When losing focus, clear all keyboard state.
-      if (!event.isDefaultPrevented()) {
+      if (!event.isDefaultPrevented() || preventable != event.type) {
         resetPressedState();
       }
       return;
@@ -3212,9 +3213,10 @@ var pressedKey = (function() {
     updatePressedState(name, down);
     updatePressedState(simplified, down);
     if (down) {
-      // After any keydown event, unlisten and relisten, to put oursleves last.
-      $(window).off(events, pressListener);
-      $(window).on(events, pressListener);
+      // After any down event, unlisten and relisten to contextmenu,
+      // to put oursleves last.  This allows us to test isDefaultPrevented.
+      $(window).off(preventable, pressListener);
+      $(window).on(preventable, pressListener);
     }
   }
   // The pressedState map just has an entry for each pressed key.
@@ -3253,7 +3255,8 @@ var pressedKey = (function() {
   }
   // The pressed function just polls the given keyname.
   function pressed(keyname) {
-    keyname = keyname.toLowerCase();
+    // Canonical names are lowercase and have no spaces.
+    keyname = keyname.replace(/\s/g, '').toLowerCase();
     if (pressedState[keyname]) return true;
     return false;
   }
@@ -6793,7 +6796,7 @@ var dollar_turtle_methods = {
     }
   }),
   pressed: wrapraw('pressed',
-  ["<u>pressed('control left')</u> Tests if a specific key is pressed. " +
+  ["<u>pressed('control')</u> Tests if a specific key is pressed. " +
       "<mark>if pressed 'a' then write 'a was pressed'</mark>",
    "<u>pressed.list()</u> Returns a list of pressed keys, by name. " +
       "<mark>write 'Pressed keys: ' + pressed.list().join(',')</mark>"
