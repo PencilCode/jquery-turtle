@@ -6632,10 +6632,17 @@ function playChordAt(atop, time, stem, beatsecs, strength, vtype, venv) {
 //////////////////////////////////////////////////////////////////////////
 var debug = {
   init: function initdebug() {
-    if (parent && parent.ide) {
-      this.ide = parent.ide;
-      this.ide.bindframe(window);
-      this.attached = true;
+    try {
+      if (parent && parent.ide) {
+        this.ide = parent.ide;
+        this.ide.bindframe(window);
+        this.attached = true;
+      }
+    } catch(e) {
+      this.ide = null;
+      this.attached = false;
+    }
+    if (this.attached) {
       if (window.addEventListener) {
         window.addEventListener('error', function(event) {
           // An error event will highlight the error line.
