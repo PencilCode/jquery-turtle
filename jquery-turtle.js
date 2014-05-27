@@ -6632,10 +6632,17 @@ function playChordAt(atop, time, stem, beatsecs, strength, vtype, venv) {
 //////////////////////////////////////////////////////////////////////////
 var debug = {
   init: function initdebug() {
-    if (parent && parent.ide) {
-      this.ide = parent.ide;
-      this.ide.bindframe(window);
-      this.attached = true;
+    try {
+      if (parent && parent.ide) {
+        this.ide = parent.ide;
+        this.ide.bindframe(window);
+        this.attached = true;
+      }
+    } catch(e) {
+      this.ide = null;
+      this.attached = false;
+    }
+    if (this.attached) {
       if (window.addEventListener) {
         window.addEventListener('error', function(event) {
           // An error event will highlight the error line.
@@ -7335,21 +7342,23 @@ function formattitle(title) {
   return '<samp class="_log" id="_testpaneltitle" style="font-weight:bold;">' +
       title + '</samp>';
 }
+var noLocalStorage = null;
 function readlocalstorage() {
   if (!uselocalstorage) {
     return;
   }
-  var state = { height: panelheight, history: [] };
+  var state = { height: panelheight, history: [] }, result;
   try {
-    var result = window.JSON.parse(window.localStorage[uselocalstorage]);
-    if (result && result.slice && result.length) {
-      // if result is an array, then it's just the history.
-      state.history = result;
-      return state;
-    }
-    $.extend(state, result);
+    result = window.JSON.parse(window.localStorage[uselocalstorage]);
   } catch(e) {
+    result = noLocalStorage || {};
   }
+  if (result && result.slice && result.length) {
+    // if result is an array, then it's just the history.
+    state.history = result;
+    return state;
+  }
+  $.extend(state, result);
   return state;
 }
 function updatelocalstorage(state) {
@@ -7370,7 +7379,11 @@ function updatelocalstorage(state) {
     changed = true;
   }
   if (changed) {
-    window.localStorage[uselocalstorage] = window.JSON.stringify(stored);
+    try {
+      window.localStorage[uselocalstorage] = window.JSON.stringify(stored);
+    } catch(e) {
+      noLocalStorage = stored;
+    }
   }
 }
 function wheight() {
