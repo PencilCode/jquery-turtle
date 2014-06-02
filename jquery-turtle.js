@@ -4886,6 +4886,48 @@ function makeWavetable(ac) {
 
 
 //////////////////////////////////////////////////////////////////////////
+// SYNC SUPPORT
+// sync() function
+//////////////////////////////////////////////////////////////////////////
+
+function sync() {
+  var elts = [], j, ready = [], completion = null, argcount = arguments.length;
+  // The optional last argument is a callback when the sync is triggered.
+  if (argcount && $.isFunction(arguments[argcount - 1])) {
+    completion = arguments[--argcount];
+  }
+  // Gather elements passed as arguments.
+  for (j = 0; j < argcount; ++j) {
+    if (arguments[j].constructor === $) {
+      elts.push.apply(elts, arguments[j].toArray());  // Unpack jQuery.
+    } else if ($.isArray(arguments[j])) {
+      elts.push.apply(elts, arguments[j]);  // Accept an array.
+    } else {
+      elts.push(arguments[j]);  // Individual elements.
+    }
+  }
+  elts = $.unique(elts);  // Remove duplicates.
+  function proceed() {
+    var cb = ready, j;
+    ready = null;
+    // Call completion before unblocking animation.
+    if (completion) { completion(); }
+    // Unblock all animation queues.
+    for (j = 0; j < cb.length; ++j) { cb[j](); }
+  }
+  for (j = 0; j < elts.length; ++j) {
+    $(elts[j]).queue(function(next) {
+      if (ready) {
+        ready.push(next);
+        if (ready.length == elts.length) {
+          proceed();
+        }
+      }
+    });
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////
 // JQUERY REGISTRATION
 // Register all our hooks.
 //////////////////////////////////////////////////////////////////////////
@@ -6576,6 +6618,9 @@ var dollar_turtle_methods = {
       instrument.silence();
     }
   }),
+  sync: wrapraw('sync',
+  ["<u>sync(t1, t2, t3,...)</u> " +
+      "Selected turtles wait for each other to stop."], sync),
   done: wrapraw('done',
   ["<u>done(fn)</u> Calls fn when animation is complete. Use with await: " +
       "<mark>await done defer()</mark>"],
