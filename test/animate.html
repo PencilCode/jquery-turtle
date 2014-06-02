@@ -1,0 +1,39 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Low level animation test.");
+asyncTest("Draws a square using low-level animation.", function() {
+  speed(10);
+  pen(red);
+  turtle.animate({turtleForward: '+=100'}, 0.1);
+  turtle.animate({turtlePositionX: '+=100'}, 0.1);
+  turtle.animate({turtlePositionY: '0'}, 0.1);
+  turtle.animate({turtleRotation: '-=90'}, 0.1);
+  turtle.animate({turtleForward: '+=100'}, 0.1);
+  turtle.animate({turtleRotation: '0'}, 0.1);
+  pen(null);
+  done(function() {
+    turtle.speed(Infinity);
+    plan(function() {
+      var j;
+      for (j = 0; j < 4; ++j) {
+        ok(touches(red));
+        fd(50);
+        ok(touches(red));
+        fd(50);
+        rt(90);
+      }
+      turtle.css({turtlePosition: '200px -100px'});
+      ok(!touches(red));
+      turtle.css({turtlePosition: '100px -100px'});
+      ok(touches(red));
+      start();
+    });
+  });
+});
+</script>

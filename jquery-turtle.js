@@ -2508,8 +2508,8 @@ function makeTurtleXYHook(publicname, propx, propy, displace) {
           state = $.data(elem, 'turtleData'),
           otx = ts.tx, oty = ts.ty, qpxy;
       if (parts.length < 1 || parts.length > 2) { return; }
-      if (parts.length >= 1) { ts[propx] = parts[0]; }
-      if (parts.length >= 2) { ts[propy] = parts[1]; }
+      if (parts.length >= 1) { ts[propx] = parseFloat(parts[0]); }
+      if (parts.length >= 2) { ts[propy] = parseFloat(parts[1]); }
       else if (!displace) { ts[propy] = ts[propx]; }
       else { ts[propy] = 0; }
       elem.style[transform] = writeTurtleTransform(ts);
@@ -4899,8 +4899,8 @@ $.extend(true, $, {
     turtleForward: makeTurtleForwardHook(),
     turtleTurningRadius: makeTurningRadiusHook(),
     turtlePosition: makeTurtleXYHook('turtlePosition', 'tx', 'ty', true),
-    turtlePositionX: makeTurtleHook('tx', identity, 'px', true),
-    turtlePositionY: makeTurtleHook('ty', identity, 'px', true),
+    turtlePositionX: makeTurtleHook('tx', parseFloat, 'px', true),
+    turtlePositionY: makeTurtleHook('ty', parseFloat, 'px', true),
     turtleRotation: makeTurtleHook('rot', maybeArcRotation, 'deg', true),
     turtleScale: makeTurtleXYHook('turtleScale', 'sx', 'sy', false),
     turtleScaleX: makeTurtleHook('sx', identity, '', false),
