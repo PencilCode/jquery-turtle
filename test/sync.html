@@ -1,0 +1,31 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Sync test.");
+asyncTest("Moves a couple turtles and verifies that sync works.", function() {
+  var a = new Turtle();
+  var b = new Turtle();
+  var reached1 = false, reached2 = false;
+ 
+  speed(10);
+  a.fd(100);
+  a.rt(90)
+  a.fd(100);
+  b.lt(90);
+  b.fd(100);
+  sync(a, b, function() { reached1 = true; });
+  ok(!reached1);
+  a.moveto(turtle);
+  b.moveto(turtle);
+  b.plan(function() {
+    ok(reached1);
+    ok(b.touches(a));
+    start();
+  });
+});
+</script>
