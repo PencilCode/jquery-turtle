@@ -2811,10 +2811,10 @@ var Turtle = (function(_super) {
 
 })(Sprite);
 
-// Video extends Sprite, and draws a live video camera by default.
-var Video = (function(_super) {
-  __extends(Video, _super);
-  function Video(opts, context) {
+// Webcam extends Sprite, and draws a live video camera by default.
+var Webcam = (function(_super) {
+  __extends(Webcam, _super);
+  function Webcam(opts, context) {
     var attrs = "", hassrc = false, hasautoplay = false, hasdims = false;
     if ($.isPlainObject(opts)) {
       for (key in opts) {
@@ -2836,9 +2836,12 @@ var Video = (function(_super) {
     if (!hasdims) {
       attrs += ' width=320 height=240';
     }
-    Video.__super__.constructor.call(this, '<video' + attrs + '>');
+    Webcam.__super__.constructor.call(this, '<video' + attrs + '>');
+    if (!hassrc) {
+      this.capture();
+    }
   }
-  Video.prototype.capture = function() {
+  Webcam.prototype.capture = function() {
     return this.queue(function(next) {
       var v = this,
           getUserMedia = navigator.getUserMedia ||
@@ -2865,7 +2868,7 @@ var Video = (function(_super) {
     });
   };
   // Disconnects the media stream.
-  Video.prototype.cut = function() {
+  Webcam.prototype.cut = function() {
     return this.plan(function() {
       var state = this.data('turtleData');
       if (state.stream) {
@@ -2875,7 +2878,7 @@ var Video = (function(_super) {
       this.attr('src', '');
     });
   };
-  return Video;
+  return Webcam;
 })(Sprite);
 
 // Piano extends Sprite, and draws a piano keyboard by default.
@@ -6958,9 +6961,10 @@ var dollar_turtle_methods = {
   Piano: wrapraw('Piano',
   ["<u>new Piano(keys)</u> Make a new piano. " +
       "<mark>t = new Piano 88; t.play 'edcdeee'</mark>"], Piano),
-  Video: wrapraw('Video',
-  ["<u>new Video(options)</u> Make a new video. " +
-      "<mark>v = new Video; v.on 'play' -> pic = new Sprite v</mark>"], Video),
+  Webcam: wrapraw('Webcam',
+  ["<u>new Webcam(options)</u> Make a new webcam. " +
+      "<mark>v = new Webcam; v.plan -> pic = new Sprite v</mark>"],
+  Webcam),
   Sprite: wrapraw('Sprite',
   ["<u>new Sprite({width:w,height:h,color:c})</u> " +
       "Make a new sprite to <mark>drawon</mark>. " +
