@@ -137,6 +137,24 @@ setupFakeTimer();
 setupFakeAudioContext();
 
 module("Test of the Instrument class.");
+
+asyncTest("Tests the Piano timbre.", function() {
+  AudioContext.resetTestLog();
+  var p = new Piano();
+  ok(/piano/.test(p.css('turtleTimbre')));
+  var t = new Turtle();
+  ok(/piano/.test(t.css('turtleTimbre')));
+  var p2 = new Piano({timbre: 'square'});
+  equal(p2.css('turtleTimbre'),
+      'wave:square; gain:0.1; ' +
+      'attack:0.002; decay:0.4; decayfollow:0; sustain:0; release:0.1; ' +
+      'cutoff:0; cutfollow:0; resonance:0; detune:0;');
+  p.remove();
+  t.remove();
+  p2.remove();
+  start();
+});
+
 asyncTest("Plays Stairway with an Instrument.", function() {
   // reset methodlog
   AudioContext.resetTestLog();
