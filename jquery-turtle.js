@@ -2881,9 +2881,9 @@ var Webcam = (function(_super) {
   return Webcam;
 })(Sprite);
 
-// Piano extends Sprite, and draws a piano keyboard by default.
-var Piano = (function(_super) {
-  __extends(Piano, _super);
+// Synth extends Sprite, and draws a piano keyboard by default.
+var Synth = (function(_super) {
+  __extends(Synth, _super);
   // The piano constructor accepts an options object that can have:
   //   keys: the number of keys.  (this is the default property)
   //   color: the color of the white keys.
@@ -2894,12 +2894,13 @@ var Piano = (function(_super) {
   //   lineWidth: the outline line width.
   //   lowest: the lowest key number (as a midi number).
   //   highest: the highest key number (as a midi number).
+  //   timbre: an Instrument timbre object or string.
   // Any subset of these properties may be supplied, and reasonable
   // defaults are chosen for everything else.  For example,
-  // new Piano(88) will create a standard 88-key Piano keyboard.
-  function Piano(options) {
+  // new Synth(88) will create a standard 88-key Synth keyboard.
+  function Synth(options) {
     var aspect, defwidth, extra, firstwhite, height, width, lastwhite,
-        numwhite = null, self = this;
+        numwhite = null, self = this, key, timbre;
     options = parseOptionString(options, 'keys');
     // The purpose of the logic in the constructor below is to calculate
     // reasonable defaults for the geometry of the keyboard given any
@@ -2971,14 +2972,24 @@ var Piano = (function(_super) {
     // The top width of a C key and an F key (making space for black keys).
     geom.ckw = (3 * geom.kw - 2 * geom.bkw) / 3;
     geom.fkw = (4 * geom.kw - 3 * geom.bkw) / 4;
-    Piano.__super__.constructor.call(this, {
+    Synth.__super__.constructor.call(this, {
       width: Math.ceil(geom.rightpx - geom.leftpx + extra),
       height: Math.ceil(geom.kh + extra)
     });
-    // The following is a simplistic wavetable simulation of a Piano sound.
-    this.css({
-      turtleTimbre: ('timbre' in options) ? options.timbre : "piano"
-    });
+    // The following is a simplistic wavetable simulation of a Synth sound.
+    if ('timbre' in options) {
+      timbre = options.timbre;
+    } else {
+      // Allow timbre to be passed directly as options params.
+      for (key in Instrument.defaultTimbre) {
+        if (key in options) {
+          if (!timbre) { timbre = {}; }
+          timbre[key] = options[key];
+        }
+      }
+    }
+    if (!timbre) { timbre = 'piano'; }
+    this.css({ turtleTimbre: timbre });
     // Hook up events.
     this.on('noteon', function(e) {
       self.drawkey(e.midi, keycolor(e.midi));
@@ -2991,7 +3002,7 @@ var Piano = (function(_super) {
 
   // Draws the key a midi number n, using the provided fill color
   // (defaults to white or black as appropriate).
-  Piano.prototype.drawkey = function(n, fillcolor) {
+  Synth.prototype.drawkey = function(n, fillcolor) {
     var ctx, geom = this._geom;
     if (!((geom.lowest <= n && n <= geom.highest))) {
       return;
@@ -3016,7 +3027,7 @@ var Piano = (function(_super) {
   };
 
   // Draws every key on the keyboard.
-  Piano.prototype.draw = function() {
+  Synth.prototype.draw = function() {
     for (var n = this._geom.lowest; n <= this._geom.highest; ++n) {
       this.drawkey(n);
     }
@@ -3142,7 +3153,7 @@ var Piano = (function(_super) {
     }
   };
 
-  return Piano;
+  return Synth;
 
 })(Sprite);
 
@@ -4802,7 +4813,7 @@ var Instrument = (function() {
   }
 
   // The default sound is a square wave with a pretty quick decay to zero.
-  var defaultTimbre = {
+  var defaultTimbre = Instrument.defaultTimbre = {
     wave: 'square',   // Oscillator type.
     gain: 0.1,        // Overall gain at maximum attack.
     attack: 0.002,    // Attack time at the beginning of a tone.
@@ -4953,7 +4964,7 @@ function makeWavetable(ac) {
     // Currently the only nonstandard waveform is "piano".
     // It is based on the first 32 harmonics from the example:
     // https://github.com/GoogleChrome/web-audio-samples
-    // /blob/gh-pages/samples/audio/wave-tables/Piano
+    // /blob/gh-pages/samples/audio/wave-tables/Synth
     // That is a terrific sound for the lowest piano tones.
     // For higher tones, interpolate to a customzed wave
     // shape created by hand, and apply a lowpass filter.
@@ -6971,9 +6982,9 @@ var dollar_turtle_methods = {
   Turtle: wrapraw('Turtle',
   ["<u>new Turtle(color)</u> Make a new turtle. " +
       "<mark>t = new Turtle; t.fd 100</mark>"], Turtle),
-  Piano: wrapraw('Piano',
-  ["<u>new Piano(keys)</u> Make a new piano. " +
-      "<mark>t = new Piano 88; t.play 'edcdeee'</mark>"], Piano),
+  Synth: wrapraw('Synth',
+  ["<u>new Synth(keys)</u> Make a new piano. " +
+      "<mark>t = new Synth 88; t.play 'edcdeee'</mark>"], Synth),
   Webcam: wrapraw('Webcam',
   ["<u>new Webcam(options)</u> Make a new webcam. " +
       "<mark>v = new Webcam; v.plan -> pic = new Sprite v</mark>"],
@@ -7033,6 +7044,7 @@ function pollSendRecv(name) {
 
 
 deprecate(dollar_turtle_methods, 'defaultspeed', 'speed');
+deprecate(dollar_turtle_methods, 'Piano', 'Synth');
 
 var helpok = {};
 
