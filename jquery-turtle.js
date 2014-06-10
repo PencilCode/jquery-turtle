@@ -367,7 +367,6 @@ THE SOFTWARE.
 var undefined = void 0,
     __hasProp = {}.hasOwnProperty,
     rootjQuery = jQuery(function() {}),
-    Pencil, Turtle,
     interrupted = false,
     async_pending = 0,
     global_plan_counter = 0;
@@ -2998,6 +2997,7 @@ var Synth = (function(_super) {
       self.drawkey(e.midi);
     });
     this.draw();
+    return this;
   }
 
   // Draws the key a midi number n, using the provided fill color
@@ -6562,6 +6562,10 @@ function deprecate(map, oldname, newname) {
     }
     // map[oldname] = map[newname];
     return map[newname].apply(this, arguments);
+  }
+  if (map[newname].__super__) {
+    // Handle legacy class names by extending the correct class.
+    __extends(map[oldname], map[newname]);
   }
 }
 deprecate(turtlefn, 'direct', 'plan');
