@@ -138,7 +138,7 @@ setupFakeAudioContext();
 
 module("Test of the Instrument class.");
 
-asyncTest("Tests the Piano timbre.", function() {
+asyncTest("Tests the Pynth timbre.", function() {
   AudioContext.resetTestLog();
   var p = new Piano();
   ok(/piano/.test(p.css('turtleTimbre')));
