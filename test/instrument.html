@@ -140,11 +140,11 @@ module("Test of the Instrument class.");
 
 asyncTest("Tests the Pynth timbre.", function() {
   AudioContext.resetTestLog();
-  var p = new Synth();
+  var p = new Piano();
   ok(/piano/.test(p.css('turtleTimbre')));
   var t = new Turtle();
   ok(/piano/.test(t.css('turtleTimbre')));
-  var p2 = new Synth({timbre: 'square'});
+  var p2 = new Piano({timbre: 'square'});
   equal(p2.css('turtleTimbre'),
       'wave:square; gain:0.1; ' +
       'attack:0.002; decay:0.4; decayfollow:0; sustain:0; release:0.1; ' +
@@ -344,10 +344,10 @@ asyncTest("Test multiple voices with a Bach Minuet.", function() {
   });
 });
 
-asyncTest("Test realtime Synth.", function() {
+asyncTest("Test realtime Piano.", function() {
   AudioContext.resetTestLog();
   var startTick = currentTick(),
-      ins = new Synth(88),
+      ins = new Piano(88),
       notelog = [];
   // Track events
   ins.on('noteon', function(e) {
@@ -389,7 +389,7 @@ asyncTest("Test realtime Synth.", function() {
 asyncTest("Test full ABC notation with a Beethoven Sonata.", function() {
   AudioContext.resetTestLog();
   var startTick = currentTick(),
-      ins = new Synth(),
+      ins = new Piano(),
       notelog = [];
   ins.on('noteon', function(e) {
     notelog.push('on' + e.midi + '-' + (currentTick() - startTick));
