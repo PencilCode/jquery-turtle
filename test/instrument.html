@@ -140,8 +140,9 @@ module("Test of the Instrument class.");
 
 asyncTest("Tests the Piano timbre.", function() {
   AudioContext.resetTestLog();
-  var p = new Piano();
+  var p = new Piano({lowest: "c"});
   ok(/piano/.test(p.css('turtleTimbre')));
+  equal(p.width(), 422);
   var t = new Turtle();
   ok(/piano/.test(t.css('turtleTimbre')));
   var p2 = new Piano({timbre: 'square'});
