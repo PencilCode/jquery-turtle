@@ -8060,7 +8060,8 @@ function plainTextPrint() {
 // text labels to functions.
 function menu(choices, fn) {
   var result = $('<form>')
-          .css({display:'table'}).submit(function(){return false;}),
+          .css({display:'table',marginLeft:'20px'})
+          .submit(function(){return false;}),
       triggered = false,
       count = 0,
       cursor = 0,
