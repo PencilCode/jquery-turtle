@@ -6784,6 +6784,9 @@ var dollar_turtle_methods = {
     },
     eval: function(code, scope) {
       return debug.eval(code, scope);
+    },
+    addEvalPump: function(name, pump, pumpthis) {
+      return debug.addEvalPump(name, pump, pumpthis);
     }
   }),
   append: wrapraw('append',
