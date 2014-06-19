@@ -1,0 +1,38 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Remove test.");
+asyncTest("Makes and removes turtles.", function() {
+  speed(10);
+  var a = new Turtle();
+  var b = new Turtle();
+  var reached1 = false;
+  a.pen(red);
+  a.fd(100);
+  b.pen(blue);
+  b.bk(100);
+  remove(a, b);
+  // verify that a and b are not removed right away.
+  equal(a.parent().length, 1);
+  equal(b.parent().length, 1);
+  done(function() {
+    // verify that a and b are both removed.
+    equal(a.parent().length, 0);
+    equal(b.parent().length, 0);
+    // verify that drawing happened.
+    ok(touches('red'));
+    ok(touches('blue'));
+    var t = turtle;
+    // Now remove the main turtle.
+    remove(turtle);
+    equal(t.parent().length, 0);
+    ok(typeof(window.turtle), 'undefined');
+    start();
+  });
+});
+</script>
