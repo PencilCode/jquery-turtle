@@ -58,6 +58,9 @@ asyncTest("Draws a series of lines with different style pens.", function() {
   ok(touches(brown));
   ok(!touches(green));
   ok(!touches(pink));
+  pen("red", 0);
+  fd(200);
+  ok(!touches("color"));
   start();
 });
 </script>
