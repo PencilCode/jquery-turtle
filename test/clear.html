@@ -1,0 +1,37 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Clear test.");
+asyncTest("Runs cs, cg, and ct, and verifies what is cleared.", function() {
+  $('#qunit').addClass('turtlefield');
+  speed(Infinity);
+  write('hello');
+  var b = new Turtle();
+  b.fd(100);
+  dot(purple, 100);
+  ok(touches(purple));
+  equal(b.parent().length, 1);
+  cg();
+  ok(!touches(purple));
+  equal(b.parent().length, 1);
+  equal($('div').last().text(), "hello");
+  dot(purple, 100);
+  ok(touches(purple));
+  ct();
+  ok($('div').text() != "hello");
+  ok(touches(purple));
+  equal(b.parent().length, 1);
+  write('hello again');
+  equal($('div').last().text(), "hello again");
+  cs();
+  ok($('div').last().text() != "hello again");
+  ok(!touches(purple));
+  equal(b.parent().length, 0);
+  start();
+});
+</script>

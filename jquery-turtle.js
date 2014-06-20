@@ -6757,7 +6757,7 @@ var dollar_turtle_methods = {
   ["<u>cg()</u> Clear graphics. Does not alter body text: " +
       "<mark>do cg</mark>"],
   function cg() {
-    clearField('canvas turtles');
+    clearField('canvas');
   }),
   ct: wrapglobalcommand('ct',
   ["<u>ct()</u> Clear text. Does not alter graphics canvas: " +
