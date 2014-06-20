@@ -27,11 +27,12 @@ asyncTest("Makes and removes turtles.", function() {
     // verify that drawing happened.
     ok(touches('red'));
     ok(touches('blue'));
-    var t = turtle;
+    var t = turtle, completed = false;
     // Now remove the main turtle.
-    remove(turtle);
+    remove(turtle, function() { completed = true; });
+    ok(completed);
     equal(t.parent().length, 0);
-    ok(typeof(window.turtle), 'undefined');
+    equal(typeof(window.turtle), 'undefined');
     start();
   });
 });

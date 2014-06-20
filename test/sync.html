@@ -11,20 +11,38 @@ asyncTest("Moves a couple turtles and verifies that sync works.", function() {
   var a = new Turtle();
   var b = new Turtle();
   var reached1 = false, reached2 = false;
- 
+
   speed(10);
   a.fd(100);
   a.rt(90)
   a.fd(100);
-  b.lt(90);
+  a.wear(red);
   b.fd(100);
+  a.plan(function() {
+    reached2 = true;
+  });
   sync(a, b, function() { reached1 = true; });
   ok(!reached1);
+  ok(!reached2);
+  b.plan(function() {
+    ok(reached1);
+    ok(reached2);
+  });
+  a.plan(function() {
+    ok(reached1);
+    ok(reached2);
+  });
   a.moveto(turtle);
+  a.plan(function() {
+    ok(reached1);
+    ok(b.touches(a));
+  });
   b.moveto(turtle);
   b.plan(function() {
     ok(reached1);
     ok(b.touches(a));
+  });
+  done(function() {
     start();
   });
 });
