@@ -7,6 +7,15 @@
 <script>
 eval($.turtle());
 module("Dot and fill test.");
+asyncTest("Test of alpha dot.", function() {
+  speed(10);
+  dot(hsla(135, .5, .5, .5), 100);
+  done(function() {
+    ok(touches(hsla(135, .5, .5, .5)));
+    cg();
+    start();
+  });
+});
 asyncTest("Test of dots and fills.", function() {
   speed(Infinity);
   pen(fill);
@@ -79,6 +88,7 @@ asyncTest("Test of dots and fills.", function() {
   cg();
   ok(touches(transparent));
   ok(!touches(black));
+  cg();
   start();
 });
 </script>
