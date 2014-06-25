@@ -5926,7 +5926,7 @@ var turtlefn = {
           targetDiam = diameter * ts.sx,
           animDiam = Math.max(0, targetDiam - 2),
           finalDiam = targetDiam + (ps.eraseMode ? 2 : 0),
-          hasAlpha = /rgba|hlsa/.test(ps.fillStyle);
+          hasAlpha = /rgba|hsla/.test(ps.fillStyle);
       if (canMoveInstantly(this)) {
         fillDot(drawOnCanvas, c, finalDiam, ps);
         cc.resolve(j);
@@ -6956,7 +6956,7 @@ var dollar_turtle_methods = {
   hsla: wrapraw('hsla',
   ["<u>hsla(h,s,l,a)</u> Makes a color out of hue, saturation, lightness, " +
       "alpha. <mark>pen hsla(120,0.65,0.75,0.5)</mark>"],
-  function(h, s, l, a) { return componentColor('hsl', [
+  function(h, s, l, a) { return componentColor('hsla', [
      h,
      (s * 100).toFixed(0) + '%',
      (l * 100).toFixed(0) + '%',
