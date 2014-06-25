@@ -6168,9 +6168,11 @@ var turtlefn = {
     return this.plan(function(j, elem) {
       cc.appear(j);
       var state = getTurtleData(elem);
-      if (canvas && (canvas.jquery && $.isFunction(canvas.canvas))) {
+      if (!canvas) {
+        state.drawOnCanvas = null;
+      } else if (canvas.jquery && $.isFunction(canvas.canvas)) {
         state.drawOnCanvas = canvas.canvas();
-      } else if (canvas && canvas.tagName && canvas.tagName == 'CANVAS') {
+      } else if (canvas.tagName && canvas.tagName == 'CANVAS') {
         state.drawOnCanvas = canvas;
       }
       cc.resolve(j);

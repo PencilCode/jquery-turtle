@@ -61,13 +61,15 @@ asyncTest("Draws on another turtle.", function() {
   ok(!touches(transparent));
   ok(!touches(red));
   ok(touches(yellow));
-  drawon(canvas());
+  drawon(null);
   ok(!touches(blue));
   ok(touches(transparent));
   ok(!touches(red));
   ok(!touches(yellow));
   pen(red);
-  fd(100);
+  fd(50);
+  drawon(canvas());
+  fd(50);
   ok(!touches(blue));
   ok(touches(transparent));
   ok(touches(red));
