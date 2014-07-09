@@ -3170,6 +3170,17 @@ var Piano = (function(_super) {
 
 // The implementation of the "pressed" function is captured in a closure.
 var pressedKey = (function() {
+  var focusTakenOnce = false;
+  function focusWindowIfFirst() {
+    if (focusTakenOnce) return;
+    focusTakenOnce = true;
+    try {
+      // If we are in a frame with access to a parent with an activeElement,
+      // then try to blur it (as is common inside the pencilcode IDE).
+      window.parent.document.activeElement.blur();
+    } catch (e) {}
+    window.focus();
+  }
   var ua = typeof window !== 'undefined' ? window.navigator.userAgent : '',
       isOSX = /OS X/.test(ua),
       isOpera = /Opera/.test(ua),
@@ -3361,6 +3372,7 @@ var pressedKey = (function() {
   }
   // The pressed function just polls the given keyname.
   function pressed(keyname) {
+    focusWindowIfFirst();
     // Canonical names are lowercase and have no spaces.
     keyname = keyname.replace(/\s/g, '').toLowerCase();
     if (pressedState[keyname]) return true;
