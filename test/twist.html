@@ -1,0 +1,43 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Twist test.");
+asyncTest("Test of twisting a skinny shape.", function() {
+  speed(Infinity);
+  slide(100);
+  dot(yellow);
+  slide(-200);
+  dot(pink);
+  slide(100);
+  fd(100);
+  dot(red);
+  bk(200)
+  dot(blue);
+  var s = new Sprite({ width: 10, height: 200, color: green });
+  ok(s.touches(red));
+  ok(s.touches(blue));
+  ok(!s.touches(pink));
+  ok(!s.touches(yellow));
+  s.twist(1);
+  ok(s.touches(red));
+  ok(s.touches(blue));
+  ok(!s.touches(pink));
+  ok(!s.touches(yellow));
+  s.twist(89);
+  ok(!s.touches(red));
+  ok(!s.touches(blue));
+  ok(s.touches(pink));
+  ok(s.touches(yellow));
+  s.fd(100);
+  ok(s.touches(red));
+  ok(!s.touches(blue));
+  ok(!s.touches(pink));
+  ok(!s.touches(yellow));
+  start();
+});
+</script>
