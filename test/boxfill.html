@@ -21,7 +21,7 @@ asyncTest("Test of boxes.", function() {
   cg();
   speed(10);
   box(blue, 200);
-  rt(45);
+  rt(30);
   box(green, 200);
   box(red);
   done(function() {
@@ -41,7 +41,11 @@ asyncTest("Test of boxes.", function() {
     ok(!touches(red));
     ok(!touches(green));
     ok(touches(blue));
-    slide(-100,-20);
+    slide(-20);
+    ok(!touches(red));
+    ok(!touches(green));
+    ok(!touches(blue));
+    slide(-80,-20);
     ok(!touches(red));
     ok(touches(green));
     ok(!touches(blue));
