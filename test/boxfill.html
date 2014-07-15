@@ -1,0 +1,71 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Dot and fill test.");
+asyncTest("Test of alpha box.", function() {
+  cg();
+  speed(10);
+  box(hsla(135, .5, .5, .5), 100);
+  done(function() {
+    ok(touches(hsla(135, .5, .5, .5)));
+    cg();
+    start();
+  });
+});
+asyncTest("Test of boxes.", function() {
+  cg();
+  speed(10);
+  box(blue, 200);
+  rt(30);
+  box(green, 200);
+  box(red);
+  done(function() {
+    speed(Infinity);
+    ok(touches(red));
+    ok(touches(green));
+    ok(!touches(blue));
+    fd(50);
+    ok(!touches(red));
+    ok(touches(green));
+    ok(!touches(blue));
+    fd(50);
+    ok(!touches(red));
+    ok(touches(green));
+    ok(touches(blue));
+    fd(20);
+    ok(!touches(red));
+    ok(!touches(green));
+    ok(touches(blue));
+    slide(-20);
+    ok(!touches(red));
+    ok(!touches(green));
+    ok(!touches(blue));
+    slide(-80,-20);
+    ok(!touches(red));
+    ok(touches(green));
+    ok(!touches(blue));
+    slide(200);
+    ok(!touches(red));
+    ok(touches(green));
+    ok(!touches(blue));
+    fd(20);
+    ok(!touches(red));
+    ok(!touches(green));
+    ok(!touches(blue));
+    bk(200);
+    ok(!touches(red));
+    ok(touches(green));
+    ok(!touches(blue));
+    bk(40);
+    ok(!touches(red));
+    ok(!touches(green));
+    ok(!touches(blue));
+    start();
+  });
+});
+</script>
