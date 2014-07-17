@@ -2656,6 +2656,19 @@ function applyLoadedImage(loaded, elem, css) {
     sel.css(css);
   }
   var newOrigin = readTransformOrigin(elem);
+  if(loaded){
+    var hull = cutTransparent(loaded);
+    var turtleHull = '';
+    for(var i = 0; i < hull.length; i++){
+      if(i > 0) turtleHull += ' ';
+      // Scale coordinates to the size of elem
+      hull[i].pageX = Math.floor(hull[i].pageX * sel.css('height').slice(0, -2) / loaded.height);
+      hull[i].pageY = Math.floor(hull[i].pageY * sel.css('width').slice(0, -2) / loaded.width);
+      turtleHull += (hull[i].pageX - newOrigin[0]) + ' ' + (hull[i].pageY - newOrigin[1]);
+    }
+    sel.css('turtleHull', turtleHull);
+    console.log(turtleHull);
+  }
   // If there was a change, then translate the element to keep the origin
   // in the same location on the screen.
   if (newOrigin[0] != oldOrigin[0] || newOrigin[1] != oldOrigin[1]) {
@@ -9399,5 +9412,40 @@ function tryinitpanel() {
 }
 
 eval("scope('jquery-turtle', " + seejs + ", this)");
+
+function cutTransparent(image){
+  // We transform image into a 2D array of 0s and 1s, with 0 and 1 representing
+  // transparent and non-transparent pixels in image, respectively.
+  var c = document.createElement('canvas');
+  c.width = image.width;
+  c.height = image.height;
+  ctx = c.getContext('2d');
+  ctx.drawImage(image, 0, 0);
+  data = ctx.getImageData(0, 0, c.width, c.height).data;
+  alphaData = [];
+  for(var i = 0; i < data.length; i += 4){
+    var row = Math.floor(i / 4 / c.width);
+    var col = (i / 4) - row * c.width;
+    if(!alphaData[row]) alphaData[row] = [];
+    alphaData[row][col] = (data[i + 3] == 0 ? 0 : 1);
+  }
+  var hull = [];
+  for(var i = 0; i < c.height; i++){
+    // We only take the first/last hull in a row to reduce the number of
+    // possible points from O(n^2) to O(n).
+    var first = -1, last = -1;
+    for(var j = 0; j < c.width; j++){
+      if(alphaData[i][j] == 1){
+        if(first < 0) first = j;
+        last = j;
+      }
+    }
+    if(first >= 0){
+      hull.push({ pageX: first, pageY: i});
+      hull.push({ pageX: last, pageY: i});
+    }
+  }
+  return convexHull(hull);
+}
 
 })(jQuery);
