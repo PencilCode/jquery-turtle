@@ -2658,12 +2658,16 @@ function applyLoadedImage(loaded, elem, css) {
   }
   var newOrigin = readTransformOrigin(elem);
   if (loaded && !css.turtleHull) {
-    var hull = transparentHull(loaded);
-    scalePolygon(hull,
-          parseFloat(sel.css('width')) / loaded.width,
-          parseFloat(sel.css('height')) / loaded.height,
-          -newOrigin[0], -newOrigin[1]);
-    sel.css('turtleHull', hull);
+    try {
+      var hull = transparentHull(loaded);
+      scalePolygon(hull,
+            parseFloat(sel.css('width')) / loaded.width,
+            parseFloat(sel.css('height')) / loaded.height,
+            -newOrigin[0], -newOrigin[1]);
+      sel.css('turtleHull', hull);
+    } catch (e) {
+      // Do not do this if the image can't be loaded.
+    }
   }
   // If there was a change, then translate the element to keep the origin
   // in the same location on the screen.
@@ -7907,45 +7911,12 @@ function nameToImg(name, defaultshape) {
   if (shape) {
     return shape(color);
   }
-  // Parse openicon patterns.
-  // TODO: add more built-in shapes and remove this.
-  var openicon =
-    /^openicon:\/?\/?([^@\/][^@]*)(?:@(?:(\d+):)?(\d+))?$/.exec(name);
-  if (openicon) {
-    var openiconName = openicon[1],
-        sourceSize = parseInt(openicon[3]),
-        targetSize = parseInt(openicon[2]),
-        dotloc = openiconName.lastIndexOf('.'),
-        openiconType = 'png';
-    if (openiconName.indexOf('/') == -1) {
-      openiconName = 'others/' + openiconName;
-    }
-    if (dotloc > 0 && dotloc <= openiconName.length - 4 &&
-        dotloc >= openiconName.length - 5) {
-      openiconType = openiconName.substring(dotloc + 1);
-      openiconName = openiconName.substring(0, dotloc);
-    }
-    if (!targetSize) {
-      targetSize = sourceSize || 24;
-    }
-    if (!sourceSize) {
-      sourceSize = 48;
-    }
-    return {
-      url: 'http://openiconlibrary.sourceforge.net/gallery2/' +
-        'open_icon_library-full/icons/' + openiconType + '/' +
-        sourceSize + 'x' + sourceSize + '/' +
-        openiconName + '.' + openiconType,
-      css: {
-        width: targetSize,
-        height: targetSize,
-        transformOrigin: '50% 50%',
-        opacity: 1
-      }
-    }
-  }
   // Parse URLs.
   if (/^(?:(?:https?|data):)?\//i.exec(name)) {
+    if (/^https?:/i.test(name) && !/^https?:\/\/[^/]*pencilcode.net/.test(name)
+        && /(?:^|\.)pencilcode\.net$/.test(window.location.hostname)) {
+      name = '/proxy/' + name;
+    }
     return {
       url: name,
       css: {
