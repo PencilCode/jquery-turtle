@@ -427,13 +427,15 @@ if (!transform || !hasGetBoundingClientRect()) {
 // and that first value will be interpreted as defaultProp:value1.
 // Some rudimentary quoting can be done, e.g., value:"prop", etc.
 function parseOptionString(str, defaultProp) {
-  if (str == null) {
-    return {};
+  if (typeof(str) != 'string') {
+    if (str == null) {
+      return {};
+    }
+    if ($.isPlainObject(str)) {
+      return str;
+    }
+    str = '' + str;
   }
-  if ($.isPlainObject(str)) {
-    return str;
-  }
-  str = '' + str;
   // Each token is an identifier, a quoted or parenthesized string,
   // a run of whitespace, or any other non-matching character.
   var token = str.match(/[-a-zA-Z_][-\w]*|"[^"]*"|'[^']'|\([^()]*\)|\s+|./g),
