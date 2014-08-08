@@ -1,0 +1,45 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Movexy test.");
+asyncTest("Draws does a few movexy displacements.", function() {
+  speed(Infinity);
+  pen(blue);
+  fd(100); rt(90);
+  fd(100); rt(90);
+  fd(100); rt(90);
+  fd(100); rt(90);
+  pen(null);
+  var a = new Sprite;
+  ok(a.touches(blue));
+  drawon(a);
+  dot(red, 20);
+  slide(20);
+  dot(red, 20);
+  fd(20);
+  dot(red, 20);
+  a.slide(20, 20);
+  ok(a.touches(blue));
+  a.clip()
+  ok(!a.touches(blue));
+  a.fd(50);
+  ok(a.touches(blue));
+  a.lt(45);
+  ok(a.touches(blue));
+  a.bk(80);
+  ok(a.touches(blue));
+  a.lt(30);
+  ok(!a.touches(blue));
+  a.slide(-20);
+  ok(a.touches(blue));
+  start();
+});
+</script>
+
+
+

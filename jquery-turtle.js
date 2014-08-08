@@ -1366,6 +1366,7 @@ function convexHull(points) {
 
 function parseTurtleHull(text) {
   if (!text) return null;
+  if ($.isArray(text)) return text;
   var nums = $.map(text.trim().split(/\s+/), parseFloat), points = [], j = 0;
   while (j + 1 < nums.length) {
     points.push({ pageX: nums[j], pageY: nums[j + 1] });
@@ -2656,18 +2657,13 @@ function applyLoadedImage(loaded, elem, css) {
     sel.css(css);
   }
   var newOrigin = readTransformOrigin(elem);
-  if(loaded){
-    var hull = cutTransparent(loaded);
-    var turtleHull = '';
-    for(var i = 0; i < hull.length; i++){
-      if(i > 0) turtleHull += ' ';
-      // Scale coordinates to the size of elem
-      hull[i].pageX = Math.floor(hull[i].pageX * sel.css('height').slice(0, -2) / loaded.height);
-      hull[i].pageY = Math.floor(hull[i].pageY * sel.css('width').slice(0, -2) / loaded.width);
-      turtleHull += (hull[i].pageX - newOrigin[0]) + ' ' + (hull[i].pageY - newOrigin[1]);
-    }
-    sel.css('turtleHull', turtleHull);
-    console.log(turtleHull);
+  if (loaded && !css.turtleHull) {
+    var hull = transparentHull(loaded);
+    scalePolygon(hull,
+          parseFloat(sel.css('width')) / loaded.width,
+          parseFloat(sel.css('height')) / loaded.height,
+          -newOrigin[0], -newOrigin[1]);
+    sel.css('turtleHull', hull);
   }
   // If there was a change, then translate the element to keep the origin
   // in the same location on the screen.
@@ -5115,7 +5111,9 @@ function gatherelts(args) {
   }
   // Gather elements passed as arguments.
   for (j = 0; j < argcount; ++j) {
-    if (args[j].constructor === $) {
+    if (!args[j]) {
+      continue;  // Skip null args.
+    } else if (args[j].constructor === $) {
       elts.push.apply(elts, args[j].toArray());  // Unpack jQuery.
     } else if ($.isArray(args[j])) {
       elts.push.apply(elts, args[j]);  // Accept an array.
@@ -6154,6 +6152,29 @@ var turtlefn = {
   function pf() {
     return this.pen('path', continuationArg(arguments, 0));
   },
+  clip: wrapcommand('clip', 1,
+  ["<u>Clips tranparent bits out of the image of the sprite, " +
+      "and sets the hit region."],
+  function clip(cc, threshold) {
+    if (threshold == null) {
+      threshold = 0.125;
+    }
+    return this.plan(function(j, elem) {
+      cc.appear(j);
+      if (elem.tagName == 'CANVAS') {
+        var hull = transparentHull(elem, threshold),
+            sel = $(elem),
+            origin = readTransformOrigin(elem);
+        eraseOutsideHull(elem, hull);
+        scalePolygon(hull,
+          parseFloat(sel.css('width')) / elem.width,
+          parseFloat(sel.css('height')) / elem.height,
+          -origin[0], -origin[1]);
+        sel.css('turtleHull', hull);
+      }
+      cc.resolve(j);
+    });
+  }),
   play: wrapcommand('play', 1,
   ["<u>play(notes)</u> Play notes. Notes are specified in " +
       "<a href=\"http://abcnotation.com/\" target=\"_blank\">" +
@@ -7796,7 +7817,10 @@ function createRectangleShape(width, height, subpixels) {
   return (function(color) {
     var c = getOffscreenCanvas(width, height);
     var ctx = c.getContext('2d');
-    if (color && color != 'transparent') {
+    if (!color) {
+      color = "rgba(128,128,128,0.125)";
+    }
+    if (color != 'transparent') {
       ctx.fillStyle = color;
       ctx.fillRect(0, 0, width, height);
     }
@@ -9413,39 +9437,77 @@ function tryinitpanel() {
 
 eval("scope('jquery-turtle', " + seejs + ", this)");
 
-function cutTransparent(image){
-  // We transform image into a 2D array of 0s and 1s, with 0 and 1 representing
-  // transparent and non-transparent pixels in image, respectively.
+function transparentHull(image, threshold) {
   var c = document.createElement('canvas');
+  if (!threshold) threshold = 0;
   c.width = image.width;
   c.height = image.height;
   ctx = c.getContext('2d');
   ctx.drawImage(image, 0, 0);
-  data = ctx.getImageData(0, 0, c.width, c.height).data;
-  alphaData = [];
-  for(var i = 0; i < data.length; i += 4){
-    var row = Math.floor(i / 4 / c.width);
-    var col = (i / 4) - row * c.width;
-    if(!alphaData[row]) alphaData[row] = [];
-    alphaData[row][col] = (data[i + 3] == 0 ? 0 : 1);
-  }
+  return transparentCanvasHull(c, threshold);
+}
+
+function transparentCanvasHull(canvas, threshold) {
+  var ctx = canvas.getContext('2d');
+  data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   var hull = [];
-  for(var i = 0; i < c.height; i++){
+  var intthresh = 256 * threshold;
+  var first, last, prevfirst = Infinity, prevlast = -1;
+  for (var row = 0; row < canvas.height; ++row) {
     // We only take the first/last hull in a row to reduce the number of
     // possible points from O(n^2) to O(n).
-    var first = -1, last = -1;
-    for(var j = 0; j < c.width; j++){
-      if(alphaData[i][j] == 1){
-        if(first < 0) first = j;
-        last = j;
+    first = Infinity;
+    last = -1;
+    for (var col = 0; col < canvas.width; ++col) {
+      if (data[row * 4 * canvas.width + col * 4 + 3] > intthresh) {
+        if (last < 0) first = col;
+        last = col;
       }
     }
-    if(first >= 0){
-      hull.push({ pageX: first, pageY: i});
-      hull.push({ pageX: last, pageY: i});
+    if (last >= 0 || prevlast >= 0) {
+      hull.push({ pageX: Math.min(first, prevfirst), pageY: row});
+      hull.push({ pageX: Math.max(last, prevlast), pageY: row});
     }
+    prevfirst = first;
+    prevlast = last;
+  }
+  if (prevlast >= 0) {
+    hull.push({ pageX: prevfirst, pageY: canvas.height});
+    hull.push({ pageX: prevlast, pageY: canvas.height});
   }
   return convexHull(hull);
+}
+
+function eraseOutsideHull(canvas, hull) {
+  var ctx = canvas.getContext('2d'),
+      w = canvas.width,
+      h = canvas.height
+      j = 0;
+  ctx.save();
+  // Erase everything outside clipping region.
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(w, 0);
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  if (hull.length) {
+    ctx.moveTo(hull[0].pageX, hull[0].pageY);
+    for (; j < hull.length; j += 1) {
+      ctx.lineTo(hull[j].pageX, hull[j].pageY);
+    }
+  }
+  ctx.closePath();
+  ctx.clip();
+  ctx.clearRect(0, 0, w, h);
+  ctx.restore();
+}
+
+function scalePolygon(poly, sx, sy, tx, ty) {
+  for (var i = 0; i < poly.length; i++){
+    poly[i].pageX = poly[i].pageX * sx + tx;
+    poly[i].pageY = poly[i].pageY * sy + ty;
+  }
 }
 
 })(jQuery);
