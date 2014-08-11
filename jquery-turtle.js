@@ -9439,14 +9439,14 @@ function transparentCanvasHull(canvas, threshold) {
     }
     if (last >= 0 || prevlast >= 0) {
       hull.push({ pageX: Math.min(first, prevfirst), pageY: row});
-      hull.push({ pageX: Math.max(last, prevlast), pageY: row});
+      hull.push({ pageX: Math.max(last, prevlast) + 1, pageY: row});
     }
     prevfirst = first;
     prevlast = last;
   }
   if (prevlast >= 0) {
     hull.push({ pageX: prevfirst, pageY: canvas.height});
-    hull.push({ pageX: prevlast, pageY: canvas.height});
+    hull.push({ pageX: prevlast + 1, pageY: canvas.height});
   }
   return convexHull(hull);
 }
