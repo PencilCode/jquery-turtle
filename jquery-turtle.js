@@ -2593,8 +2593,6 @@ function setImageWithStableOrigin(elem, url, css, cb) {
     // Only flip the src if the last requested image is the same as
     // the one we have now finished loading: otherwise, there has been
     // some subsequent load that has now superceded ours.
-       elem.getAttribute('data-loading'), loaded.src);
-
     if (elem.getAttribute('data-loading') == loaded.src) {
       elem.removeAttribute('data-loading');
       applyLoadedImage(loaded, elem, css);
@@ -2656,10 +2654,12 @@ function applyLoadedImage(loaded, elem, css) {
       elem.height = loaded.height;
       if (!isCanvas) {
         elem.src = loaded.src;
-      } else {
-        ctx = elem.getContext('2d');
-        ctx.clearRect(0, 0, loaded.width, loaded.height);
-        ctx.drawImage(loaded, 0, 0);
+      } else if (loaded.width > 0 && loaded.height > 0) {
+        try {
+          ctx = elem.getContext('2d');
+          ctx.clearRect(0, 0, loaded.width, loaded.height);
+          ctx.drawImage(loaded, 0, 0);
+        } catch (e) { }
       }
     }
   }
