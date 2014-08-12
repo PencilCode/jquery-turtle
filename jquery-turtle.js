@@ -3369,10 +3369,14 @@ var pressedKey = (function() {
   // The pressed function just polls the given keyname.
   function pressed(keyname) {
     focusWindowIfFirst();
-    // Canonical names are lowercase and have no spaces.
-    keyname = keyname.replace(/\s/g, '').toLowerCase();
-    if (pressedState[keyname]) return true;
-    return false;
+    if (keyname) {
+      // Canonical names are lowercase and have no spaces.
+      keyname = keyname.replace(/\s/g, '').toLowerCase();
+      if (pressedState[keyname]) return true;
+      return false;
+    } else {
+      return listPressedKeys();
+    }
   }
   pressed.enable = enablePressListener;
   pressed.list = listPressedKeys;
@@ -8373,7 +8377,7 @@ function input(name, callback, numeric) {
       numeric >= 0 && $.isNumeric(val) && ('' + parseFloat(val) == val))) {
       val = parseFloat(val);
     }
-    if (callback) { callback.call(thisval, val); }
+    if (callback) { setTimeout(function() {callback.call(thisval, val); }, 0); }
   }
   function validate() {
     if (numeric <= 0) return true;
