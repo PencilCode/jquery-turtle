@@ -2581,6 +2581,7 @@ function setImageWithStableOrigin(elem, url, css, cb) {
       img: new Image(),
       queue: [{elem: elem, css: css, cb: cb}]
     };
+    record.img.crossOrigin = 'Anonymous';
     // Pop the element to the right dimensions early if possible.
     resizeEarlyIfPossible(url, elem, css);
     // First set up the onload callback, then start loading.
@@ -7955,7 +7956,7 @@ function nameToImg(name, defaultshape) {
   // Parse URLs.
   if (/^(?:(?:https?|data):)?\//i.exec(name)) {
     if (/^https?:/i.test(name) && !/^https?:\/\/[^/]*pencilcode.net/.test(name)
-        && /(?:^|\.)pencilcode\.net$/.test(window.location.hostname)) {
+        && /(?:^|\.)pencilcode\.net\b/.test(window.location.hostname)) {
       name = window.location.protocol + '//' +
              window.location.host + '/proxy/' + name;
     }
