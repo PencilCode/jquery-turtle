@@ -231,6 +231,7 @@ timer(secs, fn)       // Calls back fn once after secs seconds.
 tick([perSec,] fn)    // Repeatedly calls fn at the given rate (null clears).
 done(fn)              // Calls back fn after all turtle animation is complete.
 random(n)             // Returns a random number [0..n-1].
+random(n,m)           // Returns a random number [n..m-1].
 random(list)          // Returns a random element of the list.
 random('normal')      // Returns a gaussian random (mean 0 stdev 1).
 random('uniform')     // Returns a uniform random [0...1).
@@ -8042,8 +8043,15 @@ function hatchone(name, container, defaultshape) {
 }
 
 // Simplify Math.floor(Math.random() * N) and also random choice.
-function random(arg) {
-  if (typeof(arg) == 'number') { return Math.floor(Math.random() * arg); }
+function random(arg, arg2) {
+  if (typeof(arg) == 'number') {
+    arg = Math.ceil(arg);
+    if (typeof(arg2) == 'number') {
+      arg2 = Math.ceil(arg2);
+      return Math.floor(Math.random() * (arg2 - arg) + arg);
+    }
+    return Math.floor(Math.random() * arg);
+  }
   if (typeof(arg) == 'object' && arg.length && arg.slice) {
     return arg[Math.floor(Math.random() * arg.length)];
   }
