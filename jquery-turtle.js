@@ -369,7 +369,23 @@ var undefined = void 0,
     rootjQuery = jQuery(function() {}),
     interrupted = false,
     async_pending = 0,
-    global_plan_counter = 0;
+    global_plan_depth = 0,
+    global_plan_queue = [];
+
+function nonrecursive_dequeue(elem, qname) {
+  if (global_plan_depth > 5) {
+    global_plan_queue.push({elem: elem, qname: qname});
+  } else {
+    global_plan_depth += 1;
+    $.dequeue(elem, qname);
+    while (global_plan_queue.length > 0) {
+      var task = global_plan_queue.shift();
+      $.dequeue(task.elem, task.qname);
+      checkForHungLoop()
+    }
+    global_plan_depth -= 1;
+  }
+}
 
 function __extends(child, parent) {
   for (var key in parent) {
@@ -2159,13 +2175,14 @@ function touchesPixel(elem, color) {
 // Functions in direct support of exported methods.
 //////////////////////////////////////////////////////////////////////////
 
-function applyImg(sel, img) {
+function applyImg(sel, img, cb) {
   if (img.img) {
     if (sel[0].tagName == 'CANVAS' || sel[0].tagName == img.img.tagName) {
       applyLoadedImage(img.img, sel[0], img.css);
     }
   } else if (sel[0].tagName == 'IMG' || sel[0].tagName == 'CANVAS') {
-    setImageWithStableOrigin(sel[0], img.url, img.css);
+    setImageWithStableOrigin(sel[0], img.url, img.css, cb);
+    cb = null;
   } else {
     var props = {
       backgroundImage: 'url(' + img.url + ')',
@@ -2176,6 +2193,9 @@ function applyImg(sel, img) {
       props.backgroundSize = img.css.width + 'px ' + img.css.height + 'px';
     }
     sel.css(props);
+  }
+  if (cb) {
+    cb();
   }
 }
 
@@ -6258,10 +6278,14 @@ var turtlefn = {
    "<u>wear(url)</u> Sets the turtle image url: " +
       "<mark>wear 'http://bit.ly/1bgrQ0p'</mark>"],
   function wear(cc, name, css) {
-    if (typeof(name) == 'object' && typeof(css) == 'string') {
+    if ((typeof(name) == 'object' || typeof(name) == 'number') &&
+         typeof(css) == 'string') {
       var t = css;
       css = name;
       name = t;
+    }
+    if (typeof(css) == 'number') {
+      css = { height: css };
     }
     var img = nameToImg(name, 'turtle');
     if (!img) return this;
@@ -6276,9 +6300,19 @@ var turtlefn = {
       this.css({
         backgroundImage: 'none',
       });
-      applyImg(this, img);
+      var loaded = false, waiting = null;
+      applyImg(this, img, function() {
+        loaded = true;
+        var callback = waiting;
+        if (callback) { waiting = null; callback(); }
+      });
       if (!canMoveInstantly(this)) {
         this.delay(animTime(elem));
+      }
+      if (!loaded) {
+        this.pause({done: function(cb) {
+          if (loaded) { cb(); } else { waiting = cb; }
+        }});
       }
       this.plan(function() {
         cc.resolve(j);
@@ -6684,17 +6718,7 @@ var turtlefn = {
           // The Array.prototype.push is faster.
           // $.merge($.queue(elem, qname), saved);
           Array.prototype.push.apply($.queue(elem, qname), saved);
-          if (global_plan_counter++ % 64) {
-            $.dequeue(elem, qname);
-          } else {
-            // Insert a timeout after executing a batch of plans,
-            // to avoid deep recursion.
-            async_pending += 1;
-            setTimeout(function() {
-              async_pending -= 1;
-              $.dequeue(elem, qname);
-            }, 0);
-          }
+          nonrecursive_dequeue(elem, qname);
         });
       animation.finish = action;
       $.queue(elem, qname, animation);
