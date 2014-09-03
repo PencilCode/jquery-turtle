@@ -2543,9 +2543,20 @@ function absoluteUrlObject(url) {
 function absoluteUrl(url) {
   return absoluteUrlObject(url).href;
 }
+
+// Pencil-code specific function: detects whether a domain appears to
+// be a pencilcode site.
 function isPencilHost(hostname) {
-  return /(?:^|\.)pencil(?:\.|code\.)/i.test(hostname);
+  return /(?:^|\.)pencil(?:code)?\./i.test(hostname);
 }
+// Returns a pencilcode username from the URL, if any.
+function pencilUserFromUrl(url) {
+  var hostname = absoluteUrlObject(url == null ? '' : url).hostname,
+      match = /^(\w+)\.pencil(?:code)?\./i.exec(hostname);
+  if (match) return match[1];
+  return null;
+}
+// Rewrites a url to have the top directory name given.
 function apiUrl(url, topdir) {
   var link = absoluteUrlObject(url == null ? '' : url),
       result = link.href;
@@ -2564,6 +2575,20 @@ function apiUrl(url, topdir) {
     result = '/proxy/' + result;
   }
   return result;
+}
+// Retrieves the pencil code login cookie, if there is one.
+function loginCookie() {
+  if (!document.cookie) return null;
+  var cookies = document.cookie.split(/;\s*/);
+  for (var j = 0; j < cookies.length; ++j) {
+    if (/^login=/.test(cookies[j])) {
+      var val = unescape(cookies[j].substr(6)).split(':');
+      if (val && val.length == 2) {
+        return { user: val[0], key: val[1] };
+      }
+    }
+  }
+  return null;
 }
 
 // A map of url to {img: Image, queue: [{elem: elem, css: css, cb: cb}]}.
@@ -7104,6 +7129,38 @@ var dollar_turtle_methods = {
       }
     }});
     return val;
+  }),
+  save: wrapraw('save',
+  ["<u>save(url, data, cb)</u> Posts data to the url and calls when done. " +
+      "<mark>save '/intro', 'pen gold, 20\\nfd 100\\n'</mark>"],
+  function(url, data, cb) {
+    var payload = data, url = apiUrl(url, 'save');
+    if (typeof(payload) == 'string' || typeof(payload) == 'number') {
+      payload = { data: payload };
+    }
+    if (!payload.key) {
+      var login = loginCookie();
+      if (login && login.key && login.user == pencilUserFromUrl(url)) {
+        payload.key = login.key;
+      }
+    }
+    $.ajax(apiUrl(url, 'save'), {
+      type: 'POST',
+      data: payload,
+      complete: function(xhr) {
+        var val
+        try {
+          val = JSON.parse(xhr.responseText);
+        } catch(e) {
+          if (val == null && xhr && xhr.responseText) {
+            val = xhr.responseText;
+          }
+        }
+        if (cb) {
+          cb(val, xhr);
+        }
+      }
+    });
   }),
   append: wrapraw('append',
   ["<u>append(html)</u> Appends text to the document without a new line. " +
