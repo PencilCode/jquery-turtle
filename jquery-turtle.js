@@ -2300,10 +2300,11 @@ function makeTurtleEasingHook() {
 
 function animTime(elem) {
   var state = $.data(elem, 'turtleData');
-  if (!state) return 'turtle';
+  if (!state) return (insidetick ? 0 : 'turtle');
   if ($.isNumeric(state.speed) || state.speed == 'Infinity') {
     return 1000 / state.speed;
   }
+  if (state.speed == 'turtle' && insidetick) return 0;
   return state.speed;
 }
 
@@ -2535,9 +2536,29 @@ function makeTurtleXYHook(publicname, propx, propy, displace) {
 }
 
 var absoluteUrlAnchor = document.createElement('a');
-function absoluteUrl(url) {
+function absoluteUrlObject(url) {
   absoluteUrlAnchor.href = url;
-  return absoluteUrlAnchor.href;
+  return absoluteUrlAnchor;
+}
+function absoluteUrl(url) {
+  return absoluteUrlObject(url).href;
+}
+function isPencilHost(hostname) {
+  return /(?:^|\.)pencil(?:\.|code\.)/i.test(hostname);
+}
+function apiUrl(url, topdir) {
+  var link = absoluteUrlObject(url), result = link.href;
+  if (isPencilHost(link.hostname)) {
+    if (/^\/(?:edit|home|code|load|save)/.test(link.pathname)) {
+      // Replace a special topdir name.
+      result = link.protocol + '//' + link.host + '/' + topdir + '/' +
+        link.pathname.replace(/\/[^\/]*/, '') + link.search + link.hash;
+    } else {
+      // Prepend a topdir name if there is no special name already.
+      result = link.protocol + '//' + link.host + '/' + topdir + '/' +
+        link.pathname + link.search + link.hash;
+    }
+  }
 }
 
 // A map of url to {img: Image, queue: [{elem: elem, css: css, cb: cb}]}.
@@ -7055,6 +7076,30 @@ var dollar_turtle_methods = {
     });
     sync = null;
   }),
+  load: wrapraw('load',
+  ["<u>load(url, cb)</u> Loads data from the url and passes it to cb. " +
+      "<mark>load '/intro', (t) -> write 'intro contains', t</mark>"],
+  function(url, cb) {
+    var retval = null;
+    $.ajax(apiUrl(url, 'load'), { async: !!cb, complete: function(xhr) {
+      try {
+        retval = JSON.parse(e.responseText);
+        if (typeof(json.data) == 'string' && typeof(json.file) == 'string') {
+          retval = retval.data;
+        } else if ($.isArray(json.list) && typeof(json.directory) == 'string') {
+          retval = retval.list;
+        }
+      } catch(e) {
+        if (retval == null && e && e.responseText) {
+          retval = e.responseText;
+        }
+      }
+      if (cb) {
+        cb(retval, xhr);
+      }
+    }});
+    return retval;
+  }),
   append: wrapraw('append',
   ["<u>append(html)</u> Appends text to the document without a new line. " +
       "<mark>append 'try this twice...'</mark>"],
@@ -7987,11 +8032,13 @@ function nameToImg(name, defaultshape) {
     return shape(color);
   }
   // Parse URLs.
-  if (/^(?:(?:https?|data):)?\//i.exec(name)) {
-    if (/^https?:/i.test(name) && !/^https?:\/\/[^/]*pencilcode.net/.test(name)
-        && /(?:^|\.)pencilcode\.net\b/.test(window.location.hostname)) {
+  if (/\//.test(name)) {
+    var hostname = absoluteUrlObject(name).hostname;
+    // Use proxy to load image if the image is offdomain but the page is on
+    // a pencil host (with a proxy).
+    if (!isPencilHost(hostname) && isPencilHost(window.location.hostname)) {
       name = window.location.protocol + '//' +
-             window.location.host + '/proxy/' + name;
+             window.location.host + '/proxy/' + absoluteUrl(name);
     }
     return {
       url: name,
@@ -8117,7 +8164,7 @@ function random(arg, arg2) {
 }
 
 // Simplify setInterval(fn, 1000) to just tick(fn).
-var tickinterval = null;
+var tickinterval = null, insidetick = 0;
 function globaltick(rps, fn) {
   if (fn === undefined && $.isFunction(rps)) {
     fn = rps;
@@ -8131,10 +8178,12 @@ function globaltick(rps, fn) {
     tickinterval = window.setInterval(
       function() {
         // Set default speed to Infinity within tick().
-        var savedturtlespeed = $.fx.speeds.turtle;
-        $.fx.speeds.turtle = 0;
-        fn();
-        $.fx.speeds.turtle = savedturtlespeed;
+        try {
+          insidetick++;
+          fn();
+        } finally {
+          insidetick--;
+        }
       },
       1000 / rps);
   }
