@@ -2561,13 +2561,13 @@ function apiUrl(url, topdir) {
   var link = absoluteUrlObject(url == null ? '' : url),
       result = link.href;
   if (isPencilHost(link.hostname)) {
-    if (/^\/(?:edit|home|code|load|save)/.test(link.pathname)) {
+    if (/^\/(?:edit|home|code|load|save)(?:\/|$)/.test(link.pathname)) {
       // Replace a special topdir name.
       result = link.protocol + '//' + link.host + '/' + topdir + '/' +
-        link.pathname.replace(/\/[^\/]*/, '') + link.search + link.hash;
+        link.pathname.replace(/\/[^\/]*(?:\/|$)/, '') + link.search + link.hash;
     } else {
       // Prepend a topdir name if there is no special name already.
-      result = link.protocol + '//' + link.host + '/' + topdir + '/' +
+      result = link.protocol + '//' + link.host + '/' + topdir +
         link.pathname + link.search + link.hash;
     }
   } else if (isPencilHost(window.location.hostname)) {
@@ -7134,11 +7134,12 @@ var dollar_turtle_methods = {
   ["<u>save(url, data, cb)</u> Posts data to the url and calls when done. " +
       "<mark>save '/intro', 'pen gold, 20\\nfd 100\\n'</mark>"],
   function(url, data, cb) {
+    if (!url) throw new Error('Missing url for save');
     var payload = data, url = apiUrl(url, 'save');
     if (typeof(payload) == 'string' || typeof(payload) == 'number') {
       payload = { data: payload };
     }
-    if (!payload.key) {
+    if (payload && !payload.key) {
       var login = loginCookie();
       if (login && login.key && login.user == pencilUserFromUrl(url)) {
         payload.key = login.key;
