@@ -2547,7 +2547,8 @@ function isPencilHost(hostname) {
   return /(?:^|\.)pencil(?:\.|code\.)/i.test(hostname);
 }
 function apiUrl(url, topdir) {
-  var link = absoluteUrlObject(url), result = link.href;
+  var link = absoluteUrlObject(url == null ? '' : url),
+      result = link.href;
   if (isPencilHost(link.hostname)) {
     if (/^\/(?:edit|home|code|load|save)/.test(link.pathname)) {
       // Replace a special topdir name.
@@ -2558,7 +2559,11 @@ function apiUrl(url, topdir) {
       result = link.protocol + '//' + link.host + '/' + topdir + '/' +
         link.pathname + link.search + link.hash;
     }
+  } else if (isPencilHost(window.location.hostname)) {
+    // Proxy offdomain requests to avoid CORS issues.
+    result = '/proxy/' + result;
   }
+  return result;
 }
 
 // A map of url to {img: Image, queue: [{elem: elem, css: css, cb: cb}]}.
@@ -7080,25 +7085,25 @@ var dollar_turtle_methods = {
   ["<u>load(url, cb)</u> Loads data from the url and passes it to cb. " +
       "<mark>load '/intro', (t) -> write 'intro contains', t</mark>"],
   function(url, cb) {
-    var retval = null;
+    var val = null;
     $.ajax(apiUrl(url, 'load'), { async: !!cb, complete: function(xhr) {
       try {
-        retval = JSON.parse(e.responseText);
-        if (typeof(json.data) == 'string' && typeof(json.file) == 'string') {
-          retval = retval.data;
-        } else if ($.isArray(json.list) && typeof(json.directory) == 'string') {
-          retval = retval.list;
+        val = JSON.parse(xhr.responseText);
+        if (typeof(val.data) == 'string' && typeof(val.file) == 'string') {
+          val = val.data;
+        } else if ($.isArray(val.list) && typeof(val.directory) == 'string') {
+          val = val.list;
         }
       } catch(e) {
-        if (retval == null && e && e.responseText) {
-          retval = e.responseText;
+        if (val == null && xhr && xhr.responseText) {
+          val = xhr.responseText;
         }
       }
       if (cb) {
-        cb(retval, xhr);
+        cb(val, xhr);
       }
     }});
-    return retval;
+    return val;
   }),
   append: wrapraw('append',
   ["<u>append(html)</u> Appends text to the document without a new line. " +
