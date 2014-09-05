@@ -40,6 +40,7 @@ asyncTest("Outputs some labels.", function() {
     fd(150)
     label('giant', 150);
     label('upside down', { turtleRotation: 180, fontSize: 8 });
+    label('bottomleft', 'bottom-left');
     done(function() {
       ok($('label:contains(small)').width() < $('label:contains(mid)').width());
       ok($('label:contains(mid)').width() < $('label:contains(big)').width());
@@ -49,10 +50,13 @@ asyncTest("Outputs some labels.", function() {
       deepEqual(rounded($('label:contains(big)').getxy()), [0, 50]);
       deepEqual(rounded($('label:contains(mid)').getxy()), [0, -50]);
       deepEqual(rounded($('label:contains(giant)').getxy()), [150, -50]);
+      ok($('label:contains(bottomleft)').getxy()[0] < -50);
+      ok($('label:contains(bottomleft)').getxy()[1] < -100);
       equal(rounded($('label:contains(small)').direction()), 0);
       equal(rounded($('label:contains(big)').direction()), 0);
       equal(rounded($('label:contains(mid)').direction()), 90);
       equal(rounded($('label:contains(giant)').direction()), 90);
+      equal(rounded($('label:contains(bottomleft)').direction()), 0);
       equal(direction(), 90);
       equal(rounded($('label:contains(upside down)').direction()), 180);
       start();

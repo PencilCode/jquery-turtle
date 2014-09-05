@@ -6433,16 +6433,24 @@ var turtlefn = {
   label: wrapcommand('label', 1,
   ["<u>label(text)</u> Labels the current position with HTML: " +
       "<mark>label 'remember'</mark>",
-   "<u>label(text, styles)</u> Apply CSS styles to the label: " +
-      "<mark>label 'big', { fontSize: 100 }</mark>"],
-  function label(cc, html, styles) {
+   "<u>label(text, position, styles)</u> Position is 'top', 'bottom', 'left'," +
+      "or 'right', and styles is an optional size or CSS object: " +
+      "<mark>label 'big', 'bottom', { color: red:, fontSize: 100 }</mark>"],
+  function label(cc, html, side, styles) {
+    if (!styles && ($.isNumeric(side) || $.isPlainObject(side))) {
+      styles = side;
+      side = null;
+    }
     if ($.isNumeric(styles)) {
       styles = { fontSize: styles };
+    }
+    if (!side) {
+      side = 'rotated-scaled';
     }
     var intick = insidetick;
     return this.plan(function(j, elem) {
       cc.appear(j);
-      var applyStyles = {}, currentStyles = this.prop('style');
+      var applyStyles = {margin: 8}, currentStyles = this.prop('style');
       // For defaults, copy inline styles of the turtle itself except for
       // properties in the following list (these are the properties used to
       // make the turtle look like a turtle).
@@ -6466,13 +6474,24 @@ var turtlefn = {
       // Place the label on the screen using the figured styles.
       var out = output(html, 'label').css(applyStyles)
           .addClass('turtle').appendTo(getTurtleField());
+      var rotated = /\brotated\b/.test(side),
+          scaled = /\bscaled\b/.test(side);
       // Mimic the current position and rotation and scale of the turtle.
       out.css({
         turtlePosition: computeTargetAsTurtlePosition(
             out.get(0), this.pagexy(), null, 0, 0),
-        turtleRotation: this.css('turtleRotation'),
-        turtleScale: this.css('turtleScale')
+        turtleRotation: rotated ? this.css('turtleRotation') : 0,
+        turtleScale: scaled ? this.css('turtleScale') : 1
       });
+      // Modify top-left to slide to the given corner, if requested.
+      if (/\b(?:top|bottom)\b/.test(side)) {
+        applyStyles.top =
+            (/\btop\b/.test(side) ? -1 : 1) * out.outerHeight(true) / 2;
+      }
+      if (/\b(?:left|right)\b/.test(side)) {
+        applyStyles.left =
+            (/\bleft\b/.test(side) ? -1 : 1) * out.outerWidth(true) / 2;
+      }
       // Then finally apply styles (turtle styles may be overridden here).
       out.css(applyStyles);
       // Add a delay.
