@@ -7286,7 +7286,13 @@ var dollar_turtle_methods = {
   ["<u>click(fn)</u> Calls fn(event) whenever the mouse is clicked. " +
       "<mark>click (e) -> moveto e; label 'clicked'</mark>"],
   function(fn) {
-    $(window).click(fn);
+    $(window).click(function(e) {
+      if ($(e.target).closest('input,button').length) {
+        // Discard clicks on input fields and buttons.
+        return;
+      }
+      this.apply(fn, arguments);
+    });
   }),
   mouseup: wrapraw('mouseup',
   ["<u>mouseup(fn)</u> Calls fn(event) whenever the mouse is released. " +
