@@ -1578,18 +1578,20 @@ function createSurfaceAndField() {
       // fixes a "center" point in page coordinates that
       // will not change even if the document resizes.
       transformOrigin: cw + "px " + ch + "px",
+      pointerEvents: 'none',
       overflow: 'hidden'
     });
   $(field).attr('id', 'field')
     .css({
       position: 'absolute',
       display: 'inline-block',
-      top: ch, left: cw, width: '100%', height: '100%',
+      top: ch, left: cw, width: '0', height: '0',
       font: 'inherit',
       // Setting transform origin for the turtle field
       // fixes a "center" point in page coordinates that
       // will not change even if the document resizes.
       transformOrigin: "0px 0px",
+      pointerEvents: 'all'
     }).appendTo(surface);
   globalDrawing.surface = surface;
   globalDrawing.field = field;
