@@ -1600,6 +1600,10 @@ function createSurfaceAndField() {
 
 function attachClipSurface() {
   if (document.body) {
+    if ($('html').attr('style') == null) {
+      // This prevents the body from shrinking.
+      $('html').css('min-height', '100%');
+    }
     $(globalDrawing.surface).prependTo('body');
     // Attach an event handler to forward mouse events from the body
     // to turtles in the turtle field layer.
