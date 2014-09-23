@@ -7563,6 +7563,9 @@ $.turtle = function turtle(id, options) {
     id = 'turtle';
   }
   options = options || {};
+  if ('turtle' in options) {
+    id = options.turtle;
+  }
   // Clear any previous turtle methods.
   clearGlobalTurtle();
   // Expand any <script type="text/html"> unless htmlscript is false.
