@@ -6546,6 +6546,7 @@ var turtlefn = {
   }),
   hatch:
   function(count, spec) {
+    deprecatemessage('hatch', 'new Turtle');
     if (!this.length) return;
     if (spec === undefined && !$.isNumeric(count)) {
       spec = count;
@@ -6946,13 +6947,17 @@ function checkPredicate(fname, sel) {
 
 // LEGACY NAMES
 
+function deprecatemessage(oldname, newname) {
+  if (!(oldname in warning_shown)) {
+    see.html('Instead of <span style="color:red;">' + oldname + ', use ' +
+        newname + '.</span>');
+    warning_shown[oldname] = 1;
+  }
+}
+
 function deprecate(map, oldname, newname) {
   map[oldname] = function() {
-    if (!(oldname in warning_shown)) {
-      see.html('<span style="color:red;">' + oldname + ' deprecated.  Use ' +
-          newname + '.</span>');
-      warning_shown[oldname] = 1;
-    }
+    deprecatemessage(oldname, newname);
     // map[oldname] = map[newname];
     return map[newname].apply(this, arguments);
   }
@@ -7265,6 +7270,7 @@ var dollar_turtle_methods = {
       "<mark>pen random 'color'</mark>"],
   random),
   hatch:
+  // Do not document this; it is deprecated.
   function hatch(count, spec) {
     return $(document).hatch(count, spec);
   },
@@ -7488,6 +7494,7 @@ function pollSendRecv(name) {
 
 
 deprecate(dollar_turtle_methods, 'defaultspeed', 'speed');
+deprecate(dollar_turtle_methods, 'print', 'write');
 
 var helpok = {};
 
