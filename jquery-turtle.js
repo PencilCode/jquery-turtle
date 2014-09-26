@@ -6546,7 +6546,6 @@ var turtlefn = {
   }),
   hatch:
   function(count, spec) {
-    deprecatemessage('hatch', 'new Turtle');
     if (!this.length) return;
     if (spec === undefined && !$.isNumeric(count)) {
       spec = count;
@@ -6911,7 +6910,7 @@ function checkForHungLoop(fname) {
         '<b style="background:yellow">tick</b> ' +
         'to make an animation.</span>');
     }
-    $.turtle.interrupt();
+    $.turtle.interrupt('hung');
   }
 }
 
@@ -6947,17 +6946,13 @@ function checkPredicate(fname, sel) {
 
 // LEGACY NAMES
 
-function deprecatemessage(oldname, newname) {
-  if (!(oldname in warning_shown)) {
-    see.html('Instead of <span style="color:red;">' + oldname + ', use ' +
-        newname + '.</span>');
-    warning_shown[oldname] = 1;
-  }
-}
-
 function deprecate(map, oldname, newname) {
   map[oldname] = function() {
-    deprecatemessage(oldname, newname);
+    if (!(oldname in warning_shown)) {
+      see.html('<span style="color:red;">' + oldname + ' deprecated.  Use ' +
+          newname + '.</span>');
+      warning_shown[oldname] = 1;
+    }
     // map[oldname] = map[newname];
     return map[newname].apply(this, arguments);
   }
@@ -7035,7 +7030,8 @@ var dollar_turtle_methods = {
       }
     }
     // Throw an interrupt exception.
-    throw new Error('interrupt() called');
+    var msg = option ? "'" + option + "'" : '';
+    throw new Error('interrupt(' + msg + ') called');
   }),
   cs: wrapglobalcommand('cs',
   ["<u>cs()</u> Clear screen. Erases both graphics canvas and " +
@@ -7270,7 +7266,6 @@ var dollar_turtle_methods = {
       "<mark>pen random 'color'</mark>"],
   random),
   hatch:
-  // Do not document this; it is deprecated.
   function hatch(count, spec) {
     return $(document).hatch(count, spec);
   },
@@ -7494,7 +7489,6 @@ function pollSendRecv(name) {
 
 
 deprecate(dollar_turtle_methods, 'defaultspeed', 'speed');
-deprecate(dollar_turtle_methods, 'print', 'write');
 
 var helpok = {};
 
@@ -7606,11 +7600,12 @@ $.turtle = function turtle(id, options) {
     } else {
       window.onerror = see;
     }
+    // Set up an alias.
+    window.log = see;
   }
   // Copy $.turtle.* functions into global namespace.
   if (!('functions' in options) || options.functions) {
     window.printpage = window.print;
-    window.print = null;
     $.extend(window, dollar_turtle_methods);
   }
   // Set default turtle speed
