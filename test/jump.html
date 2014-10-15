@@ -18,6 +18,10 @@ asyncTest("Test that jumpto and fill work together.", function() {
   ok(touches(red));
   jumpto(0, 50);
   ok(!touches(red));
+  ok(touches(transparent));
+  jumpxy(-10, -40)
+  ok(touches(red));
+  ok(!touches(transparent));
   start();
 });
 </script>
