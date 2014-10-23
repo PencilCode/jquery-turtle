@@ -42,7 +42,8 @@ module.exports = function(grunt) {
     qunit: {
       all: ["test/*.html"],
       options: {
-        timeout: 100000
+        timeout: 100000,
+        noGlobals: true
       }
     },
     release: {
