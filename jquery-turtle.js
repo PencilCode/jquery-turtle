@@ -3494,11 +3494,15 @@ var pressedKey = (function() {
       choices = ch.replace(/\s/g, '').toLowerCase().split(',');
       return function(e) {
         if (match(choices, e.which)) {
-          fn.call(this, e);
+          e.keyname = keyCodeName[e.which];
+          return fn.apply(this, arguments);
         }
       }
     } else {
-      return fn;
+      return function(e) {
+        e.keyname = keyCodeName[e.which];
+        return fn.apply(this, arguments);
+      }
     }
   }
   pressed.enable = enablePressListener;
@@ -5639,13 +5643,17 @@ function wrapglobalcommand(name, helptext, fn) {
 
 function wrapwindowevent(name, helptext) {
   return wrapraw(name, helptext, function(fn) {
-    var wrapped = /^key/.test(name) ? pressedKey.wrap(fn, name) :
-       /^mouse|click$/.test(name) ? wrapmouselistener(fn, name) : fn;
-    var filtered = function(e) {
-      if ($(e.target).closest('input,button').length) { return; }
-      wrapped.apply(this, arguments);
-    }
-    $(window).on(name, filtered);
+    var forKey = /^key/.test(name),
+        forMouse = /^mouse|click$/.test(name),
+        wrapped = forKey ? pressedKey.wrap(fn, arguments[1])
+            : forMouse ? wrapmouselistener(fn) : fn,
+        filter = forMouse ? 'input,button' : forKey ?
+            'textarea,input:not([type]),input[type=text],input[type=password]'
+            : null;
+    $(window).on(name, !filter ? wrapped : function(e) {
+          if ($(e.target).closest(filter).length) { return; }
+          return wrapped.apply(this, arguments);
+    });
   });
 }
 
@@ -5658,7 +5666,7 @@ function wrapraw(name, helptext, fn) {
 }
 
 // Adds center-up x and y coordinates to the mouse event.
-function wrapmouselistener(fn, name) {
+function wrapmouselistener(fn) {
   return function(event) {
     if ('pageX' in event && 'pageY' in event) {
       var origin = $('#field').offset();
