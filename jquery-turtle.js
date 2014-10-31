@@ -2890,6 +2890,42 @@ var Sprite = (function(_super) {
 
 })(jQuery.fn.init);
 
+// Pencil extends Sprite, and is invisible and fast by default.
+var Pencil = (function(_super) {
+  __extends(Pencil, _super);
+
+  function Pencil(canvas) {
+    // A pencil draws on a canvas.  Allow a selector or element.
+    if (canvas.jquery && $.isFunction(canvas.canvas)) {
+      canvas = canvas.canvas();
+    }
+    if (canvas && canvas.tagName != 'CANVAS' ||
+        typeof canvas.getContext != 'function') {
+      canvas = $(canvas).filter('canvas').get(0);
+    }
+    if (!canvas || canvas.tagName != 'CANVAS' ||
+        typeof canvas.getContext != 'function') {
+      canvas = null;
+    }
+    // The pencil is a sprite that just defaults to zero size.
+    var context = canvas ? canvas.parentElement : null;
+    var settings = { width: 0, height: 0, color: transparent };
+    Pencil.__super__.constructor.call(this, settings, context);
+    // Set the pencil to hidden, infinite speed,
+    // and drawing on the specifed canvas.
+    this.each(function() {
+      var state = getTurtleData(this);
+      state.speed = Infinity;
+      state.drawOnCanvas = canvas;
+      this.style.display = 'none';
+    });
+  }
+
+  return Pencil;
+
+})(Sprite);
+
+
 // Turtle extends Sprite, and draws a turtle by default.
 var Turtle = (function(_super) {
   __extends(Turtle, _super);
@@ -7522,6 +7558,12 @@ var dollar_turtle_methods = {
   min: wrapraw('min',
   ["<u>min(x, y, ...)</u> The minimum of a set of values. " +
       "<mark>see min 2, -5, 1</mark>"], Math.min),
+  Pencil: wrapraw('Pencil',
+  ["<u>new Pencil(canvas)</u> " +
+      "Make an invisble pencil for drawing on a canvas." +
+      "<mark>s = new Sprite; p = new Pencil(s); " +
+      "p.pen red; p.fd 100; remove p</mark>"],
+      Pencil),
   Turtle: wrapraw('Turtle',
   ["<u>new Turtle(color)</u> Make a new turtle. " +
       "<mark>t = new Turtle; t.fd 100</mark>"], Turtle),
