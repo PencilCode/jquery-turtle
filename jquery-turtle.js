@@ -2763,6 +2763,12 @@ function applyLoadedImage(loaded, elem, css) {
       // Do not do this if the image can't be loaded.
     }
   }
+  moveToPreserveOrigin(elem, oldOrigin, newOrigin);
+}
+
+function moveToPreserveOrigin(elem, oldOrigin, newOrigin) {
+  var sel = $(elem);
+  if (!sel.hasClass('turtle')) return;
   // If there was a change, then translate the element to keep the origin
   // in the same location on the screen.
   if (newOrigin[0] != oldOrigin[0] || newOrigin[1] != oldOrigin[1]) {
@@ -2782,7 +2788,6 @@ function applyLoadedImage(loaded, elem, css) {
     }
   }
 }
-
 
 function withinOrNot(obj, within, distance, x, y) {
   var sel, elem, gbcr, pos, d2;
@@ -6708,6 +6713,57 @@ var turtlefn = {
   function canvas() {
     return this.filter('canvas').get(0);
   }),
+  imagedata: wrapraw('imagedata',
+  ["<u>imagedata()</u> Returns the image data for the turtle. " +
+      "<mark>imdat = imagedata(); write imdat.data.length, 'bytes'</mark>",
+   "<u>imagedata(imdat)</u> Sets the image data for the turtle. " +
+      "<mark>imagedata({width: 1, height:1, data:[255,0,0,255]});</mark>",
+  ],
+  function imagedata(val) {
+    var canvas = this.canvas();
+    if (!canvas) {
+      if (val) throw new Error(
+        'can only set imagedata on a canvas like a Sprite');
+      var img = this.filter('img').get(0);
+      if (!img) return;
+      canvas = getOffscreenCanvas(img.naturalWidth, img.naturalHeight);
+      canvas.getContext('2d').drawImage(img, 0, 0);
+    }
+    var ctx = canvas.getContext('2d');
+    if (!val) {
+      // The read case: return the image data for the whole canvas.
+      return ctx.getImageData(0, 0, canvas.width, canvas.height);
+    }
+    // The write case: if it's not an ImageData, convert it to one.
+    if (!(val instanceof ImageData)) {
+      if (typeof val != 'object' ||
+          !$.isNumeric(val.width) || !$.isNumeric(val.height) ||
+          !($.isArray(val.data) || val.data instanceof Uint8ClampedArray ||
+            val.data instanceof Unit8Array)) {
+        return;
+      }
+      var imdat = ctx.createImageData(
+          Math.round(val.width), Math.round(val.height));
+      var minlen = Math.min(val.data.length, imdat.data.length);
+      for (var j = 0; j < minlen; ++j) { imdat.data[j] = val.data[j]; }
+      val = imdat;
+    }
+    // If the size must be changed, resize it.
+    if (val.width != canvas.width ||
+        val.height != canvas.height) {
+      var oldOrigin = readTransformOrigin(canvas);
+      canvas.width = val.width;
+      canvas.height = val.height;
+      var newOrigin = readTransformOrigin(canvas);
+      // Preserve the origin if it's a turtle.
+      moveToPreserveOrigin(canvas, oldOrigin, newOrigin);
+      // Drop the turtle hull, if any.
+      $(canvas).css('turtleHull', 'auto');
+      ctx = canvas.getContext('2d');
+    }
+    // Finally put the image data into the canvas.
+    ctx.putImageData(val, 0, 0);
+  }),
   cell: wrapraw('cell',
   ["<u>cell(r, c)</u> Row r and column c in a table. " +
       "Use together with the table function: " +
@@ -8114,14 +8170,20 @@ function createRectangleShape(width, height, subpixels) {
       ctx.fillRect(0, 0, width, height);
     }
     var sw = width / subpixels, sh = height / subpixels;
-    return {
-      url: c.toDataURL(),
-      css: {
+    var css = {
         width: sw,
         height: sh,
         transformOrigin: (sw / 2) + 'px + ' + (sh / 2) + 'px',
         opacity: 1
-      }
+    };
+    if (subpixels < 1) {
+      // Requires newer than Chrome 40.
+      // Avoid smooth interpolation of big pixels.
+      css.imageRendering = 'pixelated';
+    }
+    return {
+      url: c.toDataURL(),
+      css: css
     };
   });
 }
@@ -8144,7 +8206,7 @@ function lookupShape(shapename) {
 function specToImage(spec, defaultshape) {
   var width = spec.width || spec.height || 256;
   var height = spec.height || spec.width || 256;
-  var subpixel = spec.subpixel || 1;
+  var subpixel = spec.subpixel || 1 / (spec.scale || 1);
   var color = spec.color || 'transparent';
   var shape = createRectangleShape(width, height, subpixel);
   return shape(color);
