@@ -5466,7 +5466,7 @@ function visiblePause(elem, seconds) {
     ms = seconds * 1000;
   }
   var thissel = $(elem);
-  if (ms) {
+  if (ms > 0) {
     thissel.delay(ms);
   }
 }

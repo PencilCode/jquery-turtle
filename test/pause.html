@@ -11,7 +11,7 @@ asyncTest("Moves a few turtles, having each pause for the other.", function() {
   speed(100);
   var a = new Turtle(red);
   var b = new Turtle(blue);
-  a.pause();
+  a.pause(0.1);
   a.plan(function() {
     equal(a.getxy()[1], 0);
     equal(round(b.getxy()[1]), 0);
