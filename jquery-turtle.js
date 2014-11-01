@@ -2882,11 +2882,11 @@ var Pencil = (function(_super) {
 
   function Pencil(canvas) {
     // A pencil draws on a canvas.  Allow a selector or element.
-    if (canvas.jquery && $.isFunction(canvas.canvas)) {
+    if (canvas && canvas.jquery && $.isFunction(canvas.canvas)) {
       canvas = canvas.canvas();
     }
-    if (canvas && canvas.tagName != 'CANVAS' ||
-        typeof canvas.getContext != 'function') {
+    if (canvas && (canvas.tagName != 'CANVAS' ||
+        typeof canvas.getContext != 'function')) {
       canvas = $(canvas).filter('canvas').get(0);
     }
     if (!canvas || canvas.tagName != 'CANVAS' ||
@@ -2904,6 +2904,10 @@ var Pencil = (function(_super) {
       state.speed = Infinity;
       state.drawOnCanvas = canvas;
       this.style.display = 'none';
+      if (canvas) {
+        this.style[transform] = writeTurtleTransform(
+            readTurtleTransform(canvas, true));
+      }
     });
   }
 
