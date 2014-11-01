@@ -6654,7 +6654,7 @@ var turtlefn = {
     var intick = insidetick;
     return this.plan(function(j, elem) {
       cc.appear(j);
-      var applyStyles = {margin: 8},
+      var applyStyles = {padding: 8},
           currentStyles = this.prop('style');
       // For defaults, copy inline styles of the turtle itself except for
       // properties in the following list (these are the properties used to
@@ -6688,14 +6688,15 @@ var turtlefn = {
         turtleRotation: rotated ? this.css('turtleRotation') : 0,
         turtleScale: scaled ? this.css('turtleScale') : 1
       });
+      var gbcr = out.get(0).getBoundingClientRect();
       // Modify top-left to slide to the given corner, if requested.
       if (/\b(?:top|bottom)\b/.test(side)) {
         applyStyles.top =
-            (/\btop\b/.test(side) ? -1 : 1) * out.outerHeight(true) / 2;
+            (/\btop\b/.test(side) ? -1 : 1) * gbcr.height / 2;
       }
       if (/\b(?:left|right)\b/.test(side)) {
         applyStyles.left =
-            (/\bleft\b/.test(side) ? -1 : 1) * out.outerWidth(true) / 2;
+            (/\bleft\b/.test(side) ? -1 : 1) * gbcr.width / 2;
       }
       // Then finally apply styles (turtle styles may be overridden here).
       out.css(applyStyles);
