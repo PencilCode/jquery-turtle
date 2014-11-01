@@ -6,7 +6,7 @@
 <div id="qunit"></div>
 <script>
 eval($.turtle());
-$.turtle.hungTimeout = Infinity;  // Allow for slow CPUs.
+$.turtle.hungtimeout = Infinity;  // Allow for slow CPUs.
 module("Fern test.");
 asyncTest("Draws a circle and verifies its presence.", function() {
   speed(Infinity);

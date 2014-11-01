@@ -6630,7 +6630,7 @@ var turtlefn = {
   label: wrapcommand('label', 1,
   ["<u>label(text)</u> Labels the current position with HTML: " +
       "<mark>label 'remember'</mark>",
-   "<u>label(text, styles, position)</u> Optional position specifies " +
+   "<u>label(text, styles, labelsite)</u> Optional position specifies " +
       "'top', 'bottom', 'left', 'right', and optional styles is a size " +
       "or CSS object: " +
       "<mark>label 'big', { color: red, fontSize: 100 }, 'bottom'</mark>"],
@@ -6645,13 +6645,17 @@ var turtlefn = {
     if ($.isNumeric(styles)) {
       styles = { fontSize: styles };
     }
-    if (!side) {
-      side = 'rotated-scaled';
+    if (side == null) {
+      side =
+        styles && 'labelSide' in styles ? styles.labelSide :
+        styles && 'label-side' in styles ? styles['label-side'] :
+        side = 'rotated scaled';
     }
     var intick = insidetick;
     return this.plan(function(j, elem) {
       cc.appear(j);
-      var applyStyles = {margin: 8}, currentStyles = this.prop('style');
+      var applyStyles = {margin: 8},
+          currentStyles = this.prop('style');
       // For defaults, copy inline styles of the turtle itself except for
       // properties in the following list (these are the properties used to
       // make the turtle look like a turtle).
