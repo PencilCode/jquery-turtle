@@ -7,15 +7,50 @@
 <script>
 eval($.turtle());
 module("Pressed api test.");
-asyncTest("Simulates a few keypress events and polls press.", function() {
-  function triggerKey(name, n) {
-    if (typeof(n) == 'string') {
-      n = n.charCodeAt(0);
-    }
-    var e = $.Event(name);
-    e.which = n;
-    $(window).trigger(e);
+
+function triggerKey(name, n) {
+  var code = (typeof n == 'string') ? n.charCodeAt(0) : n;
+  var keyboardEvent = document.createEvent("KeyboardEvent");
+  var initMethod = typeof keyboardEvent.initKeyboardEvent !==
+      'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+  keyboardEvent[initMethod](
+      name,
+      true,  // bubbles
+      true,  // cancelable
+      window, // viewArg: should be window
+      false, // ctrlKeyArg
+      false, // altKeyArg
+      false, // shiftKeyArg
+      false, // metaKeyArg
+      code,  // keyCodeArg : unsigned long the virtual key code, else 0
+      0      // charCodeArgs : unsigned long the Unicode character
+    );
+  if (keyboardEvent.which != code) {
+    // For testing, the library respects the below
+    keyboardEvent.whichSynth = code;
   }
+  window.dispatchEvent(keyboardEvent);
+}
+
+asyncTest("Simulates a keypresses for event handlers.", function() {
+  var trace = '';
+  keydown('A', function() { trace += 'A'; });
+  keydown('a', function() { trace += 'a'; });
+  keydown(function(e) { trace += ':' + e.keyname; });
+  triggerKey('keydown', 'B');
+  equal(trace, ':b');
+  trace = '';
+  triggerKey('keydown', 27);
+  equal(trace, ':escape');
+  trace = '';
+  triggerKey('keydown', 'A');
+  equal(trace, 'Aa:a');
+  trace = '';
+  start();
+  pressed.enable(true);
+});
+
+asyncTest("Simulates a few keypress events and polls press.", function() {
   // Single key press
   equal(0, pressed.list().length);
   ok(!pressed('a'));
@@ -29,15 +64,15 @@ asyncTest("Simulates a few keypress events and polls press.", function() {
   ok(!pressed('a'));
   ok(!pressed('A'));
   // Alt-right key press should also press 'alt'
-  triggerKey('keydown', 165)
+  triggerKey('keydown', 165);
   ok(pressed('alt')); // Lowercase works
   ok(pressed('ALT')); // Uppercase also works
   ok(pressed('altright')); // Lowercase works
   ok(pressed('AltRight')); // Uppercase also works
   ok(!pressed('alt left')); // 165 is not alt-left
   equal(2, pressed.list().length);
-  equal(pressed.list()[0], 'altright');
-  equal(pressed.list()[1], 'alt');
+  ok(pressed.list().indexOf('altright') >= 0);
+  ok(pressed.list().indexOf('alt') >= 0);
   triggerKey('keyup', 165)
   equal(0, pressed.list().length);
   ok(!pressed('altright'));
@@ -72,8 +107,8 @@ asyncTest("Simulates a few keypress events and polls press.", function() {
   equal(pressed.list().join(','), 'shift,\\,z,f1');
   // Now trigger one type of blur event, and expect keys to reset.
   var b = document.createEvent('Event');
-  b.initEvent('contextmenu', true, true);
-  document.body.dispatchEvent(b);
+  b.initEvent('blur', true, true);
+  window.dispatchEvent(b);
   equal(pressed.list().length, 0);
   ok(!pressed('z'));
   ok(!pressed('shift'));
