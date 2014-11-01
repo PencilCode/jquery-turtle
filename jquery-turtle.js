@@ -3637,7 +3637,6 @@ function keypressFilterHook(event, original) {
 
 // Intercept on('keydown/keyup/keypress')
 function keyAddHook(handleObj) {
-  focusWindowIfFirst();
   if (typeof(handleObj.data) != 'string') return;
   var choices = handleObj.data.replace(/\s/g, '').toLowerCase().split(',');
   var original = handleObj.handler;
@@ -5781,6 +5780,7 @@ function wrapwindowevent(name, helptext) {
         filter = forMouse ? 'input,button' : forKey ?
             'textarea,input:not([type]),input[type=text],input[type=password]'
             : null;
+    if (forKey) { focusWindowIfFirst(); }
     if (fn == null && typeof(d) == 'function') { fn = d; d = null; }
     $(window).on(name, null, d, !filter ? fn : function(e) {
       if ($(e.target).closest(filter).length) { return; }
