@@ -3515,7 +3515,7 @@ var pressedKey = (function() {
 
 //////////////////////////////////////////////////////////////////////////
 // JQUERY EVENT ENHANCEMENT
-//  - Keyboard events get the .keyname property.
+//  - Keyboard events get the .key property.
 //  - Keyboard event listening with a string first (data) arg
 //    automatically filter out events that don't match the keyname.
 //  - Mouse events get .x and .y (center-up) if there is a turtle field.
@@ -3624,14 +3624,14 @@ function keyFilterHook(event, original) {
   if (!name && which) {
     name = String.fromCharCode(which);
   }
-  event.keyname = name;
+  event.key = name;
   return event;
 }
 
-// Add .keyname to each keyboard event.
+// Add .key to each keyboard event.
 function keypressFilterHook(event, original) {
   if (event.charCode != null) {
-    event.keyname = String.fromCharCode(event.charCode);
+    event.key = String.fromCharCode(event.charCode);
   }
 }
 
@@ -3641,7 +3641,7 @@ function keyAddHook(handleObj) {
   var choices = handleObj.data.replace(/\s/g, '').toLowerCase().split(',');
   var original = handleObj.handler;
   var wrapped = function(event) {
-    if (choices.indexOf(event.keyname) < 0) return;
+    if (choices.indexOf(event.key) < 0) return;
     return original.apply(this, arguments);
   }
   if (original.guid) { wrapped.guid = original.guid; }
@@ -3649,11 +3649,11 @@ function keyAddHook(handleObj) {
 }
 
 function addKeyEventHooks() {
-  // Add the "keyname" field to keydown and keyup events - this uses
+  // Add the "key" field to keydown and keyup events - this uses
   // the lowercase key names listed in the pressedKey utility.
   addEventHook($.event.fixHooks, 'filter', $.event.keyHooks,
       'keydown keyup', keyFilterHook);
-  // Add "keyname" to keypress also.  This is just the unicode character
+  // Add "key" to keypress also.  This is just the unicode character
   // corresponding to event.charCode.
   addEventHook($.event.fixHooks, 'filter', $.event.keyHooks,
       'keypress', keypressFilterHook);
@@ -7565,13 +7565,13 @@ var dollar_turtle_methods = {
       "<mark>mousemove (e) -> write 'at ', e.x, ',', e.y</mark>"]),
   keydown: wrapwindowevent('keydown',
   ["<u>keydown(fn)</u> Calls fn(event) whenever a key is pushed down. " +
-      "<mark>keydown (e) -> write 'down ' + e.keyname</mark>"]),
+      "<mark>keydown (e) -> write 'down ' + e.key</mark>"]),
   keyup: wrapwindowevent('keyup',
   ["<u>keyup(fn)</u> Calls fn(event) whenever a key is released. " +
-      "<mark>keyup (e) -> write 'up ' + e.keyname</mark>"]),
+      "<mark>keyup (e) -> write 'up ' + e.key</mark>"]),
   keypress: wrapwindowevent('keypress',
   ["<u>keypress(fn)</u> Calls fn(event) whenever a character key is pressed. " +
-      "<mark>keypress (e) -> write 'press ' + e.keyname</mark>"]),
+      "<mark>keypress (e) -> write 'press ' + e.key</mark>"]),
   send: wrapraw('send',
   ["<u>send(name)</u> Sends a message to be received by recv. " +
       "<mark>send 'go'; recv 'go', -> fd 100</mark>"],

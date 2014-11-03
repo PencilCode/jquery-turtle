@@ -36,7 +36,7 @@ asyncTest("Simulates a keypresses for event handlers.", function() {
   var trace = '';
   keydown('A', function() { trace += 'A'; });
   keydown('a', function() { trace += 'a'; });
-  keydown(function(e) { trace += ':' + e.keyname; });
+  keydown(function(e) { trace += ':' + e.key; });
   triggerKey('keydown', 'B');
   equal(trace, ':b');
   trace = '';
