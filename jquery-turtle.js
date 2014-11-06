@@ -8652,7 +8652,12 @@ function undoScrollAfter(f) {
   $(window).scrollTop(scrollPos);
 }
 
-// Simplify $('body').append(html).
+//////////////////////////////////////////////////////////////////////////
+// OUTPUT AND WIDGETS
+// functions to create basic HTML widgets for containing written output
+// and controls for reading input.
+//////////////////////////////////////////////////////////////////////////
+
 function output(html, defaulttag) {
   if (html === undefined || html === null) {
     // Print a turtle shell when no arguments.
@@ -8847,6 +8852,11 @@ function button(name, callback) {
   return result;
 }
 
+//////////////////////////////////////////////////////////////////////////
+// ONE-SHOT INPUT SUPPORT
+// for creating an input box with a label, for one-shot input
+//////////////////////////////////////////////////////////////////////////
+
 // Simplify $('body').append('<input>' + label) and onchange hookup.
 function input(name, callback, numeric) {
   if ($.isFunction(name) && !callback) {
@@ -8857,7 +8867,6 @@ function input(name, callback, numeric) {
   var textbox = $('<input>').css({margin:0, padding:0}),
       label = $('<label style="display:table">' + name + '&nbsp;' +
         '</label>').append(textbox),
-      thisval = $([textbox[0], label[0]]),
       debounce = null,
       lastseen = textbox.val();
   function dodebounce() {
@@ -8877,7 +8886,8 @@ function input(name, callback, numeric) {
       numeric >= 0 && $.isNumeric(val) && ('' + parseFloat(val) == val))) {
       val = parseFloat(val);
     }
-    if (callback) { setTimeout(function() {callback.call(thisval, val); }, 0); }
+    label.prop('value', val);
+    if (callback) { setTimeout(function() {callback.call(label, val); }, 0); }
   }
   function validate() {
     if (numeric <= 0) return true;
@@ -8917,13 +8927,12 @@ function input(name, callback, numeric) {
   });
   // Focus, but don't cause autoscroll to occur due to focus.
   undoScrollAfter(function() { textbox.focus(); });
-  return thisval;
+  return label;
 }
 
-// Functions to generate CSS color strings
-function componentColor(t, args) {
-  return t + '(' + Array.prototype.join.call(args, ',') + ')';
-}
+//////////////////////////////////////////////////////////////////////////
+// TABLE PRINTER
+//////////////////////////////////////////////////////////////////////////
 
 // Simplify creation of tables with cells.
 function table(height, width, cellCss, tableCss) {
@@ -8982,6 +8991,16 @@ function table(height, width, cellCss, tableCss) {
   return result;
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+// COLOR SUPPORT
+// TODO: import chroma.js
+//////////////////////////////////////////////////////////////////////////
+
+// Functions to generate CSS color strings
+function componentColor(t, args) {
+  return t + '(' + Array.prototype.join.call(args, ',') + ')';
+}
 
 //////////////////////////////////////////////////////////////////////////
 // DEBUGGING SUPPORT
