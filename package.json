@@ -23,7 +23,7 @@
     "grunt-contrib-uglify": "0.2.7",
     "grunt-contrib-qunit": "0.3.0",
     "grunt-release": "0.6.0",
-    "phantomjs": "1.9.7-1",
+    "phantomjs": "1.9.12",
     "grunt-contrib-connect": "~0.6.0",
     "grunt-contrib-watch": "~0.5.3"
   }
