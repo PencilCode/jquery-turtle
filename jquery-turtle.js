@@ -1981,7 +1981,7 @@ function drawAndClearPath(drawOnCanvas, path, style, scale) {
           var adjust = Math.min(1, buttOverlap /
               Math.max(Math.abs(dx), Math.abs(dy)));
           startx -= dx * adjust;
-          startx -= dy * adjust;
+          starty -= dy * adjust;
         }
       }
       ctx.moveTo(startx, starty);
