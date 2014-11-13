@@ -1,0 +1,28 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<img class="apple" src="http://pencilcode.net/img/jquery-turtle">
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Image turtle test.");
+asyncTest("Uses an IMG tag as a turtle.", function() {
+  speed(100);
+  var m = $('img.apple');
+  m.pen(red, 10);
+  m.bk(300);
+  m.plan(function() {
+    var offset = $('body').offset();
+    moveto({
+      pageX: m.width() / 2 + offset.left,
+      pageY: m.height() / 2 + offset.top
+    });
+    plan(function() {
+      ok(touches(red));
+      start();
+    });
+  });
+});
+</script>

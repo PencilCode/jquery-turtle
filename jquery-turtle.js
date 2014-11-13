@@ -5517,7 +5517,8 @@ function sync() {
     for (j = 0; j < cb.length; ++j) { cb[j](); }
   }
   for (j = 0; j < elts.length; ++j) {
-    $(elts[j]).queue(function(next) {
+    queueWaitIfLoadingImg(elts[j]);
+    $.queue(elts[j], 'fx', function(next) {
       if (ready) {
         ready.push(next);
         if (ready.length == elts.length) {
@@ -6315,7 +6316,6 @@ var turtlefn = {
     var intick = insidetick;
     this.plan(function(j, elem) {
       cc.appear(j);
-
       var animate = !invisible(elem) && !canMoveInstantly(this),
           oldstyle = animate && parsePenStyle(this.css('turtlePenStyle')),
           olddown = animate && this.css('turtlePenDown'),
@@ -6343,11 +6343,12 @@ var turtlefn = {
                     (oldstyle && oldstyle.strokeStyle) || 'gray',
             target = {},
             newdown = this.css('turtlePenDown'),
-            pencil = new Turtle(color + ' pencil'),
+            pencil = new Turtle(color + ' pencil', this.parent()),
             distance = this.height();
         pencil.css({
           zIndex: 1,
-          turtlePosition: this.css('turtlePosition'),
+          turtlePosition: computeTargetAsTurtlePosition(
+              pencil.get(0), this.pagexy(), null, 0, 0),
           turtleRotation: this.css('turtleRotation'),
           turtleSpeed: Infinity
         });
@@ -7171,24 +7172,26 @@ var turtlefn = {
             (function() { callback.call($(elem), index, elem); })),
           lastanim = elemqueue.length && elemqueue[elemqueue.length - 1],
           animation = (function() {
-          var saved = $.queue(this, qname),
-              subst = [], inserted;
-          if (saved[0] === 'inprogress') {
-            subst.unshift(saved.shift());
-          }
-          $.queue(elem, qname, subst);
-          action();
-          // The Array.prototype.push is faster.
-          // $.merge($.queue(elem, qname), saved);
-          Array.prototype.push.apply($.queue(elem, qname), saved);
-          nonrecursive_dequeue(elem, qname);
-        });
+            var saved = $.queue(this, qname),
+                subst = [], inserted;
+            if (saved[0] === 'inprogress') {
+              subst.unshift(saved.shift());
+            }
+            $.queue(elem, qname, subst);
+            action();
+            // The Array.prototype.push is faster.
+            // $.merge($.queue(elem, qname), saved);
+            Array.prototype.push.apply($.queue(elem, qname), saved);
+            nonrecursive_dequeue(elem, qname);
+          });
       animation.finish = action;
       $.queue(elem, qname, animation);
     }
     var elem, sel, length = this.length, j = 0;
     for (; j < length; ++j) {
       elem = this[j];
+      // Special case: first wait for an unloaded image to load.
+      queueWaitIfLoadingImg(elem, qname);
       // Queue an animation if there is a queue.
       var elemqueue = $.queue(elem, qname);
       if (elemqueue.length) {
@@ -7203,7 +7206,18 @@ var turtlefn = {
   })
 };
 
-function awaitImageLoad(next) {
+// If the queue for an image is empty, starts by queuing a wait-for-load.
+function queueWaitIfLoadingImg(img, qname) {
+  if (!qname) qname = 'fx';
+  if (img.tagName == 'IMG' && img.src && !img.complete) {
+    var queue = $.queue(img, qname);
+    if (queue.length == 0) {
+      $.queue(img, qname, function(next) {
+        afterImageLoadOrError(img, null, next);
+      });
+      nonrecursive_dequeue(img, qname);
+    }
+  }
 }
 
 var warning_shown = {},
@@ -8556,9 +8570,8 @@ function hatchone(name, container, defaultshape) {
 
   // Move it to the starting pos.
   result.css({
-    turtlePosition:
-        computeTargetAsTurtlePosition(
-              result[0], $(container).pagexy(), null, 0, 0),
+    turtlePosition: computeTargetAsTurtlePosition(
+        result[0], $(container).pagexy(), null, 0, 0),
     turtleRotation: 0,
     turtleScale: 1});
 
