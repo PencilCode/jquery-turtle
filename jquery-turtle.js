@@ -1005,6 +1005,10 @@ function dw() {
   return document.body ? $(document).width() : document.width;
 }
 
+function invisible(elem) {
+  return elem.offsetHeight <= 0 && elem.offsetWidth <= 0;
+}
+
 function makeGbcrLTWH(left, top, width, height) {
   return {
     left: left, top: top, right: left + width, bottom: top + height,
@@ -2400,76 +2404,120 @@ function makeTurtleHook(prop, normalize, unit, displace) {
   };
 }
 
+// Given a starting direction, angle change, and turning radius,
+// this computes the side-radius (with a sign flip indicating
+// the other side), the coordinates of the center dc, and the dx/dy
+// displacement of the final location after the arc.
+function setupArc(
+    r0,         // starting direction in local coordinates
+    r1,         // ending direction local coordinates
+    turnradius  // turning radius in local coordinates
+) {
+  var delta = normalizeRotationDelta(r1 - r0),
+      sradius = delta > 0 ? turnradius : -turnradius,
+      r0r = convertToRadians(r0),
+      dc = [Math.cos(r0r) * sradius, Math.sin(r0r) * sradius],
+      r1r = convertToRadians(r1);
+  return {
+    delta: delta,
+    sradius: sradius,
+    dc: dc,
+    dx: dc[0] - Math.cos(r1r) * sradius,
+    dy: dc[1] - Math.sin(r1r) * sradius
+  };
+}
+
+// Given a path array, a pageX/pageY starting position,
+// arc information in local coordinates, and a 2d transform
+// between page and local coordinates, this function adds to
+// the path scaled page-coorindate beziers following the arc.
+function addArcBezierPaths(
+    path,       // path to add on to in page coordinates
+    start,      // starting location in page coordinates
+    r0,         // starting direction in local coordinates
+    end,        // ending direction in local coordinates
+    turnradius, // turning radius in local coordinates
+    transform   // linear distortion between page and local
+) {
+  var a = setupArc(r0, end, turnradius),
+      sradius = a.sradius, dc = a.dc,
+      r1, a1r, a2r, j, r, pts, triples,
+      splits, splita, absang, relative, points;
+  // Decompose an arc into equal arcs, all 45 degrees or less.
+  splits = 1;
+  splita = a.delta;
+  absang = Math.abs(a.delta);
+  if (absang > 45) {
+    splits = Math.ceil(absang / 45);
+    splita = a.delta / splits;
+  }
+  // Relative traces out the unit-radius arc centered at the origin.
+  relative = [];
+  while (--splits >= 0) {
+    r1 = splits === 0 ? end : r0 + splita;
+    a1r = convertToRadians(r0 + 180);
+    a2r = convertToRadians(r1 + 180);
+    relative.push.apply(relative, approxBezierUnitArc(a1r, a2r));
+    r0 = r1;
+  }
+  points = [];
+  for (j = 0; j < relative.length; j++) {
+    // Multiply each coordinate by radius scale up to the right
+    // turning radius and add to dc to center the turning radius
+    // at the right local coordinate position; then apply parent
+    // distortions to get page-coordinate relative offsets to the
+    // turtle's original position.
+    r = matrixVectorProduct(transform,
+        addVector(scaleVector(relative[j], sradius), dc));
+    // Finally add these to the turtle's actual original position
+    // to get page-coordinate control points for the bezier curves.
+    // (start is the starting position in absolute coordinates,
+    // and dc is the local coordinate offset from the starting
+    // position to the center of the turning radius.)
+    points.push({
+      pageX: r[0] + start.pageX,
+      pageY: r[1] + start.pageY});
+  }
+  // Divide control points into triples again to form bezier curves.
+  triples = [];
+  for (j = 0; j < points.length; j += 3) {
+    triples.push(points.slice(j, j + 3));
+  }
+  addBezierToPath(path, start, triples);
+  return a;
+}
+
+// An animation driver for rotation, including the possibility of
+// tracing out an arc.  Reads an element's turningRadius to see if
+// changing ts.rot should also sweep out an arc.  If so, calls
+// addArcBezierPath to directly add that arc to the drawing path.
 function maybeArcRotation(end, elem, ts, opt) {
   end = parseFloat(end);
   var state = $.data(elem, 'turtleData'),
       tradius = state ? state.turningRadius : 0;
-  if (tradius === 0) {
+  if (tradius === 0 || ts.rot == end) {
     // Avoid drawing a line if zero turning radius.
     opt.displace = false;
     return normalizeRotation(end);
   }
   var tracing = (state && state.style && state.down),
-      r0 = ts.rot, r1, r1r, a1r, a2r, j, r, pts, triples,
-      r0r = convertToRadians(ts.rot),
-      delta = normalizeRotationDelta(end - r0),
-      radius = (delta > 0 ? tradius : -tradius) * ts.sy,
-      dc = [Math.cos(r0r) * radius, Math.sin(r0r) * radius],
-      splits, splita, absang, dx, dy, qpxy,
-      path, totalParentTransform, start, relative, points;
+      turnradius = tradius * ts.sy, a;
   if (tracing) {
-    // Decompose an arc into equal arcs, all 45 degrees or less.
-    splits = 1;
-    splita = delta;
-    absang = Math.abs(delta);
-    if (absang > 45) {
-      splits = Math.ceil(absang / 45);
-      splita = delta / splits;
-    }
-    path = state.path[0];
-    totalParentTransform = totalTransform2x2(elem.parentElement);
-    // Relative traces out the unit-radius arc centered at the origin.
-    relative = [];
-    while (--splits >= 0) {
-      r1 = splits === 0 ? end : r0 + splita;
-      a1r = convertToRadians(r0 + 180);
-      a2r = convertToRadians(r1 + 180);
-      relative.push.apply(relative, approxBezierUnitArc(a1r, a2r));
-      r0 = r1;
-    }
-    points = [];
-    // start is the starting position in absolute coordinates,
-    // and dc is the local coordinate offset from the starting
-    // position to the center of the turning radius.
-    start = getCenterInPageCoordinates(elem);
-    for (j = 0; j < relative.length; j++) {
-      // Multiply each coordinate by radius scale up to the right
-      // turning radius and add to dc to center the turning radius
-      // at the right local coordinate position; then apply parent
-      // distortions to get page-coordinate relative offsets to the
-      // turtle's original position.
-      r = matrixVectorProduct(totalParentTransform,
-          addVector(scaleVector(relative[j], radius), dc));
-      // Finally add these to the turtle's actual original position
-      // to get page-coordinate control points for the bezier curves.
-      points.push({
-        pageX: r[0] + start.pageX,
-        pageY: r[1] + start.pageY});
-    }
-    // Divide control points into triples again to form bezier curves.
-    triples = [];
-    for (j = 0; j < points.length; j += 3) {
-      triples.push(points.slice(j, j + 3));
-    }
-    addBezierToPath(path, start, triples);
+    a = addArcBezierPaths(
+      state.path[0],                            // path to add to
+      getCenterInPageCoordinates(elem),         // starting location
+      ts.rot,                                   // starting direction
+      end,                                      // ending direction
+      turnradius,                               // scaled turning radius
+      totalTransform2x2(elem.parentElement));   // totalParentTransform
+  } else {
+    a = setupArc(
+      ts.rot,                                   // starting direction
+      delta,                                    // degrees change
+      turnradius);                              // scaled turning radius
   }
-  // Now move turtle to its final position: in local coordinates,
-  // translate to the turning center plus the vector to the arc end.
-  r1r = convertToRadians(end);
-  dx = dc[0] - Math.cos(r1r) * radius;
-  dy = dc[1] - Math.sin(r1r) * radius;
-  ts.tx += dx;
-  ts.ty += dy;
+  ts.tx += a.dx;
+  ts.ty += a.dy;
   opt.displace = true;
   return end;
 }
@@ -6252,7 +6300,8 @@ var turtlefn = {
     var intick = insidetick;
     this.plan(function(j, elem) {
       cc.appear(j);
-      var animate = !canMoveInstantly(this) && this.is(':visible'),
+
+      var animate = !invisible(elem) && !canMoveInstantly(this),
           oldstyle = animate && parsePenStyle(this.css('turtlePenStyle')),
           olddown = animate && this.css('turtlePenDown'),
           moved = false;
@@ -6924,13 +6973,15 @@ var turtlefn = {
   ["<u>shown()</u> True if turtle is shown, false if hidden: " +
       "<mark>do ht; write shown()</mark>"],
   function shown() {
-    return this.is(':visible');
+    var elem = this.get(0);
+    return elem && !invisible(elem);
   }),
   hidden: wrappredicate('hidden',
   ["<u>hidden()</u> True if turtle is hidden: " +
       "<mark>do ht; write hidden()</mark>"],
   function hidden() {
-    return !this.is(':visible');
+    var elem = this.get(0);
+    return !elem || invisible(elem);
   }),
   inside: wrappredicate('inside',
   ["<u>inside(obj)</u> True if the turtle is encircled by obj: " +
@@ -6941,7 +6992,7 @@ var turtlefn = {
       elem = $(elem);
     }
     if (elem.jquery) {
-      if (!elem.length || !elem.is(':visible')) return false;
+      if (!elem.length || invisible(elem[0])) return false;
       elem = elem[0];
     }
     var gbcr0 = getPageGbcr(elem),
@@ -6976,7 +7027,7 @@ var turtlefn = {
    "<u>touches(color)</u> True if the turtle touches a drawn color: " +
       "<mark>touches red</mark>"],
   function touches(arg, y) {
-    if (!this.is(':visible') || !this.length) { return false; }
+    if (!this.length || invisible(this[0])) { return false; }
     if (arg == 'color' || isCSSColor(arg)) {
       return touchesPixel(this[0], arg == 'color' ? null : arg);
     }
