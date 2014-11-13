@@ -1839,10 +1839,11 @@ function makePenStyleHook() {
       return writePenStyle(getTurtleData(elem).style);
     },
     set: function(elem, value) {
-      var style = parsePenStyle(value, 'strokeStyle');
-      getTurtleData(elem).style = style;
+      var style = parsePenStyle(value, 'strokeStyle'),
+          state = getTurtleData(elem);
+      state.style = style;
       elem.style.turtlePenStyle = writePenStyle(style);
-      flushPenState(elem);
+      flushPenState(elem, state);
     }
   };
 }
@@ -1861,7 +1862,7 @@ function makePenDownHook() {
         state.quickpagexy = null;
         state.quickhomeorigin = null;
         elem.style.turtlePenDown = writePenDown(style);
-        flushPenState(elem);
+        flushPenState(elem, state);
       }
     }
   };
@@ -2022,8 +2023,11 @@ function addBezierToPath(path, start, triples) {
   }
 }
 
-function flushPenState(elem) {
-  var state = getTurtleData(elem);
+function flushPenState(elem, state) {
+  if (!state) {
+    // Default is no pen and no path, so nothing to do.
+    return;
+  }
   if (!state.style || (!state.down && !state.style.savePath)) {
     if (state.path.length > 1) { state.path.length = 1; }
     if (state.path[0].length) { state.path[0].length = 0; }
@@ -2239,7 +2243,7 @@ function doQuickMove(elem, distance, sideways) {
   ts.tx += dx;
   ts.ty += dy;
   elem.style[transform] = writeTurtleTransform(ts);
-  flushPenState(elem);
+  flushPenState(elem, state);
 }
 
 function doQuickMoveXY(elem, dx, dy) {
@@ -2256,7 +2260,7 @@ function doQuickMoveXY(elem, dx, dy) {
   ts.tx += dx;
   ts.ty -= dy;
   elem.style[transform] = writeTurtleTransform(ts);
-  flushPenState(elem);
+  flushPenState(elem, state);
 }
 
 function doQuickRotate(elem, degrees) {
@@ -2371,7 +2375,7 @@ function makeTurtleForwardHook() {
       ts.tx = ntx;
       ts.ty = nty;
       elem.style[transform] = writeTurtleTransform(ts);
-      flushPenState(elem);
+      flushPenState(elem, state);
     }
   };
 }
@@ -2398,7 +2402,7 @@ function makeTurtleHook(prop, normalize, unit, displace) {
             pageY: qpxy.pageY + (ts.ty - oty)
           };
         }
-        flushPenState(elem);
+        flushPenState(elem, state);
       }
     }
   };
@@ -2590,7 +2594,7 @@ function makeTurtleXYHook(publicname, propx, propy, displace) {
             pageY: qpxy.pageY + (ts.ty - oty)
           };
         }
-        flushPenState(elem);
+        flushPenState(elem, state);
       }
     }
   };
