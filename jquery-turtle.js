@@ -2674,7 +2674,7 @@ function setImageWithStableOrigin(elem, url, css, cb) {
   if (url in stablyLoadedImages) {
     // Already requested this image?
     record = stablyLoadedImages[url];
-    if (record.img.complete || record.img.errored) {
+    if (record.queue === null) {
       // If already complete, then flip the image right away.
       finishSet(record.img, elem, css, cb);
     } else {
@@ -2697,17 +2697,7 @@ function setImageWithStableOrigin(elem, url, css, cb) {
     // Pop the element to the right dimensions early if possible.
     resizeEarlyIfPossible(url, elem, css);
     // First set up the onload callback, then start loading.
-    function poll(e) {
-      if (e && e.type == 'error') {
-        record.img.errored = true;
-      } else if (!record.img.complete && !record.img.errored) {
-        // Guard against browsers that may fire onload too early or never.
-        setTimeout(poll, 100);
-        return;
-      }
-      record.img.removeEventListener('load', poll);
-      record.img.removeEventListener('error', poll);
-      // TODO: compute the convex hull of the image.
+    afterImageLoadOrError(record.img, url, function() {
       var j, queue = record.queue;
       record.queue = null;
       if (queue) {
@@ -2716,12 +2706,7 @@ function setImageWithStableOrigin(elem, url, css, cb) {
           finishSet(record.img, queue[j].elem, queue[j].css, queue[j].cb);
         }
       }
-    }
-    record.img.addEventListener('load', poll);
-    record.img.addEventListener('error', poll);
-    record.img.src = url;
-    // Start polling immediately, because some browser may never fire onload.
-    poll();
+    });
   }
   // This is the second step, done after the async load is complete:
   // the parameter "loaded" contains the fully loaded Image.
@@ -2738,6 +2723,34 @@ function setImageWithStableOrigin(elem, url, css, cb) {
       cb();
     }
   }
+}
+
+function afterImageLoadOrError(img, url, fn) {
+  if (url == null) { url = img.src; }
+  // If already loaded, then just call fn.
+  if (url == img.src && (!url || img.complete)) {
+    fn();
+    return;
+  }
+  // Otherwise, set up listeners and wait.
+  var timeout = null;
+  function poll(e) {
+    // If we get a load or error event, notice img.complete
+    // or see that the src was changed, we're done here.
+    if (e || img.complete || img.src != url) {
+      img.removeEventListener('load', poll);
+      img.removeEventListener('error', poll);
+      clearTimeout(timeout);
+      fn();
+    } else {
+      // Otherwise, continue waiting and also polling.
+      timeout = setTimeout(poll, 100);
+    }
+  }
+  img.addEventListener('load', poll);
+  img.addEventListener('error', poll);
+  img.src = url;
+  poll();
 }
 
 // In the special case of loading a data: URL onto an element
