@@ -2674,7 +2674,7 @@ function setImageWithStableOrigin(elem, url, css, cb) {
   if (url in stablyLoadedImages) {
     // Already requested this image?
     record = stablyLoadedImages[url];
-    if (record.img.complete) {
+    if (record.img.complete || record.img.errored) {
       // If already complete, then flip the image right away.
       finishSet(record.img, elem, css, cb);
     } else {
@@ -2697,8 +2697,10 @@ function setImageWithStableOrigin(elem, url, css, cb) {
     // Pop the element to the right dimensions early if possible.
     resizeEarlyIfPossible(url, elem, css);
     // First set up the onload callback, then start loading.
-    function poll() {
-      if (!record.img.complete) {
+    function poll(e) {
+      if (e && e.type == 'error') {
+        record.img.errored = true;
+      } else if (!record.img.complete && !record.img.errored) {
         // Guard against browsers that may fire onload too early or never.
         setTimeout(poll, 100);
         return;
@@ -7145,7 +7147,7 @@ var turtlefn = {
       callback = qname;
       qname = 'fx';
     }
-    // If animation is active, then direct will queue the callback.
+    // If animation is active, then plan will queue the callback.
     // It will also arrange things so that if the callback enqueues
     // further animations, they are inserted at the same location,
     // so that the callback can expand into several animations,
@@ -7187,6 +7189,9 @@ var turtlefn = {
     return this;
   })
 };
+
+function awaitImageLoad(next) {
+}
 
 var warning_shown = {},
     loopCounter = 0,
