@@ -1842,6 +1842,11 @@ function makePenStyleHook() {
     set: function(elem, value) {
       var style = parsePenStyle(value, 'strokeStyle'),
           state = getTurtleData(elem);
+      if (state.style) {
+        // Switch to an empty pen first, to terminate paths.
+        state.style = null;
+        flushPenState(elem, state, true);
+      }
       state.style = style;
       elem.style.turtlePenStyle = writePenStyle(style);
       flushPenState(elem, state, true);
