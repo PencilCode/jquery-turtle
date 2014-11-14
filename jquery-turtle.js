@@ -1785,7 +1785,7 @@ function getTurtleData(elem) {
   var state = $.data(elem, 'turtleData');
   if (!state) {
     state = $.data(elem, 'turtleData', {
-      style: null,
+      styte: null,
       corners: [[]],
       path: [[]],
       down: true,
@@ -2529,7 +2529,7 @@ function maybeArcRotation(end, elem, ts, opt) {
   if (tradius === 0 || ts.rot == end) {
     // Avoid drawing a line if zero turning radius.
     opt.displace = false;
-    return normalizeRotation(end);
+    return tradius === 0 ? normalizeRotation(end) : end;
   }
   var tracing = (state && state.style && state.down),
       turnradius = tradius * ts.sy, a;
@@ -2544,7 +2544,7 @@ function maybeArcRotation(end, elem, ts, opt) {
   } else {
     a = setupArc(
       ts.rot,                                   // starting direction
-      delta,                                    // degrees change
+      end,                                      // degrees change
       turnradius);                              // scaled turning radius
   }
   ts.tx += a.dx;
@@ -5929,6 +5929,8 @@ function wrapraw(name, helptext, fn) {
 function rtlt(cc, degrees, radius) {
   if (degrees == null) {
     degrees = 90;  // zero-argument default.
+  } else {
+    degrees = normalizeRotationDelta(degrees);
   }
   var elem, left = (cc.name === 'lt'), intick = insidetick;
   if ((elem = canMoveInstantly(this)) &&
@@ -5963,7 +5965,7 @@ function rtlt(cc, degrees, radius) {
               state.corners[0],
               oldPos,
               oldTs.rot,
-              oldTs.rot + degrees,
+              oldTs.rot + (left ? -degrees : degrees),
               newRadius * oldTs.sy,
               oldTransform);
           });

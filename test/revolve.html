@@ -1,0 +1,43 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit" style="opacity:.2"></div>
+<script>
+eval($.turtle());
+module("Revolve test.");
+asyncTest("Draws 360 degree arcs, testing angle normalization.", function() {
+  speed(10);
+  pen(purple, 20);
+  rt(360, 100);
+  pen(green, 10);
+  lt(360, 100)
+  fill('red');
+  pen(null);
+  home();
+  speed(Infinity);
+  done(function() {
+    ok(touches(green));
+    ok(touches(purple));
+    ok(touches(red));
+    moveto(100, 0);
+    ok(!touches(purple));
+    ok(!touches(green));
+    ok(!touches(red));
+    moveto(200, 0);
+    ok(touches(purple));
+    ok(!touches(green));
+    ok(!touches(red));
+    moveto(-100, 100);
+    ok(touches(green));
+    ok(!touches(purple));
+    ok(touches(red));
+    moveto(-100, 0);
+    ok(!touches(purple));
+    ok(!touches(green));
+    ok(touches(red));
+    start();
+  });
+});
+</script>
