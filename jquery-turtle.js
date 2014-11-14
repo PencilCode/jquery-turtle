@@ -1786,6 +1786,7 @@ function getTurtleData(elem) {
   if (!state) {
     state = $.data(elem, 'turtleData', {
       style: null,
+      corners: [[]],
       path: [[]],
       down: true,
       speed: 'turtle',
@@ -1843,7 +1844,7 @@ function makePenStyleHook() {
           state = getTurtleData(elem);
       state.style = style;
       elem.style.turtlePenStyle = writePenStyle(style);
-      flushPenState(elem, state);
+      flushPenState(elem, state, true);
     }
   };
 }
@@ -1862,7 +1863,7 @@ function makePenDownHook() {
         state.quickpagexy = null;
         state.quickhomeorigin = null;
         elem.style.turtlePenDown = writePenDown(style);
-        flushPenState(elem, state);
+        flushPenState(elem, state, true);
       }
     }
   };
@@ -1871,6 +1872,11 @@ function makePenDownHook() {
 function isPointNearby(a, b) {
   return Math.round(a.pageX - b.pageX) === 0 &&
          Math.round(a.pageY - b.pageY) === 0;
+}
+
+function isPointVeryNearby(a, b) {
+  return Math.round(1000 * (a.pageX - b.pageX)) === 0 &&
+         Math.round(1000 * (a.pageY - b.pageY)) === 0;
 }
 
 function isBezierTiny(a, b) {
@@ -1893,8 +1899,11 @@ function applyPenStyle(ctx, ps, scale) {
   scale = scale || 1;
   var extraWidth = ps.eraseMode ? 1 : 0;
   if (!ps || !('strokeStyle' in ps)) { ctx.strokeStyle = 'black'; }
-  if (!ps || !('lineWidth' in ps)) { ctx.lineWidth = 1.62 * scale + extraWidth; }
+  if (!ps || !('lineWidth' in ps)) {
+    ctx.lineWidth = 1.62 * scale + extraWidth;
+  }
   if (!ps || !('lineCap' in ps)) { ctx.lineCap = 'round'; }
+  if (!ps || !('lineJoin' in ps)) { ctx.lineJoin = 'round'; }
   if (ps) {
     for (var a in ps) {
       if (a === 'savePath' || a === 'eraseMode') { continue; }
@@ -1959,7 +1968,7 @@ function setCanvasPageTransform(ctx, canvas) {
 
 var buttOverlap = 0.67;
 
-function drawAndClearPath(drawOnCanvas, path, style, scale) {
+function drawAndClearPath(drawOnCanvas, path, style, scale, truncateTo) {
   var ctx = drawOnCanvas.getContext('2d'),
       isClosed, skipLast,
       j = path.length,
@@ -1972,23 +1981,12 @@ function drawAndClearPath(drawOnCanvas, path, style, scale) {
   while (j--) {
     if (path[j].length > 1) {
       segment = path[j];
-      isClosed = segment.length > 2 && isPointNearby(
-          segment[0], segment[segment.length - 1]);
+      isClosed = segment.length > 2 &&
+          isPointNearby(segment[0], segment[segment.length - 1]) &&
+          !isPointNearby(segment[0], segment[Math.floor(segment.length / 2)]);
       skipLast = isClosed && (!('pageX2' in segment[segment.length - 1]));
       var startx = segment[0].pageX;
       var starty = segment[0].pageY;
-      if (ctx.lineCap == 'butt' && segment.length > 0) {
-        var dx = segment[1].pageX - startx,
-            dy = segment[1].pageY - starty;
-        if (dx || dy) {
-          // Increase the distance of the starting point if using
-          // butt ends, so that they definitely overlap when animating.
-          var adjust = Math.min(1, buttOverlap /
-              Math.max(Math.abs(dx), Math.abs(dy)));
-          startx -= dx * adjust;
-          starty -= dy * adjust;
-        }
-      }
       ctx.moveTo(startx, starty);
       for (var k = 1; k < segment.length - (skipLast ? 1 : 0); ++k) {
         if ('pageX2' in segment[k] &&
@@ -2008,7 +2006,7 @@ function drawAndClearPath(drawOnCanvas, path, style, scale) {
   if ('strokeStyle' in style) { ctx.stroke(); }
   ctx.restore();
   path.length = 1;
-  path[0].splice(0, path[0].length - 1);
+  path[0].splice(0, Math.max(0, path[0].length - truncateTo));
 }
 
 function addBezierToPath(path, start, triples) {
@@ -2023,38 +2021,62 @@ function addBezierToPath(path, start, triples) {
   }
 }
 
-function flushPenState(elem, state) {
+function addToPathList(pathList, point) {
+  if (pathList.length &&
+      (point.corner ? isPointVeryNearby(point, pathList[pathList.length - 1]) :
+                      isPointNearby(point, pathList[pathList.length - 1]))) {
+    return;
+  }
+  pathList.push(point);
+}
+
+function flushPenState(elem, state, corner) {
   if (!state) {
     // Default is no pen and no path, so nothing to do.
     return;
   }
-  if (!state.style || (!state.down && !state.style.savePath)) {
-    if (state.path.length > 1) { state.path.length = 1; }
-    if (state.path[0].length) { state.path[0].length = 0; }
-    return;
-  }
-  if (!state.down) {
-    // Penup when saving path will start a new segment if one isn't started.
-    if (state.path.length && state.path[0].length) {
-      state.path.unshift([]);
+  var path = state.path, style = state.style, corners = state.corners;
+  if (!style || !state.down) {
+    if (corner) {
+      if (style && style.savePath) {
+        // Penup when saving path will create a new path if needed.
+        if (corners.length && corners[0].length) {
+          if (corners[0].length == 1) {
+            corners[0].length = 0;
+          } else {
+            corners.unshift([]);
+          }
+        }
+      } else {
+        if (corners.length > 1) corners.length = 1;
+        if (corners[0].length) corners[0].length = 0;
+      }
     }
+    // Penup when not saving path will clear the saved path.
+    if (path.length > 1) { path.length = 1; }
+    if (path[0].length) { path[0].length = 0; }
     return;
   }
+  if (!corner && style.savePath) return;
   var center = getCenterInPageCoordinates(elem);
-  if (!state.path[0].length ||
-      !isPointNearby(center, state.path[0][state.path[0].length - 1])) {
-    state.path[0].push(center);
+  if (corner) {
+    center.corner = true;
+    addToPathList(corners[0], center);
   }
-  if (!state.style.savePath) {
-    var ts = readTurtleTransform(elem, true);
-    drawAndClearPath(getDrawOnCanvas(state), state.path, state.style, ts.sx);
-  }
+  if (style.savePath) return;
+  addToPathList(path[0], center);
+  var ts = readTurtleTransform(elem, true);
+  drawAndClearPath(getDrawOnCanvas(state), state.path, style, ts.sx, 2);
 }
 
 function endAndFillPenPath(elem, style) {
   var ts = readTurtleTransform(elem, true),
       state = getTurtleData(elem);
-  drawAndClearPath(getDrawOnCanvas(state), state.path, style);
+  if (state.style) {
+    // Apply a default style.
+    style = $.extend({}, state.style, style);
+  }
+  drawAndClearPath(getDrawOnCanvas(state), state.corners, style, ts.sx, 1);
   if (state.style && state.style.savePath) {
     $.style(elem, 'turtlePenStyle', 'none');
   }
@@ -2243,7 +2265,7 @@ function doQuickMove(elem, distance, sideways) {
   ts.tx += dx;
   ts.ty += dy;
   elem.style[transform] = writeTurtleTransform(ts);
-  flushPenState(elem, state);
+  flushPenState(elem, state, true);
 }
 
 function doQuickMoveXY(elem, dx, dy) {
@@ -2260,7 +2282,7 @@ function doQuickMoveXY(elem, dx, dy) {
   ts.tx += dx;
   ts.ty -= dy;
   elem.style[transform] = writeTurtleTransform(ts);
-  flushPenState(elem, state);
+  flushPenState(elem, state, true);
 }
 
 function doQuickRotate(elem, degrees) {
@@ -5741,6 +5763,7 @@ function continuationArg(args, argcount) {
 //        as each of the elements' animations completes; when the jth
 //        element completes, resolve(j) should be called.  The last time
 //        it is called, it will trigger the continuation callback, if any.
+//        Call resolve(j, true) if a corner pen state should be marked.
 //    resolver: a function that returns a closure that calls resolve(j).
 //    start: a function to be called once to enable triggering of the callback.
 // the last argument in an argument list if it is a function, and if the
@@ -5753,10 +5776,13 @@ function setupContinuation(thissel, name, args, argcount) {
       countdown = length + 1,
       sync = true,
       debugId = debug.nextId();
-  function resolve(j) {
+  function resolve(j, corner) {
     if (j != null) {
-      debug.reportEvent('resolve',
-          [name, debugId, length, j, thissel && thissel[j]]);
+      var elem = thissel && thissel[j];
+      if (corner && elem) {
+        flushPenState(elem, $.data(elem, 'turtleData'), true);
+      }
+      debug.reportEvent('resolve', [name, debugId, length, j, elem]);
     }
     if ((--countdown) == 0) {
       // A subtlety: if we still have not yet finished setting things up
@@ -5789,7 +5815,7 @@ function setupContinuation(thissel, name, args, argcount) {
     args: mainargs,
     appear: appear,
     resolve: resolve,
-    resolver: function(j) { return function() { resolve(j); }; },
+    resolver: function(j, c) { return function() { resolve(j, c); }; },
     exit: function exit() {
       debug.reportEvent('exit', [name, debugId, length, mainargs]);
       // Resolve one extra countdown; this is needed for a done callback
@@ -5918,13 +5944,33 @@ function rtlt(cc, degrees, radius) {
   } else {
     this.plan(function(j, elem) {
       cc.appear(j);
-      var oldRadius = this.css('turtleTurningRadius');
-      this.css({turtleTurningRadius: (degrees < 0) ? -radius : radius});
+      var state = getTurtleData(elem),
+          oldRadius = state.turningRadius,
+          newRadius = (degrees < 0) ? -radius : radius,
+          addCorner = null;
+      if (state.style && state.down) {
+        addCorner = (function() {
+          var oldPos = getCenterInPageCoordinates(elem),
+              oldTs = readTurtleTransform(elem, true),
+              oldTransform = totalTransform2x2(elem.parentElement);
+          return (function() {
+            addArcBezierPaths(
+              state.corners[0],
+              oldPos,
+              oldTs.rot,
+              oldTs.rot + degrees,
+              newRadius * oldTs.sy,
+              oldTransform);
+          });
+        })();
+      }
+      state.turningRadius = newRadius;
       this.animate({turtleRotation: operator + cssNum(degrees) + 'deg'},
           animTime(elem, intick), animEasing(elem));
       this.plan(function() {
-        this.css({turtleTurningRadius: oldRadius});
-        cc.resolve(j);
+        if (addCorner) addCorner();
+        state.turningRadius = oldRadius;
+        cc.resolve(j, true);
       });
     });
     return this;
@@ -5943,13 +5989,13 @@ function fdbk(cc, amount) {
   if ((elem = canMoveInstantly(this))) {
     cc.appear(0);
     doQuickMove(elem, amount, 0);
-    cc.resolve(0);
+    cc.resolve(0, true);
     return this;
   }
   this.plan(function(j, elem) {
-    cc.appear(0);
+    cc.appear(j);
     this.animate({turtleForward: '+=' + cssNum(amount || 0) + 'px'},
-        animTime(elem, intick), animEasing(elem), cc.resolver(0));
+        animTime(elem, intick), animEasing(elem), cc.resolver(j, true));
   });
   return this;
 }
@@ -5969,7 +6015,7 @@ function move(cc, x, y) {
   this.plan(function(j, elem) {
     cc && cc.appear(j);
     this.animate({turtlePosition: displacedPosition(elem, y, x)},
-        animTime(elem, intick), animEasing(elem), cc && cc.resolver(j));
+        animTime(elem, intick), animEasing(elem), cc && cc.resolver(j, true));
   });
   return this;
 }
@@ -5993,7 +6039,7 @@ function movexy(cc, x, y) {
     var tr = getElementTranslation(elem);
     this.animate(
       { turtlePosition: cssNum(tr[0] + x) + ' ' + cssNum(tr[1] - y) },
-      animTime(elem, intick), animEasing(elem), cc && cc.resolver(j));
+      animTime(elem, intick), animEasing(elem), cc && cc.resolver(j, true));
   });
   return this;
 }
@@ -6041,7 +6087,7 @@ function moveto(cc, x, y) {
     cc && cc.appear(j);
     this.animate({turtlePosition:
         computeTargetAsTurtlePosition(elem, pos, limit, localx, localy)},
-        animTime(elem, intick), animEasing(elem), cc && cc.resolver(j));
+        animTime(elem, intick), animEasing(elem), cc && cc.resolver(j, true));
   });
   return this;
 }
@@ -6056,7 +6102,7 @@ function makejump(move) {
       move.call(this, null, x, y);
       this.plan(function() {
         this.css({turtlePenDown: down});
-        cc.resolve(j);
+        cc.resolve(j, true);
       });
     });
     return this;
@@ -6261,8 +6307,14 @@ var turtlefn = {
         dir = limitRotation(ts.rot, dir, limit === null ? 360 : limit);
       }
       dir = ts.rot + normalizeRotation(dir - ts.rot);
+      var oldRadius = this.css('turtleTurningRadius');
+      this.css({turtleTurningRadius: 0});
       this.animate({turtleRotation: dir},
-          animTime(elem, intick), animEasing(elem), cc.resolver(j));
+          animTime(elem, intick), animEasing(elem));
+      this.plan(function() {
+        this.css({turtleTurningRadius: oldRadius});
+        cc.resolve(j);
+      });
     });
     return this;
   }),

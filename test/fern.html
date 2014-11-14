@@ -8,7 +8,7 @@
 eval($.turtle());
 $.turtle.hungtimeout = Infinity;  // Allow for slow CPUs.
 module("Fern test.");
-asyncTest("Draws a circle and verifies its presence.", function() {
+asyncTest("Draws a fractal and verifies its shape.", function() {
   speed(Infinity);
   function fern(x) {
     if (x > 1) {
