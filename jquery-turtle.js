@@ -5549,7 +5549,7 @@ function sync() {
   }
   for (j = 0; j < elts.length; ++j) {
     queueWaitIfLoadingImg(elts[j]);
-    $.queue(elts[j], 'fx', function(next) {
+    $(elts[j]).queue(function(next) {
       if (ready) {
         ready.push(next);
         if (ready.length == elts.length) {
