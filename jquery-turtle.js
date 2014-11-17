@@ -6401,7 +6401,7 @@ var turtlefn = {
       cc.appear(j);
       var animate = !invisible(elem) && !canMoveInstantly(this),
           oldstyle = animate && parsePenStyle(this.css('turtlePenStyle')),
-          olddown = animate && this.css('turtlePenDown'),
+          olddown = oldstyle && ('down' == this.css('turtlePenDown')),
           moved = false;
       if (penstyle === false || penstyle === true ||
           penstyle == 'down' || penstyle == 'up') {
@@ -6427,7 +6427,7 @@ var turtlefn = {
                         (style.savePath && 'gray'))) ||
                     (oldstyle && oldstyle.strokeStyle) || 'gray',
             target = {},
-            newdown = this.css('turtlePenDown') && !style,
+            newdown = style && 'down' == this.css('turtlePenDown'),
             pencil = new Turtle(color + ' pencil', this.parent()),
             distance = this.height();
         pencil.css({
@@ -6437,14 +6437,14 @@ var turtlefn = {
           turtleRotation: this.css('turtleRotation'),
           turtleSpeed: Infinity
         });
-        if (olddown == "up") {
+        if (!olddown) {
           pencil.css({ turtleForward: "+=" + distance, opacity: 0 });
-          if (newdown == "down") {
+          if (newdown) {
             target.turtleForward = "-=" + distance;
             target.opacity = 1;
           }
         } else {
-          if (newdown == "up") {
+          if (!newdown) {
             target.turtleForward = "+=" + distance;
             target.opacity = 0;
           }
