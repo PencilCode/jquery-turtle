@@ -41,15 +41,15 @@ asyncTest("Test of boxes.", function() {
     ok(!touches(red));
     ok(!touches(green));
     ok(touches(blue));
-    slide(-20);
+    move(-20);
     ok(!touches(red));
     ok(!touches(green));
     ok(!touches(blue));
-    slide(-80,-20);
+    move(-80,-20);
     ok(!touches(red));
     ok(touches(green));
     ok(!touches(blue));
-    slide(200);
+    move(200);
     ok(!touches(red));
     ok(touches(green));
     ok(!touches(blue));

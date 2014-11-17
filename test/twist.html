@@ -9,11 +9,11 @@ eval($.turtle());
 module("Twist test.");
 asyncTest("Test of twisting a skinny shape.", function() {
   speed(Infinity);
-  slide(100);
+  move(100);
   dot(yellow);
-  slide(-200);
+  move(-200);
   dot(pink);
-  slide(100);
+  move(100);
   fd(100);
   dot(red);
   bk(200)

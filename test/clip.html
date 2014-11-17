@@ -19,11 +19,11 @@ asyncTest("Draws does a few movexy displacements.", function() {
   ok(a.touches(blue));
   drawon(a);
   dot(red, 20);
-  slide(20);
+  move(20);
   dot(red, 20);
   fd(20);
   dot(red, 20);
-  a.slide(20, 20);
+  a.move(20, 20);
   ok(a.touches(blue));
   a.clip()
   ok(!a.touches(blue));
@@ -35,7 +35,7 @@ asyncTest("Draws does a few movexy displacements.", function() {
   ok(a.touches(blue));
   a.lt(30);
   ok(!a.touches(blue));
-  a.slide(-20);
+  a.move(-20);
   ok(a.touches(blue));
   start();
 });

@@ -30,7 +30,7 @@ asyncTest("Moves a few turtles, having each pause for the other.", function() {
   equal(b.getxy()[1], 0);
   equal(getxy()[0], 0);
   pause(b);
-  slide(100);
+  move(100);
   plan(function() {
     equal(round(a.getxy()[1]), 100);
     equal(round(b.getxy()[1]), -100);

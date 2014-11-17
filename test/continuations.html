@@ -28,7 +28,7 @@ asyncTest("Exercises continuation-passing style on various apis.", function() {
                     ok(!touches(red));
                     turnto(0, function() {
                       ok(!touches(red));
-                      slide(0, -100, function() {
+                      move(0, -100, function() {
                         ok(touches(red));
                         moveto(0, 0, function() {
                           ok(touches(red));

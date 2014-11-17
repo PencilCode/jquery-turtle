@@ -12,7 +12,7 @@ asyncTest("Verifies that 'inside' works.", function() {
   ok(inside(window));
   var p = write('hello');
   ok(p.inside(window));
-  p.slide(-25, 0);
+  p.move(-25, 0);
   ok(!p.inside(window));
   fd(2000);
   ok(!inside(window));

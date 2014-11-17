@@ -3,12 +3,14 @@
 <script src="lib/jquery.js"></script>
 <script src="../jquery-turtle.js"></script>
 <body>
-<div id="qunit"></div>
+<div id="qunit" style="opacity:0.5" class="turtlefield"></div>
 <script>
 eval($.turtle());
 module("Pen styles test.");
 asyncTest("Draws a series of lines with different style pens.", function() {
   speed(Infinity);
+  cs();
+  home();
   pen({strokeStyle: red, lineWidth:100, lineCap: 'butt'});
   fd(10);
   ok(touches(red));
@@ -17,13 +19,13 @@ asyncTest("Draws a series of lines with different style pens.", function() {
   fd(20);
   ok(!touches(red));
   bk(20);
-  slide(50)
+  move(50)
   ok(touches(red));
-  slide(20)
+  move(20)
   ok(!touches(red));
-  slide(-120)
+  move(-120)
   ok(touches(red));
-  slide(-20)
+  move(-20)
   ok(!touches(red));
   rt(45);
   pen({strokeStyle: blue, lineWidth:100, lineCap: 'square'});
@@ -31,7 +33,7 @@ asyncTest("Draws a series of lines with different style pens.", function() {
   ok(touches(blue));
   ok(!touches(transparent));
   pen(null);
-  slide(50, 50);
+  move(50, 50);
   ok(touches(blue));
   ok(touches(transparent));
   ok(touches(red));
@@ -40,10 +42,10 @@ asyncTest("Draws a series of lines with different style pens.", function() {
   ok(touches(green));
   ok(!touches(transparent));
   pen(null);
-  slide(50, 50);
+  move(50, 50);
   ok(touches(transparent));
   ok(!touches(green));
-  slide(-10, -10);
+  move(-10, -10);
   ok(touches(transparent));
   ok(touches(green));
   pen('path');
@@ -62,5 +64,61 @@ asyncTest("Draws a series of lines with different style pens.", function() {
   fd(200);
   ok(!touches("color"));
   start();
+});
+
+asyncTest("Draws a series of lines with different style pens.", function() {
+  speed(100);
+  cs();
+  home();
+  move(25, -25);
+  pen(blue, 20);
+  rt(180, 50);
+  pen(up);
+  fd(50);
+  pen(down)
+  rt(180, 50);
+  fill(lime);
+  pen(up);
+  move(-50, 50);
+  pen(path);
+  lt(180, 50);
+  pen(up);
+  fd(50);
+  pen(down)
+  lt(180, 50);
+  fill(pink);
+  speed(Infinity);
+  done(function() {
+    home();
+    ok(!touches(blue));
+    ok(!touches(lime));
+    ok(!touches(pink));
+    ok(touches(transparent));
+    moveto(50, 0);
+    ok(!touches(blue));
+    ok(!touches(lime));
+    ok(!touches(pink));
+    ok(touches(transparent));
+    moveto(50, 25);
+    ok(!touches(blue));
+    ok(touches(lime));
+    ok(!touches(pink));
+    ok(touches(transparent));
+    moveto(50, 75);
+    ok(!touches(blue));
+    ok(touches(lime));
+    ok(!touches(pink));
+    ok(touches(transparent));
+    moveto(50, -25);
+    ok(!touches(blue));
+    ok(touches(lime));
+    ok(!touches(pink));
+    ok(touches(transparent));
+    moveto(-50, 0);
+    ok(!touches(blue));
+    ok(!touches(lime));
+    ok(!touches(pink));
+    ok(touches(transparent));
+  });
 });
 </script>
