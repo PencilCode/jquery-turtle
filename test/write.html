@@ -1,0 +1,76 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Write test.");
+asyncTest("Verify that write returns the element we want.", function() {
+  var result;
+  // Basic write
+  result = write('This is a "regular" message!')
+  equal(result.length, 1);
+  equal(result[0].tagName, 'DIV');
+  equal(document.body.lastChild, result[0]);
+  equal($('div').last().text(), 'This is a "regular" message!');
+  // HTML entities
+  result = write('Try an Entity&trade;')
+  equal(result.length, 1);
+  equal(result[0].tagName, 'DIV');
+  equal(document.body.lastChild, result[0]);
+  equal($('div').last().text(), 'Try an Entity\u2122');
+  // Write some text (that looks like a tag)
+  result = write('< actually some text >')
+  equal(result.length, 1);
+  equal(result[0].tagName, 'DIV');
+  equal(document.body.lastChild, result[0]);
+  equal($('div').last().text(), '< actually some text >');
+  // Write a tag.
+  result = write('<img>');
+  equal(result.length, 1);
+  equal(result[0].tagName, 'IMG');
+  equal(document.body.lastChild, result[0]);
+  // Write an unended tag.
+  result = write('<b>');
+  equal(result.length, 1);
+  equal(result[0].tagName, 'B');
+  equal(document.body.lastChild, result[0]);
+  equal(result.html(), '');
+  // Write a nested tag.
+  result = write('<p><b style="color:red">Boldified</b> text.</p>');
+  equal(result.length, 1);
+  equal(result[0].tagName, 'P');
+  equal(document.body.lastChild, result[0]);
+  equal(result.html(), '<b style="color:red">Boldified</b> text.');
+  // Write two tags (should be wrapped in a div)
+  result = write('<img><p>');
+  equal(result.length, 1);
+  equal(result[0].tagName, 'DIV');
+  equal(document.body.lastChild, result[0]);
+  equal($('div').last().html(), '<img><p></p>');
+  start();
+});
+
+asyncTest("Verify that write waits for the turtle.", function() {
+  speed(100);
+  fd(100);
+  var result = write('hello');
+  // Text should not appear right away.
+  equal(result.length, 1);
+  equal(result.html(), 'hello');
+  equal(result[0].tagName, 'DIV');
+  equal(result[0].parentElement, null);
+  ok(document.body.lastChild != result[0]);
+  // We should be able to change the text before it is shown.
+  result.text('switched');
+  plan(function() {
+    // After the turtle is done moving, the text should be there.
+    equal(result[0].parentElement, document.body);
+    equal(document.body.lastChild, result[0]);
+    equal($('div').last().html(), 'switched');
+    start();
+  });
+});
+</script>
