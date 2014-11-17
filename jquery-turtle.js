@@ -1788,7 +1788,7 @@ function getTurtleData(elem) {
       styte: null,
       corners: [[]],
       path: [[]],
-      down: true,
+      down: false,
       speed: 'turtle',
       easing: 'swing',
       turningRadius: 0,
@@ -2040,11 +2040,21 @@ function flushPenState(elem, state, corner) {
     // Default is no pen and no path, so nothing to do.
     return;
   }
-  var path = state.path, style = state.style, corners = state.corners;
+  var path = state.path,
+      style = state.style,
+      corners = state.corners;
   if (!style || !state.down) {
+    // pen up or pen null will clear the tracing path.
+    if (path.length > 1) { path.length = 1; }
+    if (path[0].length) { path[0].length = 0; }
     if (corner) {
-      if (style) {
-        // Penup when saving path will create a new segment if needed.
+      if (!style) {
+        if (window.buggy) console.trace('clearing the retracing path');
+        // pen null will clear the retracing path too.
+        if (corners.length > 1) corners.length = 1;
+        if (corners[0].length) corners[0].length = 0;
+      } else {
+        // pen up with a non-null pen will start a new discontinuous segment.
         if (corners.length && corners[0].length) {
           if (corners[0].length == 1) {
             corners[0].length = 0;
@@ -2052,25 +2062,23 @@ function flushPenState(elem, state, corner) {
             corners.unshift([]);
           }
         }
-      } else {
-        if (corners.length > 1) corners.length = 1;
-        if (corners[0].length) corners[0].length = 0;
       }
     }
-    // Penup when not saving path will clear the saved path.
-    if (path.length > 1) { path.length = 1; }
-    if (path[0].length) { path[0].length = 0; }
     return;
   }
   if (!corner && style.savePath) return;
+  // Accumulate retracing path using only corners.
   var center = getCenterInPageCoordinates(elem);
   if (corner) {
     center.corner = true;
     addToPathList(corners[0], center);
   }
   if (style.savePath) return;
+  // Add to tracing path, and trace it righ away.
   addToPathList(path[0], center);
   var ts = readTurtleTransform(elem, true);
+  // Last argument 2 means that the last two points are saved, which
+  // allows us to draw corner miters and also avoid 'butt' lineCap gaps.
   drawAndClearPath(getDrawOnCanvas(state), state.path, style, ts.sx, 2);
 }
 
@@ -6398,14 +6406,16 @@ var turtlefn = {
           penstyle += ";lineJoin:" + args.lineJoin;
         }
         this.css('turtlePenStyle', penstyle);
+        this.css('turtlePenDown', penstyle == 'none' ? 'up' : 'down');
       }
       if (animate) {
         // A visual indicator of a pen color change.
         var style = parsePenStyle(this.css('turtlePenStyle')),
-            color = (style && style.strokeStyle) ||
+            color = (style && (style.strokeStyle ||
+                        (style.savePath && 'gray'))) ||
                     (oldstyle && oldstyle.strokeStyle) || 'gray',
             target = {},
-            newdown = this.css('turtlePenDown'),
+            newdown = this.css('turtlePenDown') && !style,
             pencil = new Turtle(color + ' pencil', this.parent()),
             distance = this.height();
         pencil.css({
