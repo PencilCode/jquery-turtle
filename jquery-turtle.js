@@ -10138,7 +10138,8 @@ function tryinitpanel() {
   }
 }
 
-eval("scope('jquery-turtle', " + seejs + ", this)");
+// Removing this debugging line saves 20kb in minification.
+// eval("scope('jquery-turtle', " + seejs + ", this)");
 
 function transparentHull(image, threshold) {
   var c = document.createElement('canvas');
