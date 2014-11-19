@@ -1,0 +1,55 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Input/Output test.");
+asyncTest("Draws a square changing speed along the way.", function() {
+  w = write('hello!');
+  equal($('div').last().text(), 'hello!');
+  type('AWESOME');
+  equal($('pre').last().text(), 'AWESOME');
+  t = table([[1,2,3]]);
+  var td = $('td');
+  equal(td.length, 3);
+  equal(td.eq(0).text(), "1");
+  equal(td.eq(1).text(), "2");
+  equal(td.eq(2).text(), "3");
+  var clicked = 0;
+  setTimeout(function() {
+    $('input').val('Amy').change();
+  }, 1);
+  r = read('name?', function(t) {
+    equal(t, 'Amy');
+    setTimeout(function() {
+      $('button').click();
+    }, 1);
+    b = button('click me!', function() {
+      equal(equal($('button').last().text(), 'click me!'));
+      equal(clicked++, 0);
+      mutate();
+    });
+  });
+  function mutate() {
+    equal(clicked, 1);
+    w.text('goodbye!');
+    equal($('div').last().text(), 'goodbye!');
+    equal($('pre').last().text(), 'AWESOME');
+    t.cell(0, 1).text('middle');
+    equal(td.eq(1).text(), "middle");
+    equal(r.text(), 'name?\xa0Amy');
+    equal(b.parent('body').length, 1);
+    b.remove();
+    equal(b.parent('body').length, 0);
+    b.off();
+    b.click();
+    equal(clicked, 1);
+    button();
+    equal($('button').text(), 'button');
+    start();
+  }
+});
+</script>
