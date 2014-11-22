@@ -1,0 +1,110 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit" style="opacity:.2"></div>
+<script>
+eval($.turtle());
+module("Fill test.");
+asyncTest("Check both forms of fill.", function() {
+
+var phantom = /PhantomJS/.test(navigator.userAgent);
+
+speed(100);
+pen(path);
+for (var j= 0; j < 4; ++j) {
+  fd(100);
+  rt(90);
+}
+var style = {
+  strokeStyle: blue,
+  fillStyle: pink,
+  lineWidth: 30,
+  lineCap: 'butt',
+  lineJoin: 'bevel',
+  lineDash: '50 50',
+  lineDashOffset:  25,
+}
+if (phantom) {
+  // Phantom hangs on lineDash.
+  delete style.lineDash;
+  delete style.lineDashOffset;
+}
+fill(style);
+jumpto(-50, 50);
+lt(360, 50);
+fill(green);
+done(function() {
+  speed(Infinity);
+  jumpto(-50, 0);
+  ok(!touches(green));
+  jumpto(-50, 50);
+  ok(touches(green));
+  ok(touches(transparent));
+  jumpto(-100, 50);
+  ok(touches(green));
+  ok(!touches(transparent));
+  jumpto(-150, 50);
+  ok(touches(green));
+  ok(touches(transparent));
+  home();
+  ok(touches(blue));
+  ok(!touches(pink));
+  ok(!touches(transparent));
+  jumpto(0, 100);
+  ok(touches(blue));
+  ok(!touches(pink));
+  ok(!touches(transparent));
+  jumpto(100, 100);
+  ok(touches(blue));
+  ok(!touches(pink));
+  ok(!touches(transparent));
+  jumpto(100, 0);
+  ok(touches(blue));
+  ok(!touches(pink));
+  ok(!touches(transparent));
+  jumpto(-15, -15);
+  ok(!touches(blue));
+  ok(!touches(pink));
+  ok(touches(transparent));
+  jumpto(115, -15);
+  ok(!touches(blue));
+  ok(!touches(pink));
+  ok(touches(transparent));
+  jumpto(115, 115);
+  ok(!touches(blue));
+  ok(!touches(pink));
+  ok(touches(transparent));
+  jumpto(-15, 115);
+  ok(!touches(blue));
+  ok(!touches(pink));
+  ok(touches(transparent));
+  if (!phantom) {
+    jumpto(0, 50);
+    ok(!touches(blue));
+    ok(touches(pink));
+    ok(touches(transparent));
+    jumpto(50, 0);
+    ok(!touches(blue));
+    ok(touches(pink));
+    ok(touches(transparent));
+    jumpto(100, 50);
+    ok(!touches(blue));
+    ok(touches(pink));
+    ok(touches(transparent));
+    jumpto(50, 100);
+    ok(!touches(blue));
+    ok(touches(pink));
+    ok(touches(transparent));
+  }
+  jumpto(50, 50);
+  ok(!touches(blue));
+  ok(touches(pink));
+  ok(!touches(transparent));
+  start();
+});
+
+});
+
+</script>
