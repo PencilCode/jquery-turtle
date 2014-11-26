@@ -3,10 +3,27 @@
 <script src="lib/jquery.js"></script>
 <script src="../jquery-turtle.js"></script>
 <body>
-<div id="qunit"></div>
+<div id="qunit" style="opacity:.3"></div>
 <script>
 eval($.turtle());
 module("Test of wear command.");
+
+asyncTest("Wears an image and moves it immediately.", function() {
+  var r = new Turtle(red);
+  r.speed(100);
+  tick(60, function() {
+    ok(r.width() != 20 || r.getxy()[1] == 0);
+  });
+  r.wear('http://deelay.me/100/http://upload.wikimedia.org/wikipedia/commons/5/51/Linalg_rotating_cube_2.png');
+  r.fd(100);
+  r.bk(100);
+  r.done(function() {
+    ok(r.width() != 20);
+    tick(null);
+    setTimeout(start, 0);
+  });
+});
+
 asyncTest("Wears and hittests different shapes.", function() {
   speed(Infinity);
   dot(red, 30);
@@ -47,7 +64,7 @@ asyncTest("Wears and hittests different shapes.", function() {
       wear(blue);
       pause(0.1, function() {
         ok(b.touches(blue));
-        start();
+        setTimeout(start, 0);
       });
     });
   });
