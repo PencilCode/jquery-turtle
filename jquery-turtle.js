@@ -6867,7 +6867,7 @@ var turtlefn = {
       // Place the label on the screen using the figured styles.
       var out = prepareOutput(html, 'label').result.css(applyStyles)
           .addClass('turtlelabel').appendTo(getTurtleField());
-      if (styles && 'id' in styles) { 
+      if (styles && 'id' in styles) {
         out.attr('id', styles.id);
       }
       if (styles && 'class' in styles) {
