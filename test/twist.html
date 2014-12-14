@@ -18,7 +18,9 @@ asyncTest("Test of twisting a skinny shape.", function() {
   dot(red);
   bk(200)
   dot(blue);
-  var s = new Sprite({ width: 10, height: 200, color: green });
+  var s = new Sprite({ width: 10, height: 200, color: green, id: "s" });
+  equal($('#s').length, 1);
+  equal(s.filter('#s').length, 1);
   ok(s.touches(red));
   ok(s.touches(blue));
   ok(!s.touches(pink));
