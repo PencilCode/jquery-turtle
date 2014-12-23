@@ -979,15 +979,6 @@ function getTurtleOrigin(elem, inverseParent, extra) {
   return result;
 }
 
-function unattached(elt) {
-  // Unattached if not part of a document.
-  while (elt) {
-    if (elt.nodeType === 9) return false;
-    elt = elt.parentNode;
-  }
-  return true;
-}
-
 function wh() {
   // Quirks-mode compatible window height.
   return window.innerHeight || $(window).height();
@@ -1065,18 +1056,6 @@ function polyMatchesGbcr(poly, gbcr) {
 
 function readPageGbcr() {
   var raw = this.getBoundingClientRect();
-  if (raw.width === 0 && raw.height === 0 &&
-     raw.top === 0 && raw.left === 0 && unattached(this)) {
-    // Prentend unattached images have a size.
-    return {
-      top: 0,
-      bottom: this.height || 0,
-      left: 0,
-      right: this.width || 0,
-      width: this.width || 0,
-      height: this.height || 0
-    }
-  }
   return {
     top: raw.top + window.pageYOffset,
     bottom: raw.bottom + window.pageYOffset,
@@ -7171,7 +7150,7 @@ var turtlefn = {
     if (!arg) return false;
     if (typeof arg === 'string') { arg = $(arg); }
     if (!arg.jquery && !$.isArray(arg)) { arg = [arg]; }
-    var anyok = false, k = 0, j, obj, elem, gbcr0, toucher;
+    var anyok = false, k = 0, j, obj, elem, gbcr0, toucher, gbcr1;
     for (;!anyok && k < this.length; ++k) {
       elem = this[k];
       gbcr0 = getPageGbcr(elem);
@@ -7179,7 +7158,10 @@ var turtlefn = {
       for (j = 0; !anyok && j < arg.length; ++j) {
         obj = arg[j];
         // Optimize the outside-bounding-box case.
-        if (isDisjointGbcr(gbcr0, getPageGbcr(obj))) {
+        gbcr1 = getPageGbcr(obj);
+        // Do not touch removed or hidden elements, or
+        // elements that are not in the document.
+        if (gbcr1.width === 0 || isDisjointGbcr(gbcr0, gbcr1)) {
           continue;
         }
         if (!toucher) {

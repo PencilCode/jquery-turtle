@@ -50,8 +50,19 @@ asyncTest("Draws a square changing speed along the way.", function() {
   }
 
   done(function() {
-    $('#radius').remove();
     equal(expected, 4);
+    $('#radius').remove();
+    speed(Infinity);
+    ok(touches(targets[0]));
+    fd(100);
+    ok(touches(targets[1]));
+    remove(targets);
+    ok(!touches(targets[1]));
+    rt(90)
+    fd(100);
+    ok(!touches(targets[2]));
+    moveto({pageX: 0, pageY: 0});
+    ok(!touches(targets[2]));
     start();
   });
 });
