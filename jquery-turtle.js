@@ -6745,7 +6745,7 @@ var turtlefn = {
     return this;
   }),
   saveimg: wrapcommand('saveimg', 1,
-  ["<u>saveimg(filename)</u> Saves the turtle's image as a file." +
+  ["<u>saveimg(filename)</u> Saves the turtle's image as a file. " +
       "<mark>t.saveimg 'mypicture.png'</mark>"],
   function saveimg(cc, filename) {
     return this.plan(function(j, elem) {
@@ -7520,13 +7520,13 @@ var dollar_turtle_methods = {
       "<mark>[w, h] = sizexy(); canvas('2d').fillRect(0, 0, w, h)</mark>"],
   sizexy),
   forever: wrapraw('forever',
-  ["<u>forever(fn)</u> Calls fn repeatedly, forever." +
+  ["<u>forever(fn)</u> Calls fn repeatedly, forever. " +
       "<mark>forever -> fd 2; rt 2</mark>",
-   "<u>forever(fps, fn)</u> Calls fn repeating fps per second." +
+   "<u>forever(fps, fn)</u> Calls fn repeating fps per second. " +
       "<mark>forever 2, -> fd 25; dot blue</mark>"],
   forever),
   stop: wrapraw('stop',
-  ["<u>stop()</u> stops the current forever loop." +
+  ["<u>stop()</u> stops the current forever loop. " +
       "<mark>forever -> fd 10; if not inside window then stop()</mark>",
    "<u>stop(fn)</u> stops the forever loop corresponding to fn.",
    "Use <u>break</u> to stop a <u>for</u> or <u>while</u> loop."],
@@ -7897,7 +7897,7 @@ var dollar_turtle_methods = {
       "<mark>see min 2, -5, 1</mark>"], Math.min),
   Pencil: wrapraw('Pencil',
   ["<u>new Pencil(canvas)</u> " +
-      "Make an invisble pencil for drawing on a canvas." +
+      "Make an invisble pencil for drawing on a canvas. " +
       "<mark>s = new Sprite; p = new Pencil(s); " +
       "p.pen red; p.fd 100; remove p</mark>"],
       Pencil),
