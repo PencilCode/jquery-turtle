@@ -1,0 +1,31 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Stop test.");
+asyncTest("Moves a turtle forever until off the screen", function() {
+  // Forever loop every 10ms.
+  forever(100, function() {
+    fd(100);
+    if (!inside(window)) {
+      stop();
+      stopped();
+    }
+  });
+  function stopped() {
+    ok(!inside(window));
+    speed(Infinity);
+    // Wait 50ms.  forever should be stopped, but we wait so that
+    // we can detect if it is not.
+    setTimeout(function() {
+      bk(100);
+      ok(inside(window));
+      start();
+    }, 50);
+  }
+});
+</script>
