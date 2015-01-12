@@ -7344,7 +7344,7 @@ var warning_shown = {},
 // 100th turtle motion.  If it takes more than a few seconds to receive it,
 // our script is blocking message dispatch, and an interrupt is triggered.
 function checkForHungLoop(fname) {
-  if ($.turtle.hungtimeout == Infinity || loopCounter++ < 100) {
+  if ($.turtle.hangtime == Infinity || loopCounter++ < 100) {
     return;
   }
   loopCounter = 0;
@@ -7360,7 +7360,7 @@ function checkForHungLoop(fname) {
     return;
   }
   // Timeout after which we interrupt the program: 6 seconds.
-  if (now - hangStartTime > $.turtle.hungtimeout) {
+  if (now - hangStartTime > $.turtle.hangtime) {
     if (see.visible()) {
       see.html('<span style="color:red">Oops: program ' +
         'interrupted because it was hanging the browser. ' +
@@ -8077,8 +8077,8 @@ $.turtle = function turtle(id, options) {
     globalDrawing.subpixel = parseInt(options.subpixel);
   }
   // Set up hung-browser timeout, default 10 seconds.
-  $.turtle.hungtimeout = ('hungtimeout' in options) ?
-      parseFloat(options.hungtimeout) : 10000;
+  $.turtle.hangtime = ('hangtime' in options) ?
+      parseFloat(options.hangtime) : 10000;
 
   // Set up global events.
   if (!('events' in options) || options.events) {

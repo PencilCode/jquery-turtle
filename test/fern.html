@@ -6,7 +6,7 @@
 <div id="qunit"></div>
 <script>
 eval($.turtle());
-$.turtle.hungtimeout = Infinity;  // Allow for slow CPUs.
+$.turtle.hangtime = Infinity;  // Allow for slow CPUs.
 module("Fern test.");
 asyncTest("Draws a fractal and verifies its shape.", function() {
   speed(Infinity);
