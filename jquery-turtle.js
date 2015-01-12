@@ -5560,6 +5560,15 @@ function remove() {
   }
 }
 
+function syncify(fn) {
+  return function(x) {
+    if (x instanceof $) {
+      sync(this, $);
+    }
+    return fn.apply(this, arguments);
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////
 // JQUERY REGISTRATION
 // Register all our hooks.
@@ -6111,8 +6120,11 @@ function moveto(cc, x, y) {
 }
 
 // Deals with jump, jumpxy, and jumpto functions
-function makejump(move) {
+function makejump(move, shouldsync) {
   return (function(cc, x, y) {
+    if (shouldsync && x instanceof $) {
+
+    }
     this.plan(function(j, elem) {
       cc.appear(j);
       var down = this.css('turtlePenDown');
@@ -6260,7 +6272,7 @@ var turtlefn = {
       "<mark>moveto 50, 100</mark>",
    "<u>moveto(obj)</u> Move to page coordinates " +
       "or an object on the page (see <u>pagexy</u>): " +
-      "<mark>moveto lastmousemove</mark>"], moveto),
+      "<mark>moveto lastmousemove</mark>"], syncify(moveto)),
   jump: wrapcommand('jump', 1,
   ["<u>jump(x, y)</u> Move without drawing (compare to <u>move</u>): " +
       "<mark>jump 0, 50</mark>"], makejump(move)),
@@ -6269,19 +6281,23 @@ var turtlefn = {
       "<mark>jump 0, 50</mark>"], makejump(movexy)),
   jumpto: wrapcommand('jumpto', 1,
   ["<u>jumpto(x, y)</u> Move without drawing (compare to <u>moveto</u>): " +
-      "<mark>jumpto 50, 100</mark>"], makejump(moveto)),
+      "<mark>jumpto 50, 100</mark>"], syncify(makejump(moveto))),
   turnto: wrapcommand('turnto', 1,
   ["<u>turnto(degrees)</u> Turn to a direction. " +
       "North is 0, East is 90: <mark>turnto 270</turnto>",
    "<u>turnto(x, y)</u> Turn to graphing coordinates: " +
       "<mark>turnto 50, 100</mark>",
    "<u>turnto(obj)</u> Turn to page coordinates or an object on the page: " +
-      "<mark>turnto lastmousemove</mark>"],
+      "<mark>turnto lastmousemove</mark>"], syncify(
   function turnto(cc, bearing, y) {
     if ($.isNumeric(y) && $.isNumeric(bearing)) {
       // turnto x, y: convert to turnto [x, y].
       bearing = [bearing, y];
       y = null;
+    }
+    if (bearing instanceof $) {
+      // If moving to another object, sync the objects.
+      sync(this, position);
     }
     var intick = insidetick;
     this.plan(function(j, elem) {
@@ -6335,7 +6351,7 @@ var turtlefn = {
       });
     });
     return this;
-  }),
+  })),
   home: wrapcommand('home', 0,
   ["<u>home()</u> Goes home. " +
       "Jumps to the center without drawing: <mark>do home</mark>"],
@@ -6795,7 +6811,7 @@ var turtlefn = {
       if (state.drawOnCanvas) {
         sync(elem, state.drawOnCanvas);
       }
-      if (!canvas) {
+      if (!canvas || canvas === window) {
         state.drawOnCanvas = null;
       } else if (canvas.jquery && $.isFunction(canvas.canvas)) {
         state.drawOnCanvas = canvas.canvas();
