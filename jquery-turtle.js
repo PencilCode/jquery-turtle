@@ -5561,10 +5561,8 @@ function remove() {
 }
 
 function syncify(fn) {
-  return function(x) {
-    if (x instanceof $) {
-      sync(this, $);
-    }
+  return function(cc, x) {
+    if (x instanceof $) sync(this, x);
     return fn.apply(this, arguments);
   }
 }
