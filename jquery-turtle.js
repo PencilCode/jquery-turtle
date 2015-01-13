@@ -6111,11 +6111,8 @@ function moveto(cc, x, y) {
 }
 
 // Deals with jump, jumpxy, and jumpto functions
-function makejump(move, shouldsync) {
+function makejump(move) {
   return (function(cc, x, y) {
-    if (shouldsync && x instanceof $) {
-
-    }
     this.plan(function(j, elem) {
       cc.appear(j);
       var down = this.css('turtlePenDown');
@@ -6285,10 +6282,6 @@ var turtlefn = {
       // turnto x, y: convert to turnto [x, y].
       bearing = [bearing, y];
       y = null;
-    }
-    if (bearing instanceof $) {
-      // If moving to another object, sync the objects.
-      sync(this, position);
     }
     var intick = insidetick;
     this.plan(function(j, elem) {
