@@ -1,0 +1,31 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit" style="opacity:.3"></div>
+<script>
+eval($.turtle());
+module("Test of touches command.");
+
+asyncTest("Checks touches.", function() {
+  speed(Infinity);
+  ok(touches([0, 0]));
+  ok(touches(pagexy()));
+  var x = new Turtle(red);
+  ok(touches(x));
+  x.fd(100);
+  ok(!touches(x));
+  ok(!touches([0, -100]));
+  ok(!touches({pageX: 0, pageY: 0}));
+  ok(!touches(null));
+  ok(!touches(lastmouse));
+  x.dot(red);
+  ok(!touches(red));
+  ok(x.touches(red));
+  ok(x.touches(transparent));
+  x.bk(50);
+  ok(!x.touches(red));
+  start();
+});
+</script>
