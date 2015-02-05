@@ -1765,7 +1765,7 @@ function getTurtleData(elem) {
   var state = $.data(elem, 'turtleData');
   if (!state) {
     state = $.data(elem, 'turtleData', {
-      styte: null,
+      style: null,
       corners: [[]],
       path: [[]],
       down: false,
@@ -6156,7 +6156,7 @@ function animatedDotCommand(fillShape) {
           finalDiam = targetDiam + (ps.eraseMode ? 2 : 0),
           hasAlpha = /rgba|hsla/.test(ps.fillStyle);
       if (canMoveInstantly(this)) {
-        fillShape(drawOnCanvas, c, finalDiam, ts.rot, ps);
+        fillShape(drawOnCanvas, c, finalDiam, ts.rot, ps, true);
         cc.resolve(j);
       } else {
         this.queue(function(next) {
@@ -6164,11 +6164,11 @@ function animatedDotCommand(fillShape) {
             duration: animTime(elem, intick),
             step: function() {
               if (!hasAlpha) {
-                fillShape(drawOnCanvas, c, this.radius, ts.rot, ps);
+                fillShape(drawOnCanvas, c, this.radius, ts.rot, ps, false);
               }
             },
             complete: function() {
-              fillShape(drawOnCanvas, c, finalDiam, ts.rot, ps);
+              fillShape(drawOnCanvas, c, finalDiam, ts.rot, ps, false);
               cc.resolve(j);
               next();
             }
