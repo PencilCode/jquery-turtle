@@ -6142,13 +6142,17 @@ function animatedDotCommand(fillShape) {
       diameter = t;
     }
     if (diameter == null) { diameter = 8.8; }
-    if (!style) { style = 'black'; }
-    var ps = parsePenStyle(style, 'fillStyle');
     this.plan(function(j, elem) {
+      var state = getTurtleData(elem);
+      if (!style) {
+        // If no color is specified, default to pen color, or black if no pen.
+        var penStyle = getTurtleData(elem).style;
+        style = (penStyle && penStyle.strokeStyle) || 'black';
+      }
       cc.appear(j);
       var c = this.pagexy(),
           ts = readTurtleTransform(elem, true),
-          state = getTurtleData(elem),
+          ps = parsePenStyle(style, 'fillStyle'),
           drawOnCanvas = getDrawOnCanvas(state),
           // Scale by sx.  (TODO: consider parent transforms.)
           targetDiam = diameter * ts.sx,
