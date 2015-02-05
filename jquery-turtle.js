@@ -6143,11 +6143,12 @@ function animatedDotCommand(fillShape) {
     }
     if (diameter == null) { diameter = 8.8; }
     this.plan(function(j, elem) {
-      var state = getTurtleData(elem);
+      var state = getTurtleData(elem),
+          penStyle = state.style;
       if (!style) {
         // If no color is specified, default to pen color, or black if no pen.
-        var penStyle = getTurtleData(elem).style;
-        style = (penStyle && penStyle.strokeStyle) || 'black';
+        style = (penStyle && (penStyle.fillStyle || penStyle.strokeStyle)) ||
+            'black';
       }
       cc.appear(j);
       var c = this.pagexy(),
@@ -6159,6 +6160,9 @@ function animatedDotCommand(fillShape) {
           animDiam = Math.max(0, targetDiam - 2),
           finalDiam = targetDiam + (ps.eraseMode ? 2 : 0),
           hasAlpha = /rgba|hsla/.test(ps.fillStyle);
+      if (null == ps.lineWidth && penStyle && penStyle.lineWidth) {
+        ps.lineWidth = penStyle.lineWidth;
+      }
       if (canMoveInstantly(this)) {
         fillShape(drawOnCanvas, c, finalDiam, ts.rot, ps, true);
         cc.resolve(j);
@@ -6172,7 +6176,7 @@ function animatedDotCommand(fillShape) {
               }
             },
             complete: function() {
-              fillShape(drawOnCanvas, c, finalDiam, ts.rot, ps, false);
+              fillShape(drawOnCanvas, c, finalDiam, ts.rot, ps, true);
               cc.resolve(j);
               next();
             }
@@ -6229,6 +6233,68 @@ function fillBox(drawOnCanvas, position, diameter, rot, style) {
     }
   }
   ctx.restore();
+}
+
+function fillArrow(drawOnCanvas, position, diameter, rot, style, drawhead) {
+  var ctx = drawOnCanvas.getContext('2d');
+  ctx.save();
+  applyPenStyle(ctx, style);
+  if (!style.strokeStyle && style.fillStyle) {
+    ctx.strokeStyle = style.fillStyle;
+  }
+  if (diameter !== Infinity) {
+    var c = Math.sin(rot / 180 * Math.PI),
+        s = -Math.cos(rot / 180 * Math.PI),
+        w = style.lineWidth || 1.62,
+        hx = position.pageX + diameter * c,
+        hy = position.pageY + diameter * s,
+        m = calcArrow(w, hx, hy, c, s),
+        ds = diameter - m.hs,
+        dx = ds * c,
+        dy = ds * s;
+    setCanvasPageTransform(ctx, drawOnCanvas);
+    if (ds > 0) {
+      ctx.beginPath();
+      ctx.moveTo(position.pageX, position.pageY);
+      ctx.lineTo(position.pageX + dx, position.pageY + dy);
+      ctx.closePath();
+      ctx.stroke();
+    }
+    if (drawhead) {
+      drawArrowHead(ctx, m);
+    }
+  }
+  ctx.restore();
+}
+
+//////////////////////////////////////////////////////////////////////////
+// ARROW GEOMETRY
+//////////////////////////////////////////////////////////////////////////
+function calcArrow(w, x1, y1, cc, ss) {
+  var hw = Math.max(w * 1.25, w + 2),
+      hh = hw * 2,
+      hs = hh - hw / 2;
+  return {
+      hs: hs,
+      x1: x1,
+      y1: y1,
+      xm: x1 - cc * hs,
+      ym: y1 - ss * hs,
+      x2: x1 - ss * hw - cc * hh,
+      y2: y1 + cc * hw - ss * hh,
+      x3: x1 + ss * hw - cc * hh,
+      y3: y1 - cc * hw - ss * hh
+  };
+}
+
+function drawArrowHead(c, m) {
+  c.beginPath();
+  c.moveTo(m.x2, m.y2);
+  c.lineTo(m.x1, m.y1);
+  c.lineTo(m.x3, m.y3);
+  c.quadraticCurveTo(m.xm, m.ym, m.x2, m.y2);
+  c.closePath();
+  c.fill();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -6491,6 +6557,9 @@ var turtlefn = {
   ["<u>box(color, size)</u> Draws a box. " +
       "Color and size are optional: " +
       "<mark>dot blue</mark>"], animatedDotCommand(fillBox)),
+  arrow: wrapcommand('arrow', 0,
+  ["<u>arrow(color, size)</u> Draws an arrow. " +
+      "<mark>arrow red, 100</mark>"], animatedDotCommand(fillArrow)),
   mirror: wrapcommand('mirror', 1,
   ["<u>mirror(flipped)</u> Mirrors the turtle across its main axis, or " +
       "unmirrors if flipped if false. " +

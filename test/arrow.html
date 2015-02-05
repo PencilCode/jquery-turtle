@@ -1,0 +1,56 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Arrow test.");
+asyncTest("Test of boxes.", function() {
+  cg();
+  speed(10);
+  rt(90);
+  pen(blue, 25);
+  arrow(200);
+  jump(0, 200);
+  pen(red);
+  rt(90)
+  arrow(100);
+  pen(null);
+  done(function() {
+    speed(Infinity);
+    fd(100);
+    ok(touches(red));
+    ok(!touches(blue));
+    ok(touches(transparent));
+    bk(100);
+    ok(touches(red));
+    ok(touches(blue));
+    ok(touches(transparent));
+    bk(25);
+    ok(!touches(red));
+    ok(!touches(blue));
+    ok(touches(transparent));
+    fd(50);
+    ok(touches(red));
+    ok(!touches(blue));
+    ok(touches(transparent));
+    rt(90);
+    fd(50);
+    ok(!touches(red));
+    ok(touches(blue));
+    ok(touches(transparent));
+    rt(90);
+    fd(25);
+    ok(!touches(red));
+    ok(touches(blue));
+    ok(!touches(transparent));
+    fd(25);
+    ok(!touches(red));
+    ok(touches(blue));
+    ok(touches(transparent));
+    start();
+  });
+});
+</script>
