@@ -9510,7 +9510,12 @@ debug.init();
   function cd(s) {
     return '<code style="font-weight:bold;color:blue">' + s + '</code>';
   }
-  var linestart = null, linecanvas = null, lineend = null;
+  function cont(loc, ev) {
+    return loc && (loc = loc.get(0)) && ev && ev.target &&
+           (loc == ev.target || $.contains(loc, ev.target));
+  }
+  var linestart = null, linecanvas = null, lineend = null,
+      xa = 0, ya = 0, xb = 0, yb = 0;
   $(window).on('mousedown mouseup mousemove keydown', function(e) {
     if (e.type == 'keydown') {
       if (!linecanvas) return;
@@ -9518,7 +9523,7 @@ debug.init();
       linecanvas = linestart = lineend = null;
     }
     if (e.type == 'mousedown') {
-      if (!linecanvas && location.is(e.target)) {
+      if (!linecanvas && cont(location, e)) {
         // State 1: click on the tooltip to move it.
         var w = sizexy();
         lineend = linestart = null;
@@ -9567,40 +9572,50 @@ debug.init();
       }
       html.unshift(lineend ?
         '<span style="color:green">click to close</span>' :
-        '<span style="color:red">click to measure</span>'
+        linestart ?
+        '<span style="color:red">click to measure</span>' :
+        '<span style="color:red">click on point</span>'
       );
       dx = p.x - s.x,
       dy = p.y - s.y,
       dd = Math.sqrt(dx * dx + dy * dy),
       ang = Math.atan2(dx, dy) / Math.PI * 180;
-      c.save();
-      c.clearRect(0, 0, cnv.width, cnv.height);
-      c.strokeStyle = 'red';
-      c.fillStyle = 'red';
-      // Draw a dot
-      c.beginPath();
-      c.arc(s.pageX, s.pageY, 4, 0, 2*Math.PI, false);
-      c.closePath();
-      c.fill();
-      if (dd > 0) {
-        if (relative) {
-          var delta = (360 + ang - dir) % 360;
-          if (delta <= 180) {
-            html.push(cd('rt ' + tr(delta)));
+      if (linestart) {
+        c.save();
+        c.clearRect(xa - 10, ya - 10, xb + 10, yb + 10);
+        c.strokeStyle = 'red';
+        c.fillStyle = 'red';
+        // Draw a dot
+        c.beginPath();
+        c.arc(s.pageX, s.pageY, 4, 0, 2*Math.PI, false);
+        c.closePath();
+        c.fill();
+        xa = xb = s.pageX;
+        ya = yb = s.pageY;
+        if (dd > 0) {
+          if (relative) {
+            var delta = (360 + ang - dir) % 360;
+            if (delta <= 180) {
+              html.push(cd('rt ' + tr(delta)));
+            } else {
+              html.push(cd('lt ' + tr(360 - delta)));
+            }
           } else {
-            html.push(cd('lt ' + tr(360 - delta)));
+            html.push(cd('turnto ' + tr(ang)));
           }
-        } else {
-          html.push(cd('turnto ' + tr(ang)));
+          html.push(cd('fd ' + tr(dd)));
+          // Draw an arrow.
+          drawArrowLine(c, 2, s.pageX, s.pageY, p.pageX, p.pageY);
+          xa = Math.min(p.pageX, xa);
+          ya = Math.min(p.pageY, ya);
+          xb = Math.max(p.pageX, xb);
+          yb = Math.max(p.pageY, yb);
+          c.lineWidth = 2;
+          c.lineTo(p.pageX, p.pageY);
+          c.stroke();
         }
-        html.push(cd('fd ' + tr(dd)));
-        // Draw an arrow.
-        drawArrowLine(c, 2, s.pageX, s.pageY, p.pageX, p.pageY);
-        c.lineWidth = 2;
-        c.lineTo(p.pageX, p.pageY);
-        c.stroke();
+        c.restore();
       }
-      c.restore();
       location.css({left:0, top:0}).html(html.join('<br>')).show().css({
         left: Math.min(p.pageX - $(window).scrollLeft() + 5,
             $(document).width() - location.outerWidth() - 2),
@@ -9611,8 +9626,7 @@ debug.init();
       });
     } else {
       html = [];
-      if (e.target == location.get(0) ||
-          $.contains(location.get(0), e.target)) {
+      if (cont(location, e)) {
         html.push('<span style="color:red">click to use</span>');
       }
       if (e.x != null) {
