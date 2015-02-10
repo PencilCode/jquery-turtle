@@ -9740,7 +9740,6 @@ try {
            screen.width >= 800 && screen.height >= 600 &&
            parent && parent.ide);
 } catch(e) {}
-var panel = true; // TODO: get rid of
 var see;  // defined below.
 var paneltitle = '';
 var logconsole = null;
