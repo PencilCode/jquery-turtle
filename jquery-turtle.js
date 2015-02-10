@@ -6452,24 +6452,18 @@ var turtlefn = {
     t2 = new Turtle();
     t2.hide()
     sync(t2, this);
-    this.plan(function(j, elem) { //t2.plan doesn't work here for some subtle reason - 
-                                  //doesn't pick up turtle's properties correctly.
-                                  //but turtle.plan means t2 doesn't refer to the right turtle 
-                                  //by the time the plan comes around.
-                                  // can pass turtles as arguments to plan?
-      cc.appear(j);
+    this.plan(function(othert) { //t2.plan doesn't work here - 
+                                  //always applies to the most recent clone at the time of execution of plan!
+      //cc.appear(j);
       var pos = this.css('turtlePosition'),
           rot = this.css('turtleRotation'),
           pen = this.css('turtlePenStyle'),
-          pendown = this.css('turtlePenDown')
-      t2.css({turtlePosition: pos, turtleRotation:rot, 
+          pendown = this.css('turtlePenDown') //should just copy all the things?
+      othert.css({turtlePosition: pos, turtleRotation:rot, 
               turtlePenStyle:pen, turtlePenDown:pendown});
-      t2.show();
-      cc.resolve(j);
-    });
-    t2.plan(function(j, elem) { // j does not apply here?
-      sync(t2, this); // otherwise things get added to t2's queue before it has 'appeared'
-    });
+      othert.show();
+      //cc.resolve(j);
+    }, [t2]); // pass in our current clone, otherwise things get applied to the wrong clone
     return t2;
   }),
   pen: wrapcommand('pen', 1,
