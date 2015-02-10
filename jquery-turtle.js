@@ -6444,6 +6444,34 @@ var turtlefn = {
     });
     return this;
   }),
+  clone: wrapcommand('clone', 0,
+  ["<u>clone()</u> clones the turtle. "+
+      "Creates another turtle, puts it in the sameplace and rotation "+
+      "as this turtle, and gives it the same pen. "],
+  function clone(cc) {
+    t2 = new Turtle();
+    t2.hide()
+    sync(t2, this);
+    this.plan(function(j, elem) { //t2.plan doesn't work here for some subtle reason - 
+                                  //doesn't pick up turtle's properties correctly.
+                                  //but turtle.plan means t2 doesn't refer to the right turtle 
+                                  //by the time the plan comes around.
+                                  // can pass turtles as arguments to plan?
+      cc.appear(j);
+      var pos = this.css('turtlePosition'),
+          rot = this.css('turtleRotation'),
+          pen = this.css('turtlePenStyle'),
+          pendown = this.css('turtlePenDown')
+      t2.css({turtlePosition: pos, turtleRotation:rot, 
+              turtlePenStyle:pen, turtlePenDown:pendown});
+      t2.show();
+      cc.resolve(j);
+    });
+    t2.plan(function(j, elem) { // j does not apply here?
+      sync(t2, this); // otherwise things get added to t2's queue before it has 'appeared'
+    });
+    return t2;
+  }),
   pen: wrapcommand('pen', 1,
   ["<u>pen(color, size)</u> Selects a pen. " +
       "Chooses a color and/or size for the pen: " +
@@ -9712,6 +9740,7 @@ try {
            screen.width >= 800 && screen.height >= 600 &&
            parent && parent.ide);
 } catch(e) {}
+var panel = true; // TODO: get rid of
 var see;  // defined below.
 var paneltitle = '';
 var logconsole = null;
