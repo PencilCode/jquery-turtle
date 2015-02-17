@@ -6446,29 +6446,29 @@ var turtlefn = {
   }),
   copy: wrapcommand('copy', 0,
   ["<u>copy()</u> makes a new turtle that is a copy of this turtle."],
-  function clone(cc) {
-    t2 =  this.clone().insertAfter(this);
+  function copy(cc) {
+    var t2 =  this.clone().insertAfter(this);
     t2.hide();
-    this.plan(function(othert) { //t2.plan doesn't work here - 
+    this.plan(function(j, elem) { //t2.plan doesn't work here - 
                                   //always applies to the most recent clone at the time of execution of plan!
-      //cc.appear(j);
+      cc.appear(j);
       
       olddata = getTurtleData(this);
-      newdata = getTurtleData(othert);
+      newdata = getTurtleData(t2);
       for (k in olddata) { newdata[k] = olddata[k]; }
       
-      othert.attr('style', this.attr('style'));
+      t2.attr('style', this.attr('style'));
       // Theoretically, I shouldn't have to do the following, since
       // that should have gotten copied over with the other attributes.
       // But nope.
       var pendown = this.css('turtlePenDown'),
           pen = this.css('turtlePenStyle')
-      othert.css({turtlePenStyle:pen, turtlePenDown:pendown})
+      t2.css({turtlePenStyle:pen, turtlePenDown:pendown})
       
-      othert.show();
+      t2.show();
       
-      //cc.resolve(j);
-    }, [t2]); // pass in our current clone, otherwise things get applied to the wrong clone
+      cc.resolve(j);
+    }); // pass in our current clone, otherwise things get applied to the wrong clone
     sync(t2, this);
     return t2;
   }),
