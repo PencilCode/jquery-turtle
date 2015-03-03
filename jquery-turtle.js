@@ -6453,17 +6453,27 @@ var turtlefn = {
                                   //always applies to the most recent clone at the time of execution of plan!
       cc.appear(j);
       
+      //copy over turtle data:
       olddata = getTurtleData(this);
       newdata = getTurtleData(t2);
       for (k in olddata) { newdata[k] = olddata[k]; }
       
+      // copy over style attributes:
       t2.attr('style', this.attr('style'));
       // Theoretically, I shouldn't have to do the following, since
       // that should have gotten copied over with the other attributes.
       // But nope.
+      
       var pendown = this.css('turtlePenDown'),
-          pen = this.css('turtlePenStyle')
-      t2.css({turtlePenStyle:pen, turtlePenDown:pendown})
+          pen = this.css('turtlePenStyle');
+      t2.css({turtlePenStyle:pen, turtlePenDown:pendown});
+      
+      // copy the canvas:
+      t2.canvas().width = this.canvas().width;
+      t2.canvas().height = this.canvas().height;
+      
+      newCanvasContext = t2.canvas().getContext('2d');
+      newCanvasContext.drawImage(this.canvas(), 0, 0)
       
       t2.show();
       
