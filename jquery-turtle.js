@@ -6460,13 +6460,19 @@ var turtlefn = {
       
       // copy over style attributes:
       t2.attr('style', this.attr('style'));
-      // Theoretically, I shouldn't have to do the following, since
-      // that should have gotten copied over with the other attributes.
-      // But nope.
       
-      var pendown = this.css('turtlePenDown'),
-          pen = this.css('turtlePenStyle');
-      t2.css({turtlePenStyle:pen, turtlePenDown:pendown});
+      // copy each thing listed in css hooks:
+      for(property in $.cssHooks) {
+        var value = this.css(property);
+        t2.css(property, value);
+      }
+      
+      // copy attributes, just in case:
+      var attrs = this.prop("attributes");
+      //console.log(attrs)
+      for(i in attrs) {
+        t2.attr(attrs[i].name, attrs[i].value);
+      }
       
       // copy the canvas:
       t2.canvas().width = this.canvas().width;
