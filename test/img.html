@@ -2,17 +2,25 @@
 <link href="lib/qunit.css" rel="stylesheet">
 <script src="lib/jquery.js"></script>
 <script src="../jquery-turtle.js"></script>
+<style>
+#qunit { position: absolute; opacity: 0.5; }
+img { vertical-align: top; }
+</style>
 <body>
-<img class="apple" src="http://pencilcode.net/img/jquery-turtle">
+<img class="apple" src="http://pencilcode.net/img/apple">
 <div id="qunit"></div>
 <script>
 eval($.turtle());
 module("Image turtle test.");
 asyncTest("Uses an IMG tag as a turtle.", function() {
   speed(100);
+  var t = img('tree');
   var m = $('img.apple');
+  t.pen(blue, 10);
+  t.bk(200);
   m.pen(red, 10);
   m.bk(300);
+  sync(t, m);
   m.plan(function() {
     var offset = $('body').offset();
     moveto({
@@ -21,7 +29,14 @@ asyncTest("Uses an IMG tag as a turtle.", function() {
     });
     plan(function() {
       ok(touches(red));
-      start();
+      moveto({
+        pageX: t.width() / 2 + m.width() + offset.left,
+        pageY: t.height() / 2 + offset.top + 200
+      });
+      plan(function() {
+        ok(touches(blue));
+        start();
+      });
     });
   });
 });
