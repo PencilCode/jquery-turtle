@@ -34,14 +34,13 @@ asyncTest("Make a red sprite and clone it.", function() {
   s1 = new Sprite({color:'red'});
   setTimeout(function(){
     s2 = s1.copy();
+    s2.clip();
     s2.fd(200);
     s1.remove();
     moveto(128, 72)
     drawon(s2);
-    s2.clip();
     ok(touches(red));
     x = s2.imagedata();
-    console.log(x.data[0])
     start();
   }, 100);
 
