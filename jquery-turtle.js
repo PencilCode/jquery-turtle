@@ -6475,11 +6475,15 @@ var turtlefn = {
       }
       
       // copy the canvas:
-      t2.canvas().width = this.canvas().width;
-      t2.canvas().height = this.canvas().height;
+      var t2canvas = t2.canvas();
+      var tcanvas = this.canvas();
+      if(t2canvas && tcanvas) {
+        t2canvas.width = tcanvas.width;
+        t2canvas.height = tcanvas.height;
+        newCanvasContext = t2canvas.getContext('2d');
+        newCanvasContext.drawImage(tcanvas, 0, 0)
+      }
       
-      newCanvasContext = t2.canvas().getContext('2d');
-      newCanvasContext.drawImage(this.canvas(), 0, 0)
       
       t2.show();
       
