@@ -6484,7 +6484,6 @@ var turtlefn = {
         newCanvasContext.drawImage(tcanvas, 0, 0)
       }
       
-      
       t2.show();
       
       cc.resolve(j);
