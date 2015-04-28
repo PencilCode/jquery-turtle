@@ -7612,6 +7612,9 @@ var dollar_turtle_methods = {
     $('.turtleinput').prop('disabled', true);
     // Detach all event handlers on the window.
     $(window).off('.turtleevent');
+    // Low-level detach all jQuery events
+    $('*').not('#_testpanel *').map(
+       function(i, e) { $._data(e, 'events', null) });
     // Set a flag that will cause all commands to throw.
     interrupted = true;
     // Turn off the global tick interval timer.
