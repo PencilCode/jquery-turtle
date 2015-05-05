@@ -6455,31 +6455,31 @@ var turtlefn = {
   function copy(cc) {
     var t2 =  this.clone().insertAfter(this);
     t2.hide();
-    this.plan(function(j, elem) { //t2.plan doesn't work here - 
-                                  //always applies to the most recent clone at the time of execution of plan!
+    // t2.plan doesn't work here.
+    this.plan(function(j, elem) {
       cc.appear(j);
-      
+
       //copy over turtle data:
       olddata = getTurtleData(this);
       newdata = getTurtleData(t2);
       for (k in olddata) { newdata[k] = olddata[k]; }
-      
+
       // copy over style attributes:
       t2.attr('style', this.attr('style'));
-      
+
       // copy each thing listed in css hooks:
       for(property in $.cssHooks) {
         var value = this.css(property);
         t2.css(property, value);
       }
-      
+
       // copy attributes, just in case:
       var attrs = this.prop("attributes");
       //console.log(attrs)
       for(i in attrs) {
         t2.attr(attrs[i].name, attrs[i].value);
       }
-      
+
       // copy the canvas:
       var t2canvas = t2.canvas();
       var tcanvas = this.canvas();
@@ -6489,9 +6489,9 @@ var turtlefn = {
         newCanvasContext = t2canvas.getContext('2d');
         newCanvasContext.drawImage(tcanvas, 0, 0)
       }
-      
+
       t2.show();
-      
+
       cc.resolve(j);
     }); // pass in our current clone, otherwise things get applied to the wrong clone
     sync(t2, this);
