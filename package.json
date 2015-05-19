@@ -17,14 +17,14 @@
   },
   "homepage": "https://github.com/PencilCode/jquery-turtle",
   "devDependencies": {
-    "grunt": "0.4.2",
-    "grunt-bowercopy": "0.4.1",
-    "grunt-cli": "0.1.11",
-    "grunt-contrib-uglify": "0.2.7",
-    "grunt-contrib-qunit": "0.3.0",
-    "grunt-release": "0.6.0",
-    "phantomjs": "1.9.12",
-    "grunt-contrib-connect": "~0.6.0",
-    "grunt-contrib-watch": "~0.5.3"
+    "grunt": "latest",
+    "grunt-bowercopy": "latest",
+    "grunt-cli": "latest",
+    "grunt-contrib-uglify": "latest",
+    "grunt-contrib-qunit": "latest",
+    "grunt-release": "latest",
+    "phantomjs": "latest",
+    "grunt-contrib-connect": "latest",
+    "grunt-contrib-watch": "latest"
   }
 }

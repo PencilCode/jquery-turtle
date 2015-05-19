@@ -1,3 +1,13 @@
+var serveNoDottedFiles = function(connect, options, middlewares) {
+  // Avoid leaking .git/.svn or other dotted files from test servers.
+  middlewares.unshift(function(req, res, next) {
+    if (req.url.indexOf('/.') < 0) { return next(); }
+    res.statusCode = 404
+    res.end("Cannot GET " + req.url)
+  });
+  return middlewares;
+};
+
 module.exports = function(grunt) {
   "use strict";
 
@@ -21,7 +31,8 @@ module.exports = function(grunt) {
     connect: {
       testserver: {
         options: {
-          hostname: '0.0.0.0'
+          hostname: '0.0.0.0',
+          middleware: serveNoDottedFiles
         }
       }
     },

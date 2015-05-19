@@ -2183,7 +2183,7 @@ function touchesPixel(elem, color) {
   }
   octx.restore();
   // Now examine the results and look for alpha > 0%.
-  data = octx.getImageData(0, 0, w, h).data;
+  var data = octx.getImageData(0, 0, w, h).data;
   if (!rgba || rgba[3] == 0) {
     // Handle the "looking for any color" and "transparent" cases.
     var wantcolor = !rgba;
@@ -6411,7 +6411,7 @@ var turtlefn = {
       if (!nlocalxy) {
         nlocalxy = computePositionAsLocalOffset(elem, targetpos);
       }
-      dir = radiansToDegrees(Math.atan2(-nlocalxy[0], -nlocalxy[1]));
+      var dir = radiansToDegrees(Math.atan2(-nlocalxy[0], -nlocalxy[1]));
       ts = readTurtleTransform(elem, true);
       if (!(limit === null)) {
         r = convertToRadians(ts.rot);
@@ -6460,40 +6460,39 @@ var turtlefn = {
       cc.appear(j);
 
       //copy over turtle data:
-      olddata = getTurtleData(this);
-      newdata = getTurtleData(t2);
-      for (k in olddata) { newdata[k] = olddata[k]; }
+      var olddata = getTurtleData(this);
+      var newdata = getTurtleData(t2);
+      for (var k in olddata) { newdata[k] = olddata[k]; }
 
       // copy over style attributes:
       t2.attr('style', this.attr('style'));
 
       // copy each thing listed in css hooks:
-      for(property in $.cssHooks) {
+      for (var property in $.cssHooks) {
         var value = this.css(property);
         t2.css(property, value);
       }
 
       // copy attributes, just in case:
       var attrs = this.prop("attributes");
-      //console.log(attrs)
-      for(i in attrs) {
+      for (var i in attrs) {
         t2.attr(attrs[i].name, attrs[i].value);
       }
 
       // copy the canvas:
       var t2canvas = t2.canvas();
       var tcanvas = this.canvas();
-      if(t2canvas && tcanvas) {
+      if (t2canvas && tcanvas) {
         t2canvas.width = tcanvas.width;
         t2canvas.height = tcanvas.height;
-        newCanvasContext = t2canvas.getContext('2d');
+        var newCanvasContext = t2canvas.getContext('2d');
         newCanvasContext.drawImage(tcanvas, 0, 0)
       }
 
       t2.show();
 
       cc.resolve(j);
-    }); // pass in our current clone, otherwise things get applied to the wrong clone
+    }); // pass in our current clone, otherwise things apply to the wrong clone
     sync(t2, this);
     return t2;
   }),
@@ -10695,14 +10694,14 @@ function transparentHull(image, threshold) {
   if (!threshold) threshold = 0;
   c.width = image.width;
   c.height = image.height;
-  ctx = c.getContext('2d');
+  var ctx = c.getContext('2d');
   ctx.drawImage(image, 0, 0);
   return transparentCanvasHull(c, threshold);
 }
 
 function transparentCanvasHull(canvas, threshold) {
   var ctx = canvas.getContext('2d');
-  data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   var hull = [];
   var intthresh = 256 * threshold;
   var first, last, prevfirst = Infinity, prevlast = -1;
@@ -10734,7 +10733,7 @@ function transparentCanvasHull(canvas, threshold) {
 function eraseOutsideHull(canvas, hull) {
   var ctx = canvas.getContext('2d'),
       w = canvas.width,
-      h = canvas.height
+      h = canvas.height,
       j = 0;
   ctx.save();
   // Erase everything outside clipping region.

@@ -33,6 +33,10 @@ asyncTest("Makes and removes turtles.", function() {
     ok(completed);
     equal(t.parent().length, 0);
     equal(typeof(window.turtle), 'undefined');
+    // Restore globals to an initial state.
+    $.turtle({ids: false});
+    window.turtle = $('#turtle');
+    equal(typeof(window.turtle), 'object');
     start();
   });
 });

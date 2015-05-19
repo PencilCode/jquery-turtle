@@ -26,6 +26,7 @@ asyncTest("Prints out a bunch of text to test autoscroll.", function() {
     if (/phantom/i.test(navigator.userAgent)) {
       // PhantomJS doesn't correctly deal with full-window scrolling.
       // https://github.com/ariya/phantomjs/issues/10619
+      delete parent.window.dotest;
       start();
     } else {
       var urect = fw.$('.last').get(0).getBoundingClientRect();

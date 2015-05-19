@@ -8,11 +8,11 @@
 eval($.turtle());
 module("Input/Output test.");
 asyncTest("Draws a square changing speed along the way.", function() {
-  w = write('hello!');
+  var w = write('hello!');
   equal($('div').last().text(), 'hello!');
   type('AWESOME');
   equal($('pre').last().text(), 'AWESOME');
-  t = table([[1,2,3]]);
+  var t = table([[1,2,3]]);
   var td = $('td');
   equal(td.length, 3);
   equal(td.eq(0).text(), "1");
@@ -22,7 +22,8 @@ asyncTest("Draws a square changing speed along the way.", function() {
   setTimeout(function() {
     $('input').val('Amy').change();
   }, 1);
-  r = read('name?', function(t) {
+  var b;
+  var r = read('name?', function(t) {
     equal(t, 'Amy');
     setTimeout(function() {
       $('button').click();

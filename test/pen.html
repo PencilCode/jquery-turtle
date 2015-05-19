@@ -172,6 +172,7 @@ asyncTest("Draws a series of lines with different style pens.", function() {
     ok(touches(pink));
     ok(touches(transparent));
     dot();
+    delete window.buggy;
     start();
   });
 });

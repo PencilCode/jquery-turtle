@@ -13,8 +13,8 @@ module("Test of copy command.");
 asyncTest("Copy a turtle, then move the original away from the copy.", function() {
   speed(Infinity);
   moveto(random(position));
-  newt = turtle.copy();
-  tpos = newt.getxy();
+  var newt = turtle.copy();
+  var tpos = newt.getxy();
   deepEqual(turtle.getxy(), newt.getxy());
   fd(100);
   notDeepEqual(turtle.getxy(), newt.getxy());
@@ -31,16 +31,16 @@ asyncTest("Copy a turtle, then move the original away from the copy.", function(
 asyncTest("Make a red sprite and clone it.", function() {
   speed(Infinity);
   home()
-  s1 = new Sprite({color:'red'});
+  var s1 = new Sprite({color:'red'});
   setTimeout(function(){
-    s2 = s1.copy();
+    var s2 = s1.copy();
     s2.clip();
     s2.fd(200);
     s1.remove();
     moveto(128, 72)
     drawon(s2);
     ok(touches(red));
-    x = s2.imagedata();
+    var x = s2.imagedata();
     start();
   }, 100);
 
