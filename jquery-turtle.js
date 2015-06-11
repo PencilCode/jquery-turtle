@@ -7833,11 +7833,16 @@ var dollar_turtle_methods = {
     var val;
     $.ajax(apiUrl(url, 'load'), { async: !!cb, complete: function(xhr) {
       try {
-        val = JSON.parse(xhr.responseText);
+        val = xhr.responseObject = JSON.parse(xhr.responseText);
         if (typeof(val.data) == 'string' && typeof(val.file) == 'string') {
           val = val.data;
+          if (/\.json(?:$|\?|\#)/.test(url)) {
+            try { val = JSON.parse(val); } catch(e) {}
+          }
         } else if ($.isArray(val.list) && typeof(val.directory) == 'string') {
           val = val.list;
+        } else if (val.error) {
+          val = null;
         }
       } catch(e) {
         if (val == null && xhr && xhr.responseText) {
@@ -7856,6 +7861,9 @@ var dollar_turtle_methods = {
   function(url, data, cb) {
     if (!url) throw new Error('Missing url for save');
     var payload = { }, url = apiUrl(url, 'save'), key;
+    if (/\.json(?:$|\?|\#)/.test(url)) {
+      data = JSON.stringify(data, null, 2);
+    }
     if (typeof(data) == 'string' || typeof(data) == 'number') {
       payload.data = data;
     } else {
