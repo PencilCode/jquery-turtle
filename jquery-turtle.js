@@ -1487,6 +1487,8 @@ function writeTurtleTransform(ts) {
   return result.join(' ');
 }
 
+function modulo(n, m) { return (+n % (m = +m) + m) % m; }
+
 function radiansToDegrees(r) {
   var d = r * 180 / Math.PI;
   if (d > 180) { d -= 360; }
@@ -1494,7 +1496,7 @@ function radiansToDegrees(r) {
 }
 
 function convertToRadians(d) {
-  return d * Math.PI / 180;
+  return d / 180 * Math.PI;
 }
 
 function normalizeRotation(x) {
@@ -7627,8 +7629,6 @@ $.fn.extend(turtlefn);
 //////////////////////////////////////////////////////////////////////////
 
 var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPIFAAAAAAFsOACSRTCuSICAgP///wAAAAAAACH5BAlkAAYAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAKAAwAAAD72i6zATEgBCAebHpzUnxhDAMAvhxKOoV3ziuZyo3RO26dTbvgXj/gsCO9ysOhENZz+gKJmcUkmA6PSKfSqrWieVtuU+KGNXbXofLEZgR/VHCgdua4isGz9mbmM6U7/94BmlyfUZ1fhqDhYuGgYqMkCOBgo+RfWsNlZZ3ewIpcZaIYaF6XaCkR6aokqqrk0qrqVinpK+fsbZkuK2ouRy0ob4bwJbCibthh6GYebGcY7/EsWqTbdNG1dd9jnXPyk2d38y0Z9Yub2yA6AvWPYk+zEnkv6xdCoPuw/X2gLqy9vJIGAN4b8pAgpQOIlzI8EkCACH5BAlkAAYALAAAAAAoADAAAAPuaLrMBMSAEIB5senNSfGEMAwC+HEo6hXfOK5nKjdE7bp1Nu+BeP+CwI73Kw6EQ1nP6AomZxSSYDo9Ip9KqtaJ5W25Xej3qqGYsdEfZbMcgZXtYpActzLMeLOP6c7f3nVNfEZ7TXSFg4lyZAYBio+LZYiQfHMbc3iTlG9ilGpdjp4ujESiI6RQpqegqkesqqhKrbEpoaa0KLaiuBy6nrxss6+3w7tomo+cDXmBnsoLza2nsb7SN2tl1nyozVOZTJhxysxnd9XYCrrAtT7KQaPruavBo2HQ8xrvffaN+GV5/JbE45fOG8Ek5Q4qXHgwAQA7"
-
-function modulo(n, m) { return (+n % (m = +m) + m) % m; }
 
 var eventfn = { click:1, dblclick:1, mouseup:1, mousedown:1, mousemove:1 };
 
