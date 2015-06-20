@@ -7628,6 +7628,8 @@ $.fn.extend(turtlefn);
 
 var turtleGIFUrl = "data:image/gif;base64,R0lGODlhKAAwAPIFAAAAAAFsOACSRTCuSICAgP///wAAAAAAACH5BAlkAAYAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAKAAwAAAD72i6zATEgBCAebHpzUnxhDAMAvhxKOoV3ziuZyo3RO26dTbvgXj/gsCO9ysOhENZz+gKJmcUkmA6PSKfSqrWieVtuU+KGNXbXofLEZgR/VHCgdua4isGz9mbmM6U7/94BmlyfUZ1fhqDhYuGgYqMkCOBgo+RfWsNlZZ3ewIpcZaIYaF6XaCkR6aokqqrk0qrqVinpK+fsbZkuK2ouRy0ob4bwJbCibthh6GYebGcY7/EsWqTbdNG1dd9jnXPyk2d38y0Z9Yub2yA6AvWPYk+zEnkv6xdCoPuw/X2gLqy9vJIGAN4b8pAgpQOIlzI8EkCACH5BAlkAAYALAAAAAAoADAAAAPuaLrMBMSAEIB5senNSfGEMAwC+HEo6hXfOK5nKjdE7bp1Nu+BeP+CwI73Kw6EQ1nP6AomZxSSYDo9Ip9KqtaJ5W25Xej3qqGYsdEfZbMcgZXtYpActzLMeLOP6c7f3nVNfEZ7TXSFg4lyZAYBio+LZYiQfHMbc3iTlG9ilGpdjp4ujESiI6RQpqegqkesqqhKrbEpoaa0KLaiuBy6nrxss6+3w7tomo+cDXmBnsoLza2nsb7SN2tl1nyozVOZTJhxysxnd9XYCrrAtT7KQaPruavBo2HQ8xrvffaN+GV5/JbE45fOG8Ek5Q4qXHgwAQA7"
 
+function modulo(n, m) { return (+n % (m = +m) + m) % m; }
+
 var eventfn = { click:1, dblclick:1, mouseup:1, mousedown:1, mousemove:1 };
 
 function global_turtle_animating() {
@@ -8047,77 +8049,97 @@ var dollar_turtle_methods = {
   ["<u>abs(x)</u> The absolute value of x. " +
       "<mark>see abs -5</mark>"], Math.abs),
   acos: wrapraw('acos',
-  ["<u>acos(radians)</u> Trigonometric arccosine, in radians. " +
+  ["<u>acos(x)</u> Trigonometric arccosine, in radians. " +
       "<mark>see acos 0.5</mark>"],
   function acos(x) { return Math.acos(x); }
   ),
   asin: wrapraw('asin',
-  ["<u>asin(radians)</u> Trigonometric arcsine, in radians. " +
+  ["<u>asin(y)</u> Trigonometric arcsine, in radians. " +
       "<mark>see asin 0.5</mark>"],
-  function asin(x) { return Math.asin(x); }
+  function asin(y) { return Math.asin(y); }
   ),
   atan: wrapraw('atan',
-  ["<u>atan(radians)</u> Trigonometric arctangent, in radians. " +
+  ["<u>atan(y, x = 1)</u> Trigonometric arctangent, in radians. " +
       "<mark>see atan 0.5</mark>"],
-  function atan(x) { return Math.atan(x); }
+    function atan(x, y) { return Math.atan2(x, (y == undefined) ? 1 : y); }
   ),
-  atan2: wrapraw('atan2',
-  ["<u>atan2(radians)</u> Trigonometric two-argument arctangent, " +
-      "in radians. <mark>see atan -1, 0</mark>"],
-  function atan2(x, y) {
-    return Math.atan2(x, y);
-  }),
   cos: wrapraw('cos',
   ["<u>cos(radians)</u> Trigonometric cosine, in radians. " +
-      "<mark>see cos 45</mark>"],
-  function cos(x) { return Math.cos((x % 360) * Math.PI / 180); }
+      "<mark>see cos 0</mark>"],
+  function cos(x) { return Math.cos(x); }
   ),
   sin: wrapraw('sin',
   ["<u>sin(radians)</u> Trigonometric sine, in radians. " +
-      "<mark>see sin 45</mark>"],
-  function sin(x) { return Math.sin((x % 360) * Math.PI / 180); }
+      "<mark>see sin 0</mark>"],
+  function sin(x) { return Math.sin(x); }
   ),
   tan: wrapraw('tan',
   ["<u>tan(radians)</u> Trigonometric tangent, in radians. " +
-      "<mark>see tan 45</mark>"],
-  function tan(x) { return Math.tan((x % 360) * Math.PI / 180); }
+      "<mark>see tan 0</mark>"],
+  function tan(x) { return Math.tan(x); }
   ),
+
+  // For degree versions of trig functions, make sure we return exact
+  // results when possible. The set of values we have to consider is
+  // fortunately very limited. See "Rational Values of Trigonometric
+  // Functions." http://www.jstor.org/stable/2304540
+
   acosd: wrapraw('acosd',
-  ["<u>acosd(degrees)</u> Trigonometric arccosine, in degrees. " +
+  ["<u>acosd(x)</u> Trigonometric arccosine, in degrees. " +
       "<mark>see acosd 0.5</mark>"],
-  function acosd(x) { return Math.acos(x); }
-  ),
+   function acosd(x) {
+     switch (x) {
+       case   1: return   0;
+       case  .5: return  60;
+       case   0: return  90;
+       case -.5: return 120;
+       case  -1: return 180;
+     }
+     return Math.acos(x) * 180 / Math.PI;
+  }),
   asind: wrapraw('asind',
-  ["<u>asind(degrees)</u> Trigonometric arcsine, in degrees. " +
+  ["<u>asind(x)</u> Trigonometric arcsine, in degrees. " +
       "<mark>see asind 0.5</mark>"],
-  function asind(x) { return Math.asin(x); }
-  ),
+  function asind(x) {
+    switch (x) {
+      case   1: return  90;
+      case  .5: return  30;
+      case   0: return   0;
+      case -.5: return -30;
+      case  -1: return -90;
+    }
+    return Math.asin(x) * 180 / Math.PI;
+  }),
   atand: wrapraw('atand',
-  ["<u>atand(degrees)</u> Trigonometric arctangent, in degrees. " +
-      "<mark>see atand 0.5</mark>"],
-  function atand(x) { return Math.atan(x); }
-  ),
-  atan2d: wrapraw('atan2d',
-  ["<u>atan2d(degrees)</u> Trigonometric two-argument arctangent, " +
-      "in degrees. <mark>see atand -1, 0</mark>"],
-  function atan2d(x, y) {
-    return Math.atan2(x, y);
+  ["<u>atand(y, x = 1)</u> Trigonometric arctangent, " +
+      "in degrees. <mark>see atand -1, 0/mark>"],
+  function atand(y, x) {
+    if (x == undefined) { x = 1; }
+    if (y == 0) {
+      return (x == 0) ? NaN : ((x > 0) ? 0 : 180);
+    } else if (x == 0) {
+      return (y > 0) ? Infinity : -Infinity;
+    } else if (abs(y) == abs(x)) {
+      return (y > 0) ? ((x > 0) ? 45 : 135) :
+                       ((x > 0) ? -45 : -135);
+    }
+    return Math.atan2(y, x) * 180 / Math.PI;
   }),
   cosd: wrapraw('cosd',
   ["<u>cosd(degrees)</u> Trigonometric cosine, in degrees. " +
       "<mark>see cosd 45</mark>"],
   function cosd(x) {
-    x = x % 360;
+    x = modulo(x, 360);
     if (x % 30 === 0) {
       switch ((x < 0) ? x + 360 : x) {
-        case 0: return 1;
-        case 60: return .5;
-        case 90: return 0;
+        case   0: return   1;
+        case  60: return  .5;
+        case  90: return   0;
         case 120: return -.5;
-        case 180: return -1;
+        case 180: return  -1;
         case 240: return -.5;
-        case 270: return 0;
-        case 300: return .5;
+        case 270: return   0;
+        case 300: return  .5;
       }
     }
     return Math.cos(x / 180 * Math.PI);
@@ -8126,17 +8148,17 @@ var dollar_turtle_methods = {
   ["<u>sind(degrees)</u> Trigonometric sine, in degrees. " +
       "<mark>see sind 45</mark>"],
   function sind(x) {
-    x = x % 360;
+    x = modulo(x, 360);
     if (x % 30 === 0) {
       switch ((x < 0) ? x + 360 : x) {
-        case 0: return 0;
-        case 30: return .5;
-        case 90: return 1;
-        case 150: return .5;
-        case 180: return 0;
+        case   0: return   0;
+        case  30: return  .5;
+        case  90: return   1;
+        case 150: return  .5;
+        case 180: return   0;
         case 210: return -.5;
-        case 270: return -1;
-        case 330: return -.5
+        case 270: return  -1;
+        case 330: return -.5;
       }
     }
     return Math.sin(x / 180 * Math.PI);
@@ -8145,16 +8167,16 @@ var dollar_turtle_methods = {
   ["<u>tand(degrees)</u> Trigonometric tangent, in degrees. " +
       "<mark>see tand 45</mark>"],
   function tand(x) {
-    x = x % 360;
+    x = modulo(x, 360);
     if (x % 45 === 0) {
       switch ((x < 0) ? x + 360 : x) {
-        case 0: return 0;
-        case 45: return 1;
-        case 90: return Infinity;
+        case   0: return 0;
+        case  45: return 1;
+        case  90: return Infinity;
         case 135: return -1;
         case 180: return 0;
         case 225: return 1;
-        case 270: return Infinity;
+        case 270: return -Infinity;
         case 315: return -1
       }
     }

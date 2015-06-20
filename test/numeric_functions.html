@@ -11,6 +11,9 @@ asyncTest("Tests special values of functions.", function() {
   ok(sin(0) === 0);
   ok(cos(0) === 1);
   ok(tan(0) === 0);
+  ok(asin(0) === 0);
+  ok(acos(1) === 0);
+  ok(atan(0) === 0);
 
   ok(sind(0) === 0);
   ok(sind(30) === .5);
@@ -37,9 +40,36 @@ asyncTest("Tests special values of functions.", function() {
   ok(tand(135) === -1);
   ok(tand(180) === 0);
   ok(tand(225) === 1);
-  ok(tand(270) === Infinity);
+  ok(tand(270) === -Infinity);
   ok(tand(315) === -1);
   ok(tand(360) === 0);
+
+  ok(asind(0) === 0);
+  ok(asind(.5) === 30);
+  ok(asind(1) === 90);
+  ok(asind(-.5) === -30);
+  ok(asind(-1) === -90);
+
+  ok(acosd(1) === 0);
+  ok(acosd(.5) === 60);
+  ok(acosd(0) === 90);
+  ok(acosd(-.5) === 120);
+  ok(acosd(-1) === 180);
+
+  ok(atand(0) === 0);
+  ok(atand(1) === 45);
+  ok(atand(Infinity) === 90);
+  ok(atand(-1) === -45);
+  ok(atand(0, 1) === 0);
+  ok(atand(1, 1) === 45);
+  ok(atand(Infinity, 1) === 90);
+  ok(atand(-1, 1) === -45);
+  ok(atand(0, -1) === 180);
+  ok(atand(1, -1) === 135);
+  ok(atand(-Infinity) === -90);
+  ok(atand(-Infinity, 1) === -90);
+  ok(atand(-1, -1) === -135);
+
   done(function() {
     start();
   });
