@@ -8050,14 +8050,10 @@ var dollar_turtle_methods = {
       "<mark>see abs -5</mark>"], Math.abs),
   acos: wrapraw('acos',
   ["<u>acos(x)</u> Trigonometric arccosine, in radians. " +
-      "<mark>see acos 0.5</mark>"],
-  function acos(x) { return Math.acos(x); }
-  ),
+      "<mark>see acos 0.5</mark>"], Math.acos),
   asin: wrapraw('asin',
   ["<u>asin(y)</u> Trigonometric arcsine, in radians. " +
-      "<mark>see asin 0.5</mark>"],
-  function asin(y) { return Math.asin(y); }
-  ),
+      "<mark>see asin 0.5</mark>"], Math.asin),
   atan: wrapraw('atan',
   ["<u>atan(y, x = 1)</u> Trigonometric arctangent, in radians. " +
       "<mark>see atan 0.5</mark>"],
@@ -8065,19 +8061,13 @@ var dollar_turtle_methods = {
   ),
   cos: wrapraw('cos',
   ["<u>cos(radians)</u> Trigonometric cosine, in radians. " +
-      "<mark>see cos 0</mark>"],
-  function cos(x) { return Math.cos(x); }
-  ),
+      "<mark>see cos 0</mark>"], Math.cos),
   sin: wrapraw('sin',
   ["<u>sin(radians)</u> Trigonometric sine, in radians. " +
-      "<mark>see sin 0</mark>"],
-  function sin(x) { return Math.sin(x); }
-  ),
+      "<mark>see sin 0</mark>"], Math.sin),
   tan: wrapraw('tan',
   ["<u>tan(radians)</u> Trigonometric tangent, in radians. " +
-      "<mark>see tan 0</mark>"],
-  function tan(x) { return Math.tan(x); }
-  ),
+      "<mark>see tan 0</mark>"], Math.tan),
 
   // For degree versions of trig functions, make sure we return exact
   // results when possible. The set of values we have to consider is
