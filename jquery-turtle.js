@@ -8061,7 +8061,7 @@ var dollar_turtle_methods = {
   atan: wrapraw('atan',
   ["<u>atan(y, x = 1)</u> Trigonometric arctangent, in radians. " +
       "<mark>see atan 0.5</mark>"],
-    function atan(x, y) { return Math.atan2(x, (y == undefined) ? 1 : y); }
+  function atan(y, x) { return Math.atan2(y, (x == undefined) ? 1 : x); }
   ),
   cos: wrapraw('cos',
   ["<u>cos(radians)</u> Trigonometric cosine, in radians. " +
