@@ -81,4 +81,18 @@ asyncTest("Draws on another turtle.", function() {
     start();
   });
 });
+
+asyncTest("Drawon does not deadlock with sync.", function() {
+  speed(100);
+  var trt = new Sprite();
+  drawon(trt);
+  dot(red, 100);
+  drawon();
+  sync(turtle, trt);
+  trt.bk(100);
+  trt.done(function() {
+    ok(touches(red));
+    start();
+  });
+});
 </script>
