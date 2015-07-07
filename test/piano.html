@@ -1,0 +1,51 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit" style="opacity:0.5"></div>
+<script>
+eval($.turtle());
+see.init({panel:true});
+module("Test of the play function.");
+asyncTest("Looks at a Piano sprite.", function() {
+  var p = new Piano({keys: 16, lineWidth: 5});
+  var hasAudio = !!(window.AudioContext);
+  speed(Infinity);
+  move(-45, 0);
+  drawon(p);
+  equal(p.width(), 295);
+  equal(p.height(), 150);
+  ok(touches(white));
+  ok(touches(black));
+  ok(!touches('#ffeb3b'));
+  ok(!touches('#cddc39'));
+  pause(0.2);
+  turtle.done(function() {
+    ok(touches(white));
+    ok(touches(black));
+    ok(!touches('#ffeb3b'));
+    ok(!touches('#cddc39'));
+    p.play('E/8');
+    sync(turtle, p);
+    p.play('_E');
+    pause(0.05);
+    turtle.done(function() {
+      ok(touches(white));
+      ok(!hasAudio || touches('#ffeb3b'));
+      ok(touches(black));
+      ok(!touches('#cddc39'));
+      speed(Infinity);
+      move(0, -32);
+      ok(touches(white));
+      ok(!touches(black));
+      ok(!touches('#ffeb3b'));
+      ok(!touches('#cddc39'));
+      start();
+    });
+  });
+});
+</script>
+
+
+

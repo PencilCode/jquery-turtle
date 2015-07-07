@@ -10,7 +10,7 @@ module("Turtle canvas test.");
 asyncTest("Draws on another turtle.", function() {
   speed(Infinity);
   css({zIndex:1});
-  var B = hatch('1000x1000/5');
+  var B = hatch({width: 1000, height: 1000, subpixel: 5});
   drawon(B);
   ok(!touches(blue));
   ok(touches(transparent));
