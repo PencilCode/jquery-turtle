@@ -7907,6 +7907,12 @@ var dollar_turtle_methods = {
   type: wrapglobalcommand('type',
   ["<u>type(text)</u> Types preformatted text like a typewriter. " +
       "<mark>type 'Hello!\n'</mark>"], plainTextPrint),
+  typebox: wrapglobalcommand('typebox',
+  ["<u>typebox(clr)</u> Types a colored box into the typewriter output. " +
+      "<mark>typebox red</mark>"], function(c, t) {
+    if (t == null && c != null && !isCSSColor(c)) { t = c; c = null; }
+    plainBoxPrint(c, t);
+  }),
   write: wrapglobalcommand('write',
   ["<u>write(html)</u> Writes a line of text. Arbitrary HTML may be written: " +
       "<mark>write 'Hello, world!'</mark>"], doOutput, function() {
@@ -9180,18 +9186,45 @@ function undoScrollAfter(f) {
 //////////////////////////////////////////////////////////////////////////
 
 // Simplify output of preformatted text inside a <pre>.
+function getTrailingPre() {
+  var pre = document.body.lastChild;
+  if (!pre || pre.tagName != 'PRE') {
+    pre = document.createElement('pre');
+    document.body.appendChild(pre);
+  }
+  return pre;
+}
+
 function plainTextPrint() {
   var args = arguments;
   autoScrollAfter(function() {
-    var pre = document.body.lastChild;
-    if (!pre || pre.tagName != 'PRE') {
-      pre = document.createElement('pre');
-      document.body.appendChild(pre);
-    }
+    var pre = getTrailingPre();
     for (var j = 0; j < args.length; j++) {
       pre.appendChild(document.createTextNode(String(args[j])));
     }
   });
+}
+
+function plainBoxPrint(clr, text) {
+  var elem = $("<div>").css({
+    display: 'inline-block',
+    verticalAlign: 'top',
+    textAlign: 'center',
+    height: '1.2em',
+    width: '1.2em',
+    maxWidth: '1.2em',
+    overflow: 'hidden'
+  }).appendTo(getTrailingPre()), finish = function() {
+    if (clr) { elem.css({background: clr}); }
+    if (text) { elem.text(text); }
+  };
+  if (!global_turtle) {
+    finish();
+  } else {
+    var turtle = $(global_turtle);
+    moveto.call(turtle, null, elem);
+    turtle.eq(0).plan(finish);
+  }
 }
 
 // Put this output on the screen.  Called some time after prepareOutput
