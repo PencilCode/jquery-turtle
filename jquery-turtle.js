@@ -7908,10 +7908,15 @@ var dollar_turtle_methods = {
   ["<u>type(text)</u> Types preformatted text like a typewriter. " +
       "<mark>type 'Hello!\n'</mark>"], plainTextPrint),
   typebox: wrapglobalcommand('typebox',
-  ["<u>typebox(clr)</u> Types a colored box into the typewriter output. " +
+  ["<u>typebox(clr)</u> Draws a colored box as typewriter output. " +
       "<mark>typebox red</mark>"], function(c, t) {
     if (t == null && c != null && !isCSSColor(c)) { t = c; c = null; }
     plainBoxPrint(c, t);
+  }),
+  typeline: wrapglobalcommand('typebox',
+  ["<u>typeline()</u> Same as type '\\n'. " +
+      "<mark>typeline()</mark>"], function(t) {
+    plainTextPrint((t || '') + '\n');
   }),
   write: wrapglobalcommand('write',
   ["<u>write(html)</u> Writes a line of text. Arbitrary HTML may be written: " +
