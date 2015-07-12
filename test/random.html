@@ -1,0 +1,25 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<script src="../node_modules/seedrandom/seedrandom.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Random test.");
+asyncTest("Calls random in a few different ways.", function() {
+  Math.seedrandom('test');
+  equal(random(100), 87);
+  equal(random(normal), -0.8324352473725387);
+  equal(random(color), 'hsl(98,100%,50%)');
+  equal(random(gray), 'hsl(0,0,46%)');;
+  deepEqual(random(position), {"pageX":40,"pageY":218});
+  equal(random('uniform'), 0.4236748288641446);
+  equal(random(true), false);
+  equal(random([1,2,3]), 3);
+  equal(random(), 0.9520654011140274);
+  equal(random(null), 0.006122341186296597);
+  start();
+});
+</script>

@@ -24,6 +24,7 @@
     "grunt-contrib-qunit": "latest",
     "grunt-release": "latest",
     "phantomjs": "latest",
+    "seedrandom": "latest",
     "grunt-contrib-connect": "latest",
     "grunt-contrib-watch": "latest"
   }
