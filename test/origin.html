@@ -7,7 +7,7 @@
 <script>
 eval($.turtle());
 module("Field test.");
-asyncTest("Moves the field to translate the turtle.", function() {
+asyncTest("Moves the origin to translate the turtle.", function() {
   speed(Infinity);
   var homepos = pagexy();
   pen(red);
@@ -20,7 +20,7 @@ asyncTest("Moves the field to translate the turtle.", function() {
   fd(100);
   rt(90);
   pen(null);
-  $('#field').bk(100);
+  origin.bk(100);
   ok(!touches(red));
   fd(100);
   ok(touches(red));
@@ -30,7 +30,7 @@ asyncTest("Moves the field to translate the turtle.", function() {
   ok(!touches(red));
   moveto(homepos);
   ok(touches(red));
-  $('#field').fd(100);
+  origin.fd(100);
   ok(touches(red));
   bk(100);
   ok(touches(red));

@@ -1569,7 +1569,7 @@ function createSurfaceAndField() {
       pointerEvents: 'none',
       overflow: 'hidden'
     }).addClass('turtlefield');
-  $(field).attr('id', 'field')
+  $(field).attr('id', 'origin')
     .css({
       position: 'absolute',
       display: 'inline-block',
