@@ -951,7 +951,8 @@ function cleanedStyle(trans) {
 // center of rotation when no transforms are applied) in page coordinates.
 function getTurtleOrigin(elem, inverseParent, extra) {
   var state = $.data(elem, 'turtleData');
-  if (state && state.quickhomeorigin && state.down && state.style && !extra) {
+  if (state && state.quickhomeorigin && state.down && state.style && !extra
+      && elem.classList && elem.classList.contains('turtle')) {
     return state.quickhomeorigin;
   }
   var hidden = ($.css(elem, 'display') === 'none'),
@@ -1089,8 +1090,7 @@ function computeTargetAsTurtlePosition(elem, target, limit, localx, localy) {
   localTarget = matrixVectorProduct(inverseParent,
       subtractVector([target.pageX, target.pageY], origin));
   if (localx || localy) {
-    var ts = readTurtleTransform(elem, true),
-        sy = ts ? ts.sy : 1;
+    var sy = elemOldScale(elem);
     localTarget[0] += localx * sy;
     localTarget[1] -= localy * sy;
   }
@@ -1118,7 +1118,7 @@ function computePositionAsLocalOffset(elem, home) {
       ts = readTurtleTransform(elem, true),
       localHome = inverseParent && matrixVectorProduct(inverseParent,
           subtractVector([home.pageX, home.pageY], origin)),
-      isy = ts && 1 / ts.sy;
+      isy = 1 / elemOldScale(elem);
   if (!inverseParent) { return; }
   return [(ts.tx - localHome[0]) * isy, (localHome[1] - ts.ty) * isy];
 }
@@ -1127,11 +1127,12 @@ function convertLocalXyToPageCoordinates(elem, localxy) {
   var totalParentTransform = totalTransform2x2(elem.parentElement),
       ts = readTurtleTransform(elem, true),
       center = $(homeContainer(elem)).pagexy(),
+      sy = elemOldScale(elem),
       result = [],
       pageOffset, j;
   for (j = 0; j < localxy.length; j++) {
     pageOffset = matrixVectorProduct(
-        totalParentTransform, [localxy[j][0] * ts.sy, -localxy[j][1] * ts.sy]);
+        totalParentTransform, [localxy[j][0] * sy, -localxy[j][1] * sy]);
     result.push({ pageX: center.pageX + pageOffset[0],
                   pageY: center.pageY + pageOffset[1] });
   }
@@ -1161,10 +1162,26 @@ function getCenterInPageCoordinates(elem) {
       origin = getTurtleOrigin(elem, inverseParent),
       pos = addVector(matrixVectorProduct(totalParentTransform, tr), origin),
       result = { pageX: pos[0], pageY: pos[1] };
-  if (state && simple && state.down && state.style) {
+  if (state && simple && state.down && state.style && elem.classList &&
+      elem.classList.contains('turtle')) {
     state.quickpagexy = result;
   }
   return result;
+}
+
+// The quickpagexy variable is an optimization that assumes
+// parent coordinates do not change.  This function will clear
+// the cache, and is used when we have a container that is moving.
+function clearChildQuickLocations(elem) {
+  if (elem.tagName != 'CANVAS' && elem.tagName != 'IMG') {
+    $(elem).find('.turtle').each(function(j, e) {
+      var s = $.data(e, 'turtleData');
+      if (s) {
+        s.quickpagexy = null;
+        s.quickhomeorigin = null;
+      }
+    });
+  }
 }
 
 function polyToVectorsOffset(poly, offset) {
@@ -1580,7 +1597,10 @@ function createSurfaceAndField() {
       // fixes a "center" point in page coordinates that
       // will not change even if the document resizes.
       transformOrigin: "0px 0px",
-      pointerEvents: 'all'
+      pointerEvents: 'all',
+      // Setting turtleSpeed to Infinity by default allows
+      // moving the origin instantly without sync.
+      turtleSpeed: Infinity
     }).appendTo(surface);
   globalDrawing.surface = surface;
   globalDrawing.field = field;
@@ -1776,6 +1796,7 @@ function getTurtleData(elem) {
       drawOnCanvas: null,
       quickpagexy: null,
       quickhomeorigin: null,
+      oldscale: 1,
       instrument: null,
       stream: null
     });
@@ -2019,6 +2040,7 @@ function addToPathList(pathList, point) {
 }
 
 function flushPenState(elem, state, corner) {
+  clearChildQuickLocations(elem);
   if (!state) {
     // Default is no pen and no path, so nothing to do.
     return;
@@ -2056,22 +2078,22 @@ function flushPenState(elem, state, corner) {
     addToPathList(corners[0], center);
   }
   if (style.savePath) return;
-  // Add to tracing path, and trace it righ away.
+  // Add to tracing path, and trace it right away.
   addToPathList(path[0], center);
-  var ts = readTurtleTransform(elem, true);
+  var scale = drawingScale(elem);
   // Last argument 2 means that the last two points are saved, which
   // allows us to draw corner miters and also avoid 'butt' lineCap gaps.
-  drawAndClearPath(getDrawOnCanvas(state), state.path, style, ts.sx, 2);
+  drawAndClearPath(getDrawOnCanvas(state), state.path, style, scale, 2);
 }
 
 function endAndFillPenPath(elem, style) {
-  var ts = readTurtleTransform(elem, true),
-      state = getTurtleData(elem);
+  var state = getTurtleData(elem);
   if (state.style) {
     // Apply a default style.
     style = $.extend({}, state.style, style);
   }
-  drawAndClearPath(getDrawOnCanvas(state), state.corners, style, ts.sx, 1);
+  var scale = drawingScale(elem);
+  drawAndClearPath(getDrawOnCanvas(state), state.corners, style, scale, 1);
 }
 
 function clearField(arg) {
@@ -2237,8 +2259,9 @@ function applyImg(sel, img, cb) {
 function doQuickMove(elem, distance, sideways) {
   var ts = readTurtleTransform(elem, true),
       r = ts && convertToRadians(ts.rot),
-      scaledDistance = ts && (distance * ts.sy),
-      scaledSideways = ts && ((sideways || 0) * ts.sy),
+      sy = elemOldScale(elem),
+      scaledDistance = ts && (distance * sy),
+      scaledSideways = ts && ((sideways || 0) * sy),
       dy = -Math.cos(r) * scaledDistance,
       dx = Math.sin(r) * scaledDistance,
       state = $.data(elem, 'turtleData'),
@@ -2285,13 +2308,14 @@ function doQuickRotate(elem, degrees) {
 }
 
 function displacedPosition(elem, distance, sideways) {
-  var ts = readTurtleTransform(elem, true),
-      r = ts && convertToRadians(ts.rot),
-      scaledDistance = ts && (distance * ts.sy),
-      scaledSideways = ts && ((sideways || 0) * ts.sy),
+  var ts = readTurtleTransform(elem, true);
+  if (!ts) { return; }
+  var s = elemOldScale(elem),
+      r = convertToRadians(ts.rot),
+      scaledDistance = distance * s,
+      scaledSideways = (sideways || 0) * s,
       dy = -Math.cos(r) * scaledDistance,
       dx = Math.sin(r) * scaledDistance;
-  if (!ts) { return; }
   if (scaledSideways) {
     dy += Math.sin(r) * scaledSideways;
     dx += Math.cos(r) * scaledSideways;
@@ -2362,16 +2386,18 @@ function makeTurtleForwardHook() {
       if (ts) {
         var r = convertToRadians(ts.rot),
             c = Math.cos(r),
-            s = Math.sin(r);
+            s = Math.sin(r),
+            sy = elemOldScale(elem);
         return cssNum(((ts.tx + middle[0]) * s - (ts.ty + middle[1]) * c)
-            / ts.sy) + 'px';
+            / sy) + 'px';
       }
     },
     set: function(elem, value) {
       var ts = readTurtleTransform(elem, true) ||
               {tx: 0, ty: 0, rot: 0, sx: 1, sy: 1, twi: 0},
           middle = readTransformOrigin(elem),
-          v = parseFloat(value) * ts.sy,
+          sy = elemOldScale(elem),
+          v = parseFloat(value) * sy,
           r = convertToRadians(ts.rot),
           c = Math.cos(r),
           s = Math.sin(r),
@@ -2417,6 +2443,8 @@ function makeTurtleHook(prop, normalize, unit, displace) {
           };
         }
         flushPenState(elem, state);
+      } else {
+        clearChildQuickLocations(elem);
       }
     }
   };
@@ -2519,7 +2547,8 @@ function maybeArcRotation(end, elem, ts, opt) {
     return tradius === 0 ? normalizeRotation(end) : end;
   }
   var tracing = (state && state.style && state.down),
-      turnradius = tradius * ts.sy, a;
+      sy = (state && state.oldscale) ? ts.sy : 1,
+      turnradius = tradius * sy, a;
   if (tracing) {
     a = addArcBezierPaths(
       state.path[0],                            // path to add to
@@ -2609,6 +2638,8 @@ function makeTurtleXYHook(publicname, propx, propy, displace) {
           };
         }
         flushPenState(elem, state);
+      } else {
+        clearChildQuickLocations(elem);
       }
     }
   };
@@ -5728,6 +5759,7 @@ function canElementMoveInstantly(elem) {
   // moving at speed Infinity.
   var atime;
   return (elem && $.queue(elem).length == 0 &&
+      !elem.parentElement.style.transform &&
       ((atime = animTime(elem)) === 0 || $.fx.speeds[atime] === 0));
 }
 
@@ -6000,7 +6032,7 @@ function rtlt(cc, degrees, radius) {
               oldPos,
               oldTs.rot,
               oldTs.rot + (left ? -degrees : degrees),
-              newRadius * oldTs.sy,
+              newRadius * (state.oldscale ? oldTs.sy : 1),
               oldTransform);
           });
         })();
@@ -6151,9 +6183,58 @@ function makejump(move) {
 }
 
 //////////////////////////////////////////////////////////////////////////
+// SCALING FUNCTIONS
+// Support for old-fashioned scaling and new.
+//////////////////////////////////////////////////////////////////////////
+
+function elemOldScale(elem) {
+  var state = $.data(elem, 'turtleData');
+  return state && (state.oldscale != null) ? state.oldscale : 1;
+}
+
+function scaleCmd(cc, valx, valy) {
+  growImpl.call(this, true, cc, valx, valy);
+}
+
+function grow(cc, valx, valy) {
+  growImpl.call(this, false, cc, valx, valy);
+}
+
+function growImpl(oldscale, cc, valx, valy) {
+  if (valy === undefined) { valy = valx; }
+  // Disallow scaling to zero using this method.
+  if (!valx || !valy) { valx = valy = 1; }
+  var intick = insidetick;
+  this.plan(function(j, elem) {
+    if (oldscale) {
+      getTurtleData(elem).oldscale *= valy;
+    }
+    cc.appear(j);
+    if ($.isWindow(elem) || elem.nodeType === 9) {
+      cc.resolve(j);
+      return;
+    }
+    var c = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
+    if (c.length === 1) { c.push(c[0]); }
+    c[0] *= valx;
+    c[1] *= valy;
+    this.animate({turtleScale: $.map(c, cssNum).join(' ')},
+          animTime(elem, intick), animEasing(elem), cc.resolver(j));
+  });
+  return this;
+}
+
+//////////////////////////////////////////////////////////////////////////
 // DOT AND BOX FUNCTIONS
 // Support for animated drawing of dots and boxes.
 //////////////////////////////////////////////////////////////////////////
+
+function drawingScale(elem, oldscale) {
+  var totalParentTransform = totalTransform2x2(elem.parentElement),
+      simple = isone2x2(totalParentTransform),
+      scale = simple ? 1 : decomposeSVD(totalParentTransform)[1];
+  return scale * elemOldScale(elem);
+}
 
 function animatedDotCommand(fillShape) {
   var intick = insidetick;
@@ -6178,8 +6259,8 @@ function animatedDotCommand(fillShape) {
           ts = readTurtleTransform(elem, true),
           ps = parsePenStyle(style, 'fillStyle'),
           drawOnCanvas = getDrawOnCanvas(state),
-          // Scale by sx.  (TODO: consider parent transforms.)
-          targetDiam = diameter * ts.sx,
+          sx = drawingScale(elem),
+          targetDiam = diameter * sx,
           animDiam = Math.max(0, targetDiam - 2),
           finalDiam = targetDiam + (ps.eraseMode ? 2 : 0),
           hasAlpha = /rgba|hsla/.test(ps.fillStyle);
@@ -6677,27 +6758,10 @@ var turtlefn = {
   }),
   scale: wrapcommand('scale', 1,
   ["<u>scale(factor)</u> Scales all motion up or down by a factor. " +
-      "To double all drawing: <mark>scale(2)</mark>"],
-  function scale(cc, valx, valy) {
-    if (valy === undefined) { valy = valx; }
-    // Disallow scaling to zero using this method.
-    if (!valx || !valy) { valx = valy = 1; }
-    var intick = insidetick;
-    this.plan(function(j, elem) {
-      cc.appear(j);
-      if ($.isWindow(elem) || elem.nodeType === 9) {
-        cc.resolve(j);
-        return;
-      }
-      var c = $.map($.css(elem, 'turtleScale').split(' '), parseFloat);
-      if (c.length === 1) { c.push(c[0]); }
-      c[0] *= valx;
-      c[1] *= valy;
-      this.animate({turtleScale: $.map(c, cssNum).join(' ')},
-            animTime(elem, intick), animEasing(elem), cc.resolver(j));
-    });
-    return this;
-  }),
+      "To double all drawing: <mark>scale(2)</mark>"], scaleCmd),
+  grow: wrapcommand('grow', 1,
+  ["<u>grow(factor)</u> Changes the size of the element by a factor. " +
+      "To double the size: <mark>grow(2)</mark>"], grow),
   pause: wrapcommand('pause', 1,
   ["<u>pause(seconds)</u> Pauses some seconds before proceeding. " +
       "<mark>fd 100; pause 2.5; bk 100</mark>",
