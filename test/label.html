@@ -62,6 +62,10 @@ asyncTest("Outputs some labels.", function() {
       equal(rounded($('label:contains(bottomleft)').direction()), 0);
       equal(direction(), 90);
       equal(rounded($('label:contains(upside down)').direction()), 180);
+      var b;
+      label(b = button('hello'));
+      ok(touches(b));
+      equal(b.direction(), 90);
       start();
     });
   });

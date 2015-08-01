@@ -3695,7 +3695,7 @@ function forwardBodyMouseEventsIfNeeded() {
           var warn = $.turtle.nowarn;
           $.turtle.nowarn = true;
           var sel = $(globalDrawing.surface)
-              .find('.turtle').within('touch', e).eq(0);
+              .find('.turtle,.turtlelabel').within('touch', e).eq(0);
           $.turtle.nowarn = warn;
           if (sel.length === 1) {
             // Erase portions of the event that are wrong for the turtle.
@@ -7050,6 +7050,10 @@ var turtlefn = {
       // Place the label on the screen using the figured styles.
       var out = prepareOutput(html, 'label').result.css(applyStyles)
           .addClass('turtlelabel').appendTo(getTurtleField());
+      // If the output has a turtleinput, then forward mouse events.
+      if (out.hasClass('turtleinput') || out.find('.turtleinput').length) {
+        mouseSetupHook.apply(out.get(0));
+      }
       if (styles && 'id' in styles) {
         out.attr('id', styles.id);
       }
@@ -9256,6 +9260,8 @@ function prepareOutput(html, tag) {
   if (html === undefined || html === null) {
     // Make empty line when no arguments.
     return {result: $(prefix + '<br>' + suffix)};
+  } else if (html.jquery || (html instanceof Element && (html = $(html)))) {
+    return {result: html};
   } else {
     var wrapped = false, result = null;
     html = '' + html;
