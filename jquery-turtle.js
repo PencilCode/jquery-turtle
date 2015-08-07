@@ -8405,7 +8405,7 @@ $.turtle = function turtle(id, options) {
       global.onerror = see;
     }
     // Set up an alias.
-    global.log = see;
+    global.debug = see;
   }
   // Copy $.turtle.* functions into global namespace.
   if (!('functions' in options) || options.functions) {
@@ -10699,6 +10699,11 @@ function initconsolelog() {
       var _log = global.console._log = global.console.log;
       global.console.log = function log() {
         _log.apply(this, arguments);
+        see.apply(this, arguments);
+      }
+      var _debug = global.console._debug = global.console.debug;
+      global.console.debug = function debug() {
+        _debug.apply(this, arguments);
         see.apply(this, arguments);
       }
     }
