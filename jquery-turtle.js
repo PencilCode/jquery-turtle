@@ -8406,6 +8406,8 @@ $.turtle = function turtle(id, options) {
     }
     // Set up an alias.
     global.debug = see;
+    // 'debug' should be used now instead of log
+    deprecate(global, 'log', 'debug');
   }
   // Copy $.turtle.* functions into global namespace.
   if (!('functions' in options) || options.functions) {
