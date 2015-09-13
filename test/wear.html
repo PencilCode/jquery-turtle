@@ -64,6 +64,8 @@ asyncTest("Wears and hittests different shapes.", function() {
       wear(blue);
       pause(0.1, function() {
         ok(b.touches(blue));
+        // Verify we don't crash when using wear on a disconnected canvas.
+        $('<canvas>').css({ position: 'absolute' }).wear('pencil');
         setTimeout(start, 0);
       });
     });
