@@ -3899,11 +3899,16 @@ function resetAudio() {
       atop.out = null;
       atop.currentStart = null;
     }
-    var dcn = atop.ac.createDynamicsCompressor();
-    dcn.ratio = 16;
-    dcn.attack = 0.0005;
-    dcn.connect(atop.ac.destination);
-    atop.out = dcn;
+    // If resetting due to interrupt after AudioContext closed, this can fail.
+    try {
+      var dcn = atop.ac.createDynamicsCompressor();
+      dcn.ratio = 16;
+      dcn.attack = 0.0005;
+      dcn.connect(atop.ac.destination);
+      atop.out = dcn;
+    } catch (e) {
+      getAudioTop.audioTop = null;
+    }
   }
 }
 
