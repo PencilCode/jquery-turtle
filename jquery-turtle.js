@@ -9834,18 +9834,14 @@ function autoArgs(arguments, start, map) {
 //////////////////////////////////////////////////////////////////////////
 var debug = {
   init: function initdebug() {
+    if (this.ide) return;  // Don't re-initialize debug.
     try {
-      if (parent && parent.ide) {
-        if (this.ide !== parent.ide) {
-          this.ide = parent.ide;
-          this.ide.bindframe(global);
-        }
+      if (parent && parent.ide && parent.ide.bindframe &&
+          parent.ide.bindframe(global, parent)) {
+        this.ide = parent.ide;
         this.attached = true;
       }
-    } catch(e) {
-      this.ide = null;
-      this.attached = false;
-    }
+    } catch(e) { }
     if (this.attached) {
       if (global.addEventListener) {
         global.addEventListener('error', function(event) {

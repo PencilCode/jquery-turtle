@@ -64,6 +64,7 @@ function verify(data) {
 window.ide = {
   bindframe: function() {
     verify('bindframe');
+    return true;
   },
   reportEvent: function(eventname, args) {
     verify([eventname, args[0]]);
