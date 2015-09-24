@@ -7571,6 +7571,33 @@ var turtlefn = {
   })
 };
 
+//////////////////////////////////////////////////////////////////////////
+// QUEUING SUPPORT
+//////////////////////////////////////////////////////////////////////////
+
+function queueShowHideToggle() {
+  $.each(['toggle', 'show', 'hide'], function(i, name) {
+
+
+    var builtInFn = $.fn[name];
+    // Change show/hide/toggle to queue their behavior by default.
+    // Since animating show/hide will call the zero-argument
+    // form synchronously at the end of animation, we avoid
+    // infinite recursion by examining jQuery's internal fxshow
+    // state and avoiding the recursion if the animation is calling
+    // show/hide.
+    $.fn[name] = function(speed, easing, callback) {
+      var a = arguments;
+      // TODO: file a bug in jQuery to allow solving this without _data.
+      if (!a.length && this.hasClass('turtle') &&
+          (this.length > 1 || !$._data(this[0], 'fxshow'))) {
+        a = [0];
+      }
+      builtInFn.apply(this, a);
+    }
+  });
+}
+
 // If the queue for an image is empty, starts by queuing a wait-for-load.
 function queueWaitIfLoadingImg(img, qname) {
   if (!qname) qname = 'fx';
@@ -7584,6 +7611,10 @@ function queueWaitIfLoadingImg(img, qname) {
     }
   }
 }
+
+//////////////////////////////////////////////////////////////////////////
+// HUNG LOOP DETECTION
+//////////////////////////////////////////////////////////////////////////
 
 var warning_shown = {},
     loopCounter = 0,
@@ -8452,15 +8483,15 @@ $.turtle = function turtle(id, options) {
       parseFloat(options.hangtime) : 20000;
 
   // Set up global events.
-  if (!('events' in options) || options.events) {
+  if (options.events !== false) {
     turtleevents(options.eventprefix);
   }
-  if (!('pressed' in options) || options.pressed) {
+  if (options.pressed !== false) {
     addKeyEventHooks();
     pressedKey.enable(true);
   }
   // Set up global log function.
-  if (!('see' in options) || options.see) {
+  if (options.see !== false) {
     exportsee();
     exportedsee = true;
     if (global.addEventListener) {
@@ -8473,8 +8504,12 @@ $.turtle = function turtle(id, options) {
     // 'debug' should be used now instead of log
     deprecate(global, 'log', 'debug');
   }
+  if (options.queuehide !== false) {
+    queueShowHideToggle();
+  }
+
   // Copy $.turtle.* functions into global namespace.
-  if (!('functions' in options) || options.functions) {
+  if (options.functions !== false) {
     global.printpage = global.print;
     $.extend(global, dollar_turtle_methods);
   }
@@ -8501,11 +8536,11 @@ $.turtle = function turtle(id, options) {
   }
   if (selector && !selector.length) { selector = null; }
   // Globalize selected jQuery methods of a singleton turtle.
-  if (selector && selector.length === 1 &&
-      (!('global' in options) || options.global)) {
+  if (selector && selector.length === 1 && (options.global !== false)) {
     var extraturtlefn = {
       css:1, fadeIn:1, fadeOut:1, fadeTo:1, fadeToggle:1,
-      animate:1, toggle:1, finish:1, promise:1, direct:1 };
+      animate:1, toggle:1, finish:1, promise:1, direct:1,
+      show:1, hide:1 };
     var globalfn = $.extend({}, turtlefn, extraturtlefn);
     global_turtle_methods.push.apply(global_turtle_methods,
        globalizeMethods(selector, globalfn));
@@ -8514,14 +8549,14 @@ $.turtle = function turtle(id, options) {
     selector.css({zIndex: 1});
   }
   // Set up global objects by id.
-  if (!('ids' in options) || options.ids) {
+  if (options.ids !== false) {
     turtleids(options.idprefix);
     if (selector && id) {
       global[id] = selector;
     }
   }
   // Set up test console.
-  if (!('panel' in options) || options.panel) {
+  if (options.panel !== false) {
     var seeopt = {
       title: 'test panel (type help for help)',
       abbreviate: [undefined, helpok],
@@ -10296,7 +10331,8 @@ function isprimitive(vt) {
 }
 
 function isdom(obj) {
-  return (obj.nodeType && obj.nodeName && typeof(obj.cloneNode) == 'function');
+  return (obj && obj.nodeType && obj.nodeName &&
+          typeof(obj.cloneNode) == 'function');
 }
 
 function midtruncate(s, maxlen) {

@@ -1,0 +1,29 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Test of queued hide command.");
+asyncTest("Copy a turtle, then move the original away from the copy.", function() {
+  speed(1000)
+  var a = new Turtle(red);
+  a.fd(100)
+  speed(Infinity);
+  $('.turtle').hide();
+  ok(!a.hidden());
+  ok(turtle.hidden());
+  done(function() {
+    ok(turtle.hidden());
+    ok(a.hidden());
+    turtle.show();
+    a.show();
+    ok(turtle.shown());
+    ok(a.shown());
+    start();
+  });
+});
+
+</script>
