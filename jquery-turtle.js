@@ -9429,8 +9429,8 @@ function plainBoxPrint(clr, text) {
     maxWidth: '1.2em',
     overflow: 'hidden'
   }).appendTo(getTrailingPre()), finish = function() {
-    if (clr) { elem.css({background: clr}); }
-    if (text) { elem.text(text); }
+    if (clr != null) { elem.css({background: clr}); }
+    if (text != null) { elem.text(text); }
   };
   if (!global_turtle) {
     finish();
@@ -9702,39 +9702,42 @@ function prepareInput(name, callback, type) {
       return false;
     }
   }
-  if (type == 'voice' && 'function' == typeof(global.webkitSpeechRecognition)) {
-    try {
-      recognition = new global.webkitSpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      textbox.css({backgroundColor: 'lightyellow',
-        color: 'gray',
-        backgroundImage: "url(" + microphoneSvg + ")",
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center'});
-      recognition.onspeechstart = function() {
-        textbox.css({background: 'lightgreen'});
-      };
-      recognition.onend = function() {
-        textbox.css({color: '', backgroundColor: '', backgroundImage: '',
-          backgroundRepeat: '', backgroundPosition: ''});
-        textbox.val(lastseen);
-        newval();
-      };
-      recognition.onresult = function(event) {
-        var text = event.results[0][0].transcript;
-        var confidence = event.results[0][0].confidence;
-        var shade = 128 - 128 * confidence;
-        if (event.results[0].isFinal) {
-          shade = 0;
-          lastseen = text;
-        }
-        textbox.css({color: componentColor('rgb', shade, shade, shade)});
-        textbox.val(text);
-      };
-      recognition.start();
-    } catch (e) {
-      console.log(e);
+  if (type == 'voice') {
+    var SR = global.SpeechRecognition || global.webkitSpeechRecognition;
+    if ('function' == typeof(SR)) {
+      try {
+        recognition = new SR();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        textbox.css({backgroundColor: 'lightyellow',
+          color: 'gray',
+          backgroundImage: "url(" + microphoneSvg + ")",
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center'});
+        recognition.onspeechstart = function() {
+          textbox.css({background: 'lightgreen'});
+        };
+        recognition.onend = function() {
+          textbox.css({color: '', backgroundColor: '', backgroundImage: '',
+            backgroundRepeat: '', backgroundPosition: ''});
+          textbox.val(lastseen);
+          newval();
+        };
+        recognition.onresult = function(event) {
+          var text = event.results[0][0].transcript;
+          var confidence = event.results[0][0].confidence;
+          var shade = 128 - 128 * confidence;
+          if (event.results[0].isFinal) {
+            shade = 0;
+            lastseen = text;
+          }
+          textbox.css({color: componentColor('rgb', shade, shade, shade)});
+          textbox.val(text);
+        };
+        recognition.start();
+      } catch (e) {
+        console.log(e);
+      }
     }
   }
   textbox.on('keypress keydown', key);
