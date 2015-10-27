@@ -9653,8 +9653,9 @@ function prepareInput(name, callback, type) {
   if (!type) { type = 'auto'; }
   name = $.isNumeric(name) || name ? name : '&rArr;';
   var textbox = $('<input class="turtleinput">').css({margin:0, padding:0}),
+      button = $('<button>Submit</button>').css({marginLeft:4}),
       label = $('<label style="display:table">' + name + '&nbsp;' +
-        '</label>').append(textbox),
+        '</label>').append(textbox).append(button),
       debounce = null,
       lastseen = textbox.val(),
       recognition = null;
@@ -9670,6 +9671,7 @@ function prepareInput(name, callback, type) {
     dodebounce();
     lastseen = val;
     textbox.remove();
+    button.remove();
     label.append(val).css({display: 'table'});
     if (type == 'number' || (type == 'auto' &&
       $.isNumeric(val) && ('' + parseFloat(val) == val))) {
@@ -9718,7 +9720,11 @@ function prepareInput(name, callback, type) {
             marginwidth = textbox.outerWidth(true) - textbox.width();
         textbox.width(desiredwidth - marginwidth);
       }
+      if (type == 'number') {
+        textbox.attr('type', 'number');
+      }
       if (type == 'voice') {
+        button.css({display:none});
         var SR = global.SpeechRecognition || global.webkitSpeechRecognition;
         if ('function' == typeof(SR)) {
           try {
