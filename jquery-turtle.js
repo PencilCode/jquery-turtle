@@ -9706,7 +9706,7 @@ function prepareInput(name, callback, type) {
     }
   }
   textbox.on('keypress keydown', key);
-  textbox.on('change', newval);
+  button.on('click', newval);
   return {
     result: label,
     setup: function() {
