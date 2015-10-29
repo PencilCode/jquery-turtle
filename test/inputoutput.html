@@ -20,14 +20,22 @@ asyncTest("Draws a square changing speed along the way.", function() {
   equal(td.eq(2).text(), "3");
   var clicked = 0;
   setTimeout(function() {
-    $('input').val('Amy').change();
+    $('input').val('Amy');
+    $('button').click();
   }, 1);
-  var b;
+  var b, r2;
   var r = read('name?', function(t) {
     equal(t, 'Amy');
     setTimeout(function() {
+      $('input').val('34');
+      var e = jQuery.Event("keydown");
+      e.which = 13; // Enter.
+      $('input').trigger(e);
       $('button').click();
     }, 1);
+    r2 = readnum('count?', function(c) {
+      equal(c, 34);
+    });
     b = button('click me!', function() {
       equal(equal($('button').last().text(), 'click me!'));
       equal(clicked++, 0);
