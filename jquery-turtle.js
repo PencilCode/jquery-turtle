@@ -8046,9 +8046,9 @@ var dollar_turtle_methods = {
       "converts input to a number: " +
       "<mark>readstr 'Enter code', (v) -> write v.length + ' long'</mark>"],
   doOutput, function readstr(a, b) { return prepareInput(a, b, 'text'); }),
-  readvoice: wrapglobalcommand('readvoice',
-  ["<u>readvoice(html, fn)</u> Reads voice input, if the browser supports it:" +
-      "<mark>readvoice 'Say something', (v) -> write v</mark>"],
+  listen: wrapglobalcommand('listen',
+  ["<u>listen(html, fn)</u> Reads voice input, if the browser supports it:" +
+      "<mark>listen 'Say something', (v) -> write v</mark>"],
   doOutput, function readstr(a, b) { return prepareInput(a, b, 'voice'); }),
   menu: wrapglobalcommand('menu',
   ["<u>menu(map)</u> shows a menu of choices and calls a function " +
