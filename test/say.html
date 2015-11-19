@@ -1,0 +1,25 @@
+<script src="lib/qunit.js"></script>
+<link href="lib/qunit.css" rel="stylesheet">
+<script src="lib/jquery.js"></script>
+<script src="../jquery-turtle.js"></script>
+<body>
+<div id="qunit"></div>
+<script>
+eval($.turtle());
+module("Test of the say function.");
+asyncTest("Utters nothing twice.", function() {
+  say('.');
+  done(function() {
+    ok(true);
+    turtle.remove();
+    say('');
+    ok(true);
+    $.turtle({ids: false}); // bring back globals
+    turtle = $('#turtle');
+    start();
+  });
+});
+</script>
+
+
+
