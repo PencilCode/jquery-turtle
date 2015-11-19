@@ -46,4 +46,22 @@ asyncTest("Moves a couple turtles and verifies that sync works.", function() {
     start();
   });
 });
+
+asyncTest("Moves a written object and verifies that sync works.", function() {
+  speed(10);
+  var w = write('hello');
+  w.bk(100);
+  sync(w, turtle);
+  w.plan(function() {
+    // When w is done moving, w2 should not have moved yet.
+    var xy2 = w2.getxy();
+    var xy = w.getxy();
+    ok(xy2[1] > xy[1]);
+  });
+  var w2 = write('hello2');
+  w2.bk(100);
+  done(function() {
+    start();
+  });
+});
 </script>
