@@ -2689,7 +2689,7 @@ function imgUrl(url) {
   if (/\//.test(url)) { return url; }
   url = '/img/' + url;
   if (isPencilHost(global.location.hostname)) { return url; }
-  return '//pencil.io' + url;
+  return '//pencilcode.net' + url;
 }
 // Retrieves the pencil code login cookie, if there is one.
 function loginCookie() {
@@ -5944,6 +5944,9 @@ function wrapglobalcommand(name, helptext, fn, fnfilter) {
         this.plan(cc.resolver(j));
       });
       cc.exit();
+      if (early && early.result && early.result.constructor === jQuery) {
+        sync(animate, early.result);
+      }
     } else {
       cc = setupContinuation(null, name, arguments, argcount);
       fn.apply(early, arguments);
@@ -9026,7 +9029,7 @@ function nameToImg(name, defaultshape) {
     // Deal with unquoted "tan" and "dot".
     name = name.helpname || name.name;
   }
-  if (name.constructor === $) {
+  if (name.constructor === jQuery) {
     // Unwrap jquery objects.
     if (!name.length) { return null; }
     name = name.get(0);
@@ -9056,6 +9059,10 @@ function nameToImg(name, defaultshape) {
   }
   if (shape) {
     return shape(color);
+  }
+  // Default to '/img/' URLs if it doesn't match a well-known name.
+  if (!/\//.test(name)) {
+    name = imgUrl(name);
   }
   // Parse URLs.
   if (/\//.test(name)) {

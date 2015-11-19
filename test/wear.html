@@ -24,6 +24,20 @@ asyncTest("Wears an image and moves it immediately.", function() {
   });
 });
 
+asyncTest("Wears an creative commons image.", function() {
+  var r = new Turtle(red);
+  r.speed(100);
+  tick(60, function() {
+    ok(r.width() != 20 || r.getxy()[1] == 0);
+  });
+  r.wear('t-watermelon'); // no /img/ needed.
+  r.done(function() {
+    ok(r.width() != 20);
+    tick(null);
+    setTimeout(start, 0);
+  });
+});
+
 asyncTest("Wears and hittests different shapes.", function() {
   speed(Infinity);
   dot(red, 30);
