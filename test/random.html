@@ -20,6 +20,7 @@ asyncTest("Calls random in a few different ways.", function() {
   equal(random([1,2,3]), 3);
   equal(random(), 0.9520654011140274);
   equal(random(null), 0.006122341186296597);
+  equal($.turtle.colors.indexOf('red'), 120);
   start();
 });
 </script>
