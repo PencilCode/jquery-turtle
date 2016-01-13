@@ -4709,16 +4709,13 @@ var Instrument = (function() {
     return result;
   }
 
-  var whiteNoiseBuf = null;
   function getWhiteNoiseBuf() {
-    if (whiteNoiseBuf == null) {
-      var ac = getAudioTop().ac,
-          bufferSize = 2 * ac.sampleRate,
-          whiteNoiseBuf = ac.createBuffer(1, bufferSize, ac.sampleRate),
-          output = whiteNoiseBuf.getChannelData(0);
-      for (var i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
-      }
+    var ac = getAudioTop().ac,
+      bufferSize = 2 * ac.sampleRate,
+      whiteNoiseBuf = ac.createBuffer(1, bufferSize, ac.sampleRate),
+      output = whiteNoiseBuf.getChannelData(0);
+    for (var i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
     }
     return whiteNoiseBuf;
   }
@@ -7323,7 +7320,7 @@ var turtlefn = {
       if (typeof val != 'object' ||
           !$.isNumeric(val.width) || !$.isNumeric(val.height) ||
           !($.isArray(val.data) || val.data instanceof Uint8ClampedArray ||
-            val.data instanceof Unit8Array)) {
+            val.data instanceof Uint8Array)) {
         return;
       }
       var imdat = ctx.createImageData(
@@ -7917,7 +7914,7 @@ var dollar_turtle_methods = {
       sel.tone.apply(sel, arguments);
     } else {
       var instrument = getGlobalInstrument();
-      instrument.play.apply(instrument, args);
+      instrument.play.apply(instrument);
     }
   }),
   silence: wrapraw('silence',
@@ -8489,14 +8486,12 @@ var colors = [
 
 $.turtle = function turtle(id, options) {
   var exportedsee = false;
-  if (!arguments.length) {
-    id = 'turtle';
-  }
   if (arguments.length == 1 && typeof(id) == 'object' && id &&
       !id.hasOwnProperty('length')) {
     options = id;
     id = 'turtle';
   }
+  id = id || 'turtle';
   options = options || {};
   if ('turtle' in options) {
     id = options.turtle;
@@ -8615,6 +8610,7 @@ $.turtle = function turtle(id, options) {
       }
     }
   }
+  return $('#' + id);
 };
 
 $.extend($.turtle, dollar_turtle_methods);
