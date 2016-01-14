@@ -29,5 +29,3 @@ Testing
 Unit tests use a headless webkit.  When setting it up on a system without
 GUI, you may find that you need to install font support.  On debian.
 "apt-get libfontconfig1" provides enough font support.
-
-

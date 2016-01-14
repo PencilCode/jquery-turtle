@@ -1,6 +1,6 @@
 {
   "name": "jquery-turtle",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "Turtle graphics plugin for jQuery.",
   "main": "jquery-turtle.js",
   "scripts": {

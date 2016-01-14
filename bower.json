@@ -2,7 +2,7 @@
   "name": "jquery-turtle",
   "main": "jquery-turtle.js",
   "ignore": [],
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "Turtle graphics plugin for jQuery.",
   "devDependencies": {
     "jquery": "latest",
