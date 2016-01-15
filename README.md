@@ -1,7 +1,7 @@
 jQuery-turtle
 =============
 
-version 2.0.8
+version 2.0.9
 
 jQuery-turtle is a jQuery plugin for turtle graphics.
 
@@ -254,7 +254,7 @@ the functions:
 <pre>
 eval $.turtle()  # Create the default turtle and global functions.
 
-defaultspeed Infinity
+speed Infinity
 write "Catch blue before red gets you."
 bk 100
 r = hatch red
@@ -264,7 +264,7 @@ tick 10, ->
   fd 6
   r.turnto turtle
   r.fd 4
-  b.turnto bearing b
+  b.turnto direction b
   b.fd 3
   if b.touches(turtle)
     write "You win!"
@@ -331,7 +331,7 @@ element.
 License (MIT)
 -------------
 
-Copyright (c) 2014 Pencil Code, Google, and other contributors
+Copyright (c) 2014 Pencil Code, Google Inc., and other contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
