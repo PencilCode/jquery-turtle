@@ -1,13 +1,12 @@
 {
   "name": "jquery-turtle",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "description": "Turtle graphics plugin for jQuery.",
   "main": "jquery-turtle.js",
   "scripts": {
     "deploy": "npm version patch && git add package.json",
     "predeploy": "npm test",
     "postdeploy": "git push ",
-
     "build": "browserify src/jquery-turtle.js -o jquery-turtle.js",
     "test": "npm run build && grunt"
   },
@@ -36,7 +35,9 @@
     "seedrandom": "latest"
   },
   "browserify": {
-    "transform": [ "browserify-shim" ]
+    "transform": [
+      "browserify-shim"
+    ]
   },
   "browserify-shim": {
     "jQuery": "global:jQuery"
