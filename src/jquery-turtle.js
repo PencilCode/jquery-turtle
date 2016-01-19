@@ -1,4 +1,3 @@
-(function($) {
 /*
 
 jQuery-turtle
@@ -366,7 +365,10 @@ THE SOFTWARE.
 // PREREQUISTIES
 // Establish support for transforms in this browser.
 //////////////////////////////////////////////////////////////////////////
+var $ = require('jQuery');
 
+
+(function($) {
 var undefined = void 0,
     global = this,
     __hasProp = {}.hasOwnProperty,
@@ -11142,4 +11144,4 @@ function scalePolygon(poly, sx, sy, tx, ty) {
   }
 }
 
-}).call(this, this.jQuery);
+})(jQuery);
