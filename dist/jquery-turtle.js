@@ -367,9 +367,6 @@ THE SOFTWARE.
 // PREREQUISTIES
 // Establish support for transforms in this browser.
 //////////////////////////////////////////////////////////////////////////
-var $ = (typeof window !== "undefined" ? window['jQuery'] : typeof global !== "undefined" ? global['jQuery'] : null);
-
-
 (function($) {
 var undefined = void 0,
     global = this,
@@ -11146,7 +11143,7 @@ function scalePolygon(poly, sx, sy, tx, ty) {
   }
 }
 
-})(jQuery);
+})((typeof window !== "undefined" ? window['jQuery'] : typeof global !== "undefined" ? global['jQuery'] : null));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}]},{},[1]);

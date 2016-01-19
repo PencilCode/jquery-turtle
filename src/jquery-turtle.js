@@ -365,9 +365,6 @@ THE SOFTWARE.
 // PREREQUISTIES
 // Establish support for transforms in this browser.
 //////////////////////////////////////////////////////////////////////////
-var $ = require('jQuery');
-
-
 (function($) {
 var undefined = void 0,
     global = this,
@@ -11144,4 +11141,4 @@ function scalePolygon(poly, sx, sy, tx, ty) {
   }
 }
 
-})(jQuery);
+})(require('jQuery'));
