@@ -15,7 +15,7 @@ asyncTest("Prints out a bunch of text to test autoscroll.", function() {
   fd.open();
   fd.write('<!doctype html>\n');
   fd.write('<script src="lib/jquery.js"><' + '/script>\n');
-  fd.write('<script src="../jquery-turtle.js"><' + '/script>\n');
+  fd.write('<script src="../dist/jquery-turtle.js"><' + '/script>\n');
   window.dotest = (function() {
     fw.write('hello');
     for (var j = 0; j < 5; ++j) {

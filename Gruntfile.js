@@ -39,7 +39,7 @@ module.exports = function(grunt) {
     uglify: {
       all: {
         files: {
-          "<%= pkg.name %>.min.js": [ "<%= pkg.name %>.js" ]
+          "dist/<%= pkg.name %>.min.js": [ "dist/<%= pkg.name %>.js" ]
         },
         options: {
           preserveComments: false,
