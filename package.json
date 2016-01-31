@@ -2,7 +2,8 @@
   "name": "jquery-turtle",
   "version": "2.0.10",
   "description": "Turtle graphics plugin for jQuery.",
-  "main": "jquery-turtle.js",
+  "main": "src/jquery-turtle.js",
+  "private": true,
   "scripts": {
     "predeploy": "npm test",
     "deploy": "npm version patch && git add package.json",
