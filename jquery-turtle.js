@@ -9121,11 +9121,11 @@ function hatchone(name, container, defaultshape) {
 
   // Create an image element with the requested name.
   var result;
-  if (img) {
+  if (isTag) {
+    result = $(name);
+  } else if (img) {
     result = $('<canvas>');
     applyImg(result, img);
-  } else if (isTag) {
-    result = $(name);
   } else {
     result = $('<div>' + escapeHtml(name) + '</div>');
   }
