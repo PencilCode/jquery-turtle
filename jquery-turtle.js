@@ -3471,7 +3471,6 @@ var keyCodeName = (function() {
     29: 'nonconvert',
     30: 'accept',
     31: 'modechange',
-    27: 'escape',
     32: 'space',
     33: 'pageup',
     34: 'pagedown',
